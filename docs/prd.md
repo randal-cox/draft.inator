@@ -109,7 +109,9 @@ A set of **blocks** for Sveltia CMS's text editor, plus the **build-side rendere
 1. ~~**Licence.**~~ Decided: MIT, as citation.inator, so anyone can take it (Randal, 21 Nov 2026).
 2. **Renderer language.** korazonresearch.org renders in Python; most static-site builders are JavaScript. Ship JS
    renderers and keep the Python ones in the host? Both?
-3. **Packaging.** Vendored tarball (as korazonresearch.org takes citation.inator) or npm?
+3. **Packaging.** Vendored tarball (as korazonresearch.org takes citation.inator) or npm? Decided in part (Randal,
+   21 Nov 2026): small blocks stay in draft.inator; larger plug-ins (import, perhaps) may become their own projects,
+   coupled only through the data contract.
 4. **Sveltia's limits.** Does its editor component API carry Figure (uploads inside a component, previews with
    images)? The Figure block is the test; if not, the TipTap fallback.
 5. **Where the import page lives.** A page in draft.inator that any host serves under `/admin/`, or host-built?

@@ -23,10 +23,11 @@ and the host taking it.
       citation.inator to export its own test is drafted (`docs/requests/`), so the block can stop keeping a copy.
 - [ ] Year letters: the build writes "Cox 1995a" with the article in view, but `works.js` (and so the editor) says
       "Cox 1995". Decide which gives way (Randal), then fix.
-- [ ] Documentation that holds a new site's hand: getting started, the Cite block for writers, the tools, and how
-      draft.inator and citation.inator fit together.
-- [ ] Live demos viewable from GitHub (GitHub Pages): the Cite block's form without installing Sveltia, a round trip,
-      and the build tools' output on a sample site.
+- [x] Documentation that holds a new site's hand: getting started, the Cite block for writers, the tools, and how
+      draft.inator and citation.inator fit together (`docs/README.md`).
+- [x] Live demos viewable from GitHub (GitHub Pages, `demo/`): the Cite block's form without installing Sveltia, a
+      round trip, and the build tools' output on a sample site.
+- [ ] GitHub Pages turned on (Randal: Settings → Pages → Deploy from a branch → `main`, `/ (root)`).
 - [ ] Reference renderer for `{citation …}`: a thin call into citation.inator's compiler (documented, not
       reimplemented).
 

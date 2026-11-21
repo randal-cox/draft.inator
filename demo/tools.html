@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'">
+  <title>Build tools demo</title>
+  <link rel="stylesheet" href="assets/demo.css">
+</head>
+<body>
+<header class="site">
+  <p class="kicker"><a href="./">draft.inator demos</a></p>
+  <h1>The build tools</h1>
+  <p class="lede">What <code>draft-inator notes</code>, <code>tags</code>, and <code>works</code> do to a site, run
+    here in your browser on the sample site (<code>examples/sample-site</code>). This is the same code the commands run
+    (<code>tools/core.js</code>), with citation.inator's tools doing the work. Edit anything and the results follow.</p>
+</header>
+<main>
+  <section class="panel" aria-labelledby="settings-h">
+    <h2 id="settings-h">The site's settings</h2>
+    <label for="style">Citation style</label>
+    <p class="hint" id="style-hint">Use the same style as the site's build. The notes and the works list both follow it.</p>
+    <select id="style" aria-describedby="style-hint">
+      <option value="chicago-author-date">chicago-author-date (Bell 1992)</option>
+      <option value="">default (Bell, 1992)</option>
+      <option value="apa">apa (Bell, 1992)</option>
+      <option value="mla">mla (Bell)</option>
+    </select>
+  </section>
+
+  <h2 id="notes-h">1. Keep notes current: <code>draft-inator notes</code></h2>
+  <p>Every citation marker carries a <code>note:</code> so a person reading the raw file can tell what it cites. The
+    check finds notes that are missing or out of date, and fails a pull request until they're refreshed.</p>
+  <div class="grid two">
+    <div class="panel">
+      <label for="file">File</label>
+      <select id="file"></select>
+      <label for="article">Its text</label>
+      <textarea id="article" class="code" spellcheck="false"></textarea>
+    </div>
+    <div class="panel">
+      <h3>What the check reports</h3>
+      <div id="notes-report" role="status"></div>
+      <h3>After <code>--write</code> (changes marked)</h3>
+      <pre id="notes-after"></pre>
+    </div>
+  </div>
+
+  <h2 id="tags-h">2. Tag totals: <code>draft-inator tags</code></h2>
+  <p>Each <code>tags:</code> a writer gives while citing is one vote for what a work is about. A curator can add or
+    block a tag for a work. The final list becomes the work's <code>tags</code> in citation.inator.</p>
+  <div class="grid two">
+    <div class="panel">
+      <label for="curation">Curation (<code>curation.json</code>)</label>
+      <p class="hint" id="curation-hint">Per work: <code>add</code> and <code>block</code> lists.</p>
+      <textarea id="curation" class="code" spellcheck="false" aria-describedby="curation-hint"></textarea>
+      <p class="status warn" id="curation-error" role="status"></p>
+    </div>
+    <div class="panel">
+      <div class="table-wrap"><table id="tags-table"><caption class="visually-hidden">Tags per work</caption>
+        <thead><tr><th scope="col">Work</th><th scope="col">Votes</th><th scope="col">Added</th><th scope="col">Blocked</th><th scope="col">Tags</th></tr></thead>
+        <tbody></tbody></table></div>
+      <h3>Notes for a person</h3>
+      <ul id="tags-notes"></ul>
+    </div>
+  </div>
+
+  <h2 id="works-h">3. The works list: <code>draft-inator works</code></h2>
+  <p>The Cite block's picker reads <code>works.js</code>. This makes it from the citation.inator cache: every work,
+    with its note in the site's style. A work that isn't resolved yet keeps its in-text wording, and is listed so a
+    person sees it.</p>
+  <div class="panel">
+    <pre id="works-js"></pre>
+    <ul id="works-notes"></ul>
+  </div>
+</main>
+<footer class="site">draft.inator · MIT · <a href="https://github.com/randal-cox/draft.inator">Source on GitHub</a> ·
+  Uses <a href="https://github.com/randal-cox/citation.inator">citation.inator</a> (MIT)</footer>
+<script type="module" src="assets/tools-demo.mjs"></script>
+</body>
+</html>

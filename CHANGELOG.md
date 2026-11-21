@@ -7,6 +7,10 @@
     refreshes them, changing nothing else.
   - `draft-inator tags` totals the topics writers gave each work, with a curator's additions and blocks.
   - `draft-inator works` writes the data contract's `works.js` from a citation.inator cache.
+- **Documentation** for each reader (`docs/README.md`): writers, getting started, the build tools, and how
+  draft.inator and citation.inator fit together.
+- **Live demos** (`demo/`, served by GitHub Pages): the Cite block in a stand-in editor, and the build tools on the
+  sample site (`examples/sample-site/`), running the same code as the commands.
 - citation.inator 0.2.0's tools bundle is vendored in `vendor/citation-inator/` (MIT, notices kept).
 - **Cite block:** the directives it leaves alone now match citation.inator exactly. A work whose id starts with
   `list`, `endnote`, `nocite`, `evidence`, or `credit` (such as `list-2001`) can now be opened in the form.

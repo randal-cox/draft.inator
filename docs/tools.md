@@ -52,6 +52,10 @@ content folders as plain arguments; flags win over the file. The name and format
 
 ## Keep notes current: `draft-inator notes`
 
+![The notes check in the build tools demo: a page's text, what the check reports, and the refreshed text with each change marked](images/notes-demo.png)
+
+Try it in the [build tools demo](https://randal-cox.github.io/draft.inator/demo/tools.html).
+
 ```sh
 npx draft-inator notes --config draft-inator.json
 ```
