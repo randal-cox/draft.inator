@@ -1,0 +1,4 @@
+# GitHub Pages: serves the demos (demo/) and renders the docs. Plain files are copied as they are.
+title: draft.inator
+description: Blocks for Sveltia CMS, citations first, built around citation.inator.
+exclude: [test, package.json]

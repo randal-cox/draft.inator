@@ -1,0 +1,65 @@
+/* draft.inator demos. No inline styles or scripts anywhere, so the pages run under a strict Content Security Policy
+   like the host sites do. */
+:root {
+  --bg: #fbfaf7; --surface: #ffffff; --ink: #1d1b18; --muted: #5d5850; --line: #d9d4ca;
+  --accent: #7a2e1f; --accent-ink: #ffffff; --focus: #1f5fbf; --mark: #fff1b8; --mark-ink: #1d1b18;
+  --ok: #1f6b3a; --warn: #8a4b00;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171614; --surface: #201f1c; --ink: #ece8e1; --muted: #a8a196; --line: #3a3732;
+    --accent: #e39a7f; --accent-ink: #1b1210; --focus: #8ab4ff; --mark: #5a4a12; --mark-ink: #fff6d6;
+    --ok: #7fd19b; --warn: #f0b35c;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--sans); }
+main, header.site, footer.site { max-width: 72rem; margin: 0 auto; padding: 0 16px; }
+header.site { padding-top: 2rem; }
+header.site p.kicker { margin: 0; font-size: .85rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+header.site p.kicker a { color: inherit; }
+h1 { font: 600 2.1rem/1.15 var(--serif); margin: .25rem 0 .75rem; }
+h2 { font: 600 1.4rem/1.2 var(--serif); margin: 2.25rem 0 .5rem; }
+h3 { font-size: 1rem; margin: 1.25rem 0 .4rem; }
+p.lede { font-size: 1.1rem; max-width: 46rem; color: var(--muted); }
+a { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+code, pre, textarea.code, output.code { font-family: var(--mono); font-size: .88rem; }
+pre, output.code { display: block; white-space: pre-wrap; word-break: break-word; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 6px; padding: .75rem; margin: .5rem 0; }
+.grid { display: grid; gap: 1.25rem; grid-template-columns: 1fr; }
+@media (min-width: 60rem) { .grid.two { grid-template-columns: 1fr 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.1rem; min-width: 0; }
+.panel > h2:first-child, .panel > h3:first-child { margin-top: 0; }
+label { display: block; font-weight: 600; margin: .6rem 0 .2rem; }
+.hint { color: var(--muted); font-size: .9rem; margin: .15rem 0 .4rem; font-weight: 400; }
+input[type=text], select, textarea { width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 5px; padding: .45rem .55rem; }
+textarea.code { min-height: 14rem; line-height: 1.5; }
+fieldset { border: 1px solid var(--line); border-radius: 6px; margin: .75rem 0; padding: .5rem .9rem .9rem; }
+legend { font-weight: 700; padding: 0 .3rem; }
+fieldset.checks label { display: flex; gap: .5rem; align-items: center; font-weight: 400; margin: .2rem 0; }
+button { font: inherit; font-weight: 600; border-radius: 5px; padding: .45rem .9rem; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+button.quiet { background: transparent; color: var(--accent); }
+.actions { display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0 0; }
+ol.markers { padding-left: 1.4rem; }
+ol.markers li { margin: .35rem 0; }
+ol.markers code { word-break: break-all; }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: .4rem .5rem; }
+.table-wrap { overflow-x: auto; }
+mark { background: var(--mark); color: var(--mark-ink); border-radius: 2px; }
+.status { min-height: 1.5em; color: var(--muted); }
+.ok { color: var(--ok); } .warn { color: var(--warn); }
+.preview { font-family: var(--serif); font-size: 1.05rem; white-space: pre-wrap; }
+.cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); margin: 1.5rem 0; }
+.cards a.card { display: block; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; padding: 1rem 1.1rem; }
+.cards a.card:hover { border-color: var(--accent); }
+.cards a.card strong { display: block; color: var(--accent); font-size: 1.1rem; margin-bottom: .25rem; }
+footer.site { margin-top: 3rem; padding-bottom: 2rem; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

@@ -24,10 +24,11 @@ and the host taking it.
 - [ ] Year letters: the build writes "Cox 1995a" with the article in view, but `works.js` (and so the editor) says
       "Cox 1995". Asked citation.inator for an `annotateMarkers` option that writes notes without year letters
       (Randal, 21 Nov 2026; `docs/requests/`); then `draft-inator notes` uses it.
-- [ ] Documentation that holds a new site's hand: getting started, the Cite block for writers, the tools, and how
-      draft.inator and citation.inator fit together.
-- [ ] Live demos viewable from GitHub (GitHub Pages): the Cite block's form without installing Sveltia, a round trip,
-      and the build tools' output on a sample site.
+- [x] Documentation that holds a new site's hand: getting started, the Cite block for writers, the tools, and how
+      draft.inator and citation.inator fit together (`docs/README.md`).
+- [x] Live demos viewable from GitHub (GitHub Pages, `demo/`): the Cite block's form without installing Sveltia, a
+      round trip, and the build tools' output on a sample site.
+- [x] GitHub Pages turned on (Randal, 21 Nov 2026: `main`, `/ (root)`). The demos appear once this merges.
 - [ ] Reference renderer for `{citation …}`: a thin call into citation.inator's compiler (documented, not
       reimplemented).
 
