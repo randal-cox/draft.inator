@@ -107,5 +107,5 @@ The block writes citation.inator markers; your build already compiles those with
 |---|---|
 | No Citation block in the editor | `citation.js` loaded before Sveltia, or not at all; check the browser console |
 | The works list is empty | `works.js` didn't load, or loaded after `citation.js` |
-| Notes keep coming back stale after saving in the editor | `works.js` and `notes` use different styles, or the year-letter case ([known limit](tools.md#known-limit-year-letters)) |
+| Notes keep coming back stale after saving in the editor | `works.js` and `notes` use different styles, or `noteContext` is set to `article` ([year letters](tools.md#year-letters)) |
 | `Unsupported citation cache schema` | `cache` isn't a citation.inator cache (`citation-inator.cache.v1`) |

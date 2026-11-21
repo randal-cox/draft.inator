@@ -1,7 +1,7 @@
 // The browser-safe heart of the build tools: no file system, only citation.inator's tools. The Node commands
 // (notes.js, tags.js, works.js) and the live demos (demo/) both run this, so the demos show the real behaviour.
-import { describeCitation, annotateMarkers, collectMarkerTags } from '../vendor/citation-inator/citation-tools.mjs';
-export { describeCitation, annotateMarkers, collectMarkerTags };
+import { describeCitation, annotateMarkers, collectMarkerTags, markerKind } from '../vendor/citation-inator/citation-tools.mjs';
+export { describeCitation, annotateMarkers, collectMarkerTags, markerKind };
 
 // The settings every tool must share. Notes written by the build and notes in works.js have to agree, so the
 // citation style lives in one place.
@@ -19,8 +19,11 @@ export function lineCol(source, offset) {
 }
 
 // One file's notes: what is stale or missing, what citation.inator wants a person to see, and the refreshed text.
+// Notes describe the work alone ("Cox 1995"), as works.js and so the Cite block do, not the work in this article
+// ("Cox 1995a"); otherwise saving in the editor and the check would undo each other. A site that doesn't use the
+// block can set noteContext: "article".
 export function noteEdits(source, cache, settings = {}, format = 'text') {
-  const result = annotateMarkers(source, cache, { ...citationOptions(settings), format });
+  const result = annotateMarkers(source, cache, { ...citationOptions(settings), noteContext: settings.noteContext || 'work', format });
   return {
     source: result.source,
     changed: result.changed,
