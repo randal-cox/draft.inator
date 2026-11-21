@@ -4,6 +4,7 @@ Start with whichever describes you.
 
 | You are… | Read |
 |---|---|
+| **Reviewing a pull request** | [Try it on your own computer](try-a-pull-request.md) |
 | **Trying it out** | The [live demos](https://randal-cox.github.io/draft.inator/demo/): the Cite block and the build tools, running in your browser |
 | **A writer** | [Citing a work](writers.md) |
 | **Adding draft.inator to a site** | [Getting started](getting-started.md), then [the build tools](tools.md) |

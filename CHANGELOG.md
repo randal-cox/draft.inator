@@ -2,6 +2,8 @@
 
 ## Unreleased (0.3)
 
+- `npm run demo` serves the demos on your own computer, to try a pull request before it's merged
+  (`docs/try-a-pull-request.md`).
 - **Figure block** (`src/blocks/figure.js`): place an image with required alt text, a caption, its provenance
   (credit, licence, source), and how it sits (alignment, width, wrap). Upload or choose from the site's images; the
   preview shows an upload before it's published; stock photo services are never offered. It writes one readable line,
