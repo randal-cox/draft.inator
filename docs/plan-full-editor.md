@@ -162,6 +162,24 @@ counts, problems, and path), searched in the browser with a small index draft.in
 overlaid live with open drafts and their review state from the GitHub API, so a draft opened a minute ago shows at
 once. The index never includes the text of pages a reader couldn't see, if the list is ever shown outside the CMS.
 
+## Entities
+
+Randal: editing people, tags, and so on also uses the editor, with small changes relevant to each entity.
+
+- **One editor for every collection.** Articles, people, topics, tags, glossary terms: each is an entry in a
+  collection, opened in the same editor box, saved the same way (one draft branch and pull request per entry).
+- **Fields come from the collection's description.** Each collection lists its fields: name, label, widget (string,
+  text, date, select, relation, image, list, object, boolean), whether required, and help text. The settings panel draws
+  them, with draft.inator's forms. The format is Sveltia's collection config, which sites such as KR already have, so
+  one description serves both and nothing is written twice.
+- **Body or no body.** An article has a Markdown body and front matter. A person or topic may be only fields: a YAML
+  file such as `content/people/ann-cox.yml`. Then the editor shows the fields and no writing pane, or a writing pane for
+  the one long-text field (a biography, a definition).
+- **Relations.** An article's `authors` picks from the people collection; `tags` and `topics` from theirs, with a
+  link to open that person or topic in the editor. Renaming an entity updates every reference in one pull request.
+- **Entity pages.** Each entity's page (a person's page, a topic's page) gets "Edit this page" like an article.
+- **The article list** becomes an entry list per collection, with the same search, filters, and saved views.
+
 ## The permission structure
 
 Randal: pages only some readers may see are needed; KR can do some of the lifting, and draft.inator must at least
@@ -234,16 +252,16 @@ Randal, 21 Nov 2026:
    time.
 4. **The article list needs search and "all kinds of annoying things":** see [the article list](#the-article-list).
 
-Still open: **Sveltia's role.** Keep it for form-shaped collections (people, topics, settings) beside draft.inator's
-editor, sharing the blocks and the save path?
+5. **People, tags, topics, and other entities use the same editor,** "in usual CMS fashion", with small changes
+   for each kind of entity. See [Entities](#entities). Sveltia is no longer needed for them.
 
 ## Order
 
 | Milestone | Contents |
 |---|---|
 | 0.4 (now) | KR's "Edit this page"; real citations in the preview (#14); the import widget (#16); recover an unsaved draft |
-| 0.5 | **Article metadata and the permission structure**: a settings panel for the fields in 4, including `visibility` and `editors`; the site's groups; the data contract for both |
-| 0.6 | **The article list and handling**: search, filters, saved views, counts; history with readable diffs and Restore; unpublish, trash, restore; scheduled publishing |
+| 0.5 | **Metadata, entities, and the permission structure**: a settings panel drawn from each collection's fields (Sveltia's config format), so the same editor edits articles, people, topics, and tags; YAML-only entries; relations; `visibility` and `editors`; the data contract |
+| 0.6 | **The entry list and handling**: search, filters, saved views, counts; history with readable diffs and Restore; unpublish, trash, restore; scheduled publishing |
 | 0.7 | **Media library** (images): browse, details, sidecar provenance, usage, crop and rotate, upload limits, EXIF stripping |
 | 0.8 | **Access checks**: `access.json` for hosts, the leak check, CODEOWNERS or an `editors` check; Table, Embed, Callout, page links |
 | 1.0 | A second site adopts it; docs for a new site |

@@ -43,7 +43,7 @@ A set of **blocks** for Sveltia CMS's text editor, plus the **build-side rendere
    korazonresearch.org's markers).
 2. **Plain text in the file.** Tags a person can read and edit by hand. Unknown options are kept, never dropped.
 3. **A full article editor that real sites use** (Randal, 21 Nov 2026). Sveltia is one host for the blocks, and the
-   current one; draft.inator's own editor (begun as the live editor demo, 0.4) is another. Whichever a site uses, the
+   current one, but draft.inator's editor is meant to cover every collection, entities included; draft.inator's own editor (begun as the live editor demo, 0.4) is another. Whichever a site uses, the
    blocks, the tags, and the round-trip guarantee are the same. Choices between them are made on evidence, not taste.
 4. **Algorithms first, AI last, always a way down.** Matching, parsing, and lookups use rules and open services
    (Crossref, Open Library). A language model, if ever used, is an optional plug-in behind the rules, measured
@@ -87,7 +87,9 @@ A set of **blocks** for Sveltia CMS's text editor, plus the **build-side rendere
 
 The full set is planned in `docs/plan-full-editor.md`: article metadata (authors, dates, status, excerpt, preview image,
 tags, SEO, visibility), an article list with search and filters, history and restore, trash, scheduling, and a media
-library. **Who may see and edit a page** is part of each article's metadata: draft.inator exposes the structure and
+library. **The same editor edits every collection:** people, topics, and tags as well as articles, each with its own
+fields, read from the site's collection config (Randal, 21 Nov 2026). **Who may see and edit a page** is part of each
+article's metadata: draft.inator exposes the structure and
 checks it, and the host enforces reading (Randal, 21 Nov 2026).
 
 ### Being a plug-in

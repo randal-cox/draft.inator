@@ -60,7 +60,7 @@ can grow into the editor real sites use (PRD principle 3).
 - [x] The editor in `src/editor/` (`mountEditor`, `renderArticle`, the blocks' forms), with tests.
 - [x] Front matter kept byte for byte; saving as a Sveltia-compatible draft pull request (`github.js`).
 
-## 0.5: Article metadata and the permission structure
+## 0.5: Metadata, entities, and the permission structure
 
 From `docs/plan-full-editor.md` (decided 21 Nov 2026).
 
@@ -68,6 +68,10 @@ From `docs/plan-full-editor.md` (decided 21 Nov 2026).
       tags and topics, SEO and social cards, canonical address, noindex, redirects.
 - [ ] Who may see a page (`visibility`: public, unlisted, members, or the site's groups) and who may edit it
       (`editors`), from groups the site declares.
+- [ ] Entities in the same editor (Randal, 21 Nov 2026): the settings panel is drawn from each collection's fields,
+      read from Sveltia's collection config, so articles, people, topics, and tags all use one editor. Entries that
+      are only fields (YAML files) get the fields and no writing pane. Relations (`authors` → people, `topics`) pick
+      from their collection.
 - [ ] The data contract for these fields, validated in the editor and by a build check.
 
 ## 0.6: The article list and article handling
