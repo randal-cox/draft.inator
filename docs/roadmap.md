@@ -3,13 +3,14 @@
 Ordered by what writers at the first host (korazonresearch.org) need next. Each milestone ends with a tagged release
 and the host taking it.
 
-## 0.1: Cite (done in the host; packaging here)
+## 0.1: Cite (released, v0.1.0)
 
 - [x] Cite block: pick works, page, prefix, form, topics; note from citation.inator; round-trip safe (163 markers).
 - [x] Data contract: `DRAFT_WORKS`, `DRAFT_TOPICS`.
 - [x] Tests on Node alone: round-trip, second pass stable, quoting kept, option order kept, unknown options kept.
-- [ ] Licence decided; first tag `v0.1.0`; korazonresearch.org loads the block from a release instead of its own copy.
-- [ ] A changelog.
+- [x] Licence: MIT, as citation.inator (Randal, 21 Nov 2026).
+- [x] A changelog.
+- [ ] First tag `v0.1.0` (after this merges); korazonresearch.org loads the block from the release instead of its own copy.
 
 ## 0.2: Notes and tags kept current (with citation.inator 0.2+)
 

@@ -1,10 +1,13 @@
 {
   "name": "draft-inator",
-  "version": "0.1.0-dev",
+  "version": "0.1.0",
   "private": true,
   "description": "Writing tools for static-site editors: blocks for Sveltia CMS (citations first), built around citation.inator.",
   "type": "module",
-  "files": ["src", "docs"],
+  "license": "MIT",
+  "author": "Randal Cox",
+  "repository": { "type": "git", "url": "git+https://github.com/randal-cox/draft.inator.git" },
+  "files": ["src", "docs", "CHANGELOG.md", "LICENSE"],
   "scripts": {
     "test": "node --test test/*.test.js"
   },
