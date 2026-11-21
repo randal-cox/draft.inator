@@ -2,19 +2,10 @@
 // nothing needs installing). Plain Node, no dependencies.
 import fs from 'node:fs';
 import path from 'node:path';
-export { describeCitation, annotateMarkers, collectMarkerTags } from '../vendor/citation-inator/citation-tools.mjs';
+export { citationOptions, lineCol } from './core.js';
 
 // Which files hold content, and how citation.inator should read each.
 export const FORMATS = { '.md': 'markdown', '.markdown': 'markdown', '.html': 'html', '.htm': 'html', '.txt': 'text' };
-
-// The settings every tool must share. Notes written by the build and notes in works.js have to agree, so the
-// citation style lives in one place.
-export function citationOptions(settings = {}) {
-  const options = {};
-  if (settings.style) options.citationStyle = settings.style;
-  if (settings.keyword) options.citationKeyword = settings.keyword;
-  return options;
-}
 
 export function readJSON(file) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
@@ -51,9 +42,3 @@ export function contentFiles(roots) {
 }
 
 export function formatOf(file) { return FORMATS[path.extname(file).toLowerCase()] || 'text'; }
-
-// Line and column (1-based) of an offset, for messages a person can follow.
-export function lineCol(source, offset) {
-  const before = source.slice(0, offset).split('\n');
-  return `${before.length}:${before[before.length - 1].length + 1}`;
-}

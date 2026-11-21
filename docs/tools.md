@@ -120,6 +120,9 @@ Each command is a plain function: `checkNotes(settings, { write })` in `tools/no
 `tools/tags.js`, `buildWorks(settings)` and `worksJs({ works, topics })` in `tools/works.js`. `settings` is the same
 object as the file, with `cache` either a path or the cache itself.
 
+`tools/core.js` holds the parts that need no file system (`noteEdits`, `tagTotals`, `worksFromCache`, `worksJs`).
+It runs in a browser as well as Node; the live demos use it, so they show exactly what the commands do.
+
 ## Known limit: year letters
 
 When one article cites two works by the same author in the same year, citation.inator tells them apart with letters

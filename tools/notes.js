@@ -2,7 +2,8 @@
 // Check mode (the default) changes nothing and reports stale notes; write mode saves the refreshed files.
 import fs from 'node:fs';
 import path from 'node:path';
-import { annotateMarkers, citationOptions, contentFiles, formatOf, lineCol, readJSON } from './site.js';
+import { noteEdits } from './core.js';
+import { contentFiles, formatOf, readJSON } from './site.js';
 
 /**
  * @param {object} settings  { content: [folders or files], cache: path or object, style, keyword }
@@ -12,19 +13,12 @@ import { annotateMarkers, citationOptions, contentFiles, formatOf, lineCol, read
 export function checkNotes(settings, { write = false } = {}) {
   const cache = typeof settings.cache === 'string' ? readJSON(settings.cache) : settings.cache;
   if (!cache) throw new Error('No citation cache given (settings.cache).');
-  const options = citationOptions(settings);
   const files = [], written = [];
   let stale = 0;
   for (const file of contentFiles(settings.content)) {
-    const source = fs.readFileSync(file, 'utf8');
-    const result = annotateMarkers(source, cache, { ...options, format: formatOf(file) });
-    const entry = {
-      file,
-      stale: result.edits.map(e => ({ at: lineCol(source, e.start), was: source.slice(e.start, e.end), now: e.text })),
-      diagnostics: result.diagnostics.map(d => ({ ...d, ...(Number.isInteger(d.start) && { at: lineCol(source, d.start) }) }))
-    };
-    stale += entry.stale.length;
-    if (entry.stale.length || entry.diagnostics.length) files.push(entry);
+    const result = noteEdits(fs.readFileSync(file, 'utf8'), cache, settings, formatOf(file));
+    stale += result.stale.length;
+    if (result.stale.length || result.diagnostics.length) files.push({ file, stale: result.stale, diagnostics: result.diagnostics });
     if (write && result.changed) { fs.writeFileSync(file, result.source); written.push(file); }
   }
   return { files, stale, written };
