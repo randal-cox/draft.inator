@@ -41,6 +41,7 @@ editor writes. Put the settings in one file, `draft-inator.json`, next to your c
 | `cache` | The citation.inator cache |
 | `style` | citation.inator's `citationStyle` (`default`, `apa`, `chicago-author-date`, `mla`, …). Use your build's |
 | `keyword` | citation.inator's `citationKeyword`, if your site changed it from `citation` |
+| `noteContext` | `work` (the default): notes describe the work alone, as the editor does. `article`: notes include year letters ("Cox 1995a"); only for sites that don't use the Cite block |
 | `content` | Folders (or files) to read |
 | `topics` | Optional: the topics a citation can be tagged with, `[{ "id": "…", "label": "…" }]` |
 | `curation` | Optional: per-work tag additions and blocks (below) |
@@ -127,10 +128,10 @@ object as the file, with `cache` either a path or the cache itself.
 `tools/core.js` holds the parts that need no file system (`noteEdits`, `tagTotals`, `worksFromCache`, `worksJs`).
 It runs in a browser as well as Node; the live demos use it, so they show exactly what the commands do.
 
-## Known limit: year letters
+## Year letters
 
-When one article cites two works by the same author in the same year, citation.inator tells them apart with letters
-("Cox 1995a", "Cox 1995b"). `notes` sees the whole article, so it writes the letters. `works.js` describes each work
-alone, so its notes have none, and the Cite block writes the note from `works.js` when a writer saves. Until this is
-settled, saving such a marker in the editor makes `notes` report it stale. We've asked citation.inator for an option
-to write notes without year letters; `notes` will use it when it arrives.
+When one article cites two works by the same author in the same year, readers see them told apart with letters
+("Cox 1995a", "Cox 1995b"); citation.inator's compiler does that. Notes don't carry the letters: they describe each
+work alone ("Cox 1995"), exactly as `works.js` and the Cite block do, so saving in the editor never makes the check
+fail. (This uses citation.inator's `noteContext: "work"`. Set `"noteContext": "article"` to get lettered notes, but
+only if you don't use the Cite block.)

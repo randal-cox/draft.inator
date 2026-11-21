@@ -18,7 +18,7 @@ draft.inator never formats a citation for readers. citation.inator does that, in
 | Tag totals per work | `draft-inator tags` (adds curation) | `collectMarkerTags` |
 | The editor's list of works | `draft-inator works` | `describeCitation` over the cache |
 | Looking works up (Crossref, Open Library) | | Its resolvers |
-| Which markers are citations and which are directives | Follows it; tested against it | Defines it |
+| Which markers are citations and which are directives | Follows it; tested against it | Defines it: `markerKind` |
 
 ## How data moves
 
@@ -55,11 +55,12 @@ same version, and the same citation style, so notes agree with what readers see.
 
 ## What draft.inator has asked of citation.inator
 
-Requests are kept in [`docs/requests/`](requests/). Open now:
+Requests are kept in [`docs/requests/`](requests/). Both from 21 Nov 2026 were delivered the same day (commit
+`adbb07e`, ahead of citation.inator's next release):
 
-- Export its own test of "citation or directive", so the Cite block can stop keeping a copy.
-- An `annotateMarkers` option that writes notes without year letters ("Cox 1995", not "Cox 1995a"), so the build
-  and the editor agree.
+- `markerKind`, citation.inator's own test of "citation or directive". The Cite block still needs a regular
+  expression (Sveltia finds blocks with one), so `markerKind` is what the tests hold that expression to.
+- `annotateMarkers(…, { noteContext: "work" })`: notes without year letters, so the build and the editor agree.
 
 ## Larger plug-ins
 

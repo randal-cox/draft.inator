@@ -19,8 +19,8 @@ Everything here started in korazonresearch.org (repository `Teatro-Korazon/koraz
   citation.inator cache, so any site can generate `works.js`.
 - **The topics** are the host's reference-topic list (6 groups, 34 topics, 9 kinds), shown as "Group › Topic".
 - **The skipped marker words** (`endnote`, `list`, `nocite`, `evidence`, `credit`) match citation.inator 0.2.0's
-  directives exactly and are tested against it, but the block still keeps its own copy. Requested from citation.inator
-  (`docs/requests/citation-inator-2026-11-21.md`).
+  directives exactly, held there by a test against citation.inator's `markerKind`. The block keeps a regular
+  expression because Sveltia needs one to find blocks.
 - **Sign-in, page history, and the route map** are the host's (a Cloudflare Pages function for GitHub sign-in;
   `/admin/history.html`; `kr_build/routes.py`). The page-link block will need a route map in the data contract.
 - **The Sveltia version** (0.262.4) is pinned by the host.
