@@ -14,7 +14,8 @@ where it becomes a plug-in any site can use. Build tools (`draft-inator notes`, 
 ## See it working
 
 **[Live demos](https://randal-cox.github.io/draft.inator/demo/)**: the Cite block and the build tools, running in your
-browser. To run them locally, serve the repository (`python3 -m http.server`) and open `/demo/`.
+browser. To run them on your own computer, `npm run demo`; to try a pull request before it's merged, see
+[`docs/try-a-pull-request.md`](docs/try-a-pull-request.md).
 
 ![The Cite block demo](docs/images/cite-demo.png)
 

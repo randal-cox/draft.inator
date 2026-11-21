@@ -10,7 +10,8 @@
   "files": ["src", "tools", "vendor", "docs", "CHANGELOG.md", "LICENSE"],
   "bin": { "draft-inator": "tools/cli.js" },
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "demo": "node scripts/serve.js"
   },
   "engines": { "node": ">=22" }
 }
