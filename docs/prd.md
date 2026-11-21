@@ -83,6 +83,13 @@ A set of **blocks** for Sveltia CMS's text editor, plus the **build-side rendere
   records, after a review table. Feasibility and division of labour with citation.inator: `docs/import-sketch.md`
   (citation.inator F4).
 
+### Articles, metadata, and access
+
+The full set is planned in `docs/plan-full-editor.md`: article metadata (authors, dates, status, excerpt, preview image,
+tags, SEO, visibility), an article list with search and filters, history and restore, trash, scheduling, and a media
+library. **Who may see and edit a page** is part of each article's metadata: draft.inator exposes the structure and
+checks it, and the host enforces reading (Randal, 21 Nov 2026).
+
 ### Being a plug-in
 
 - **One site file** (name to be decided; e.g. `draft-inator.yml`): which blocks are on, where uploads go, where
@@ -93,6 +100,8 @@ A set of **blocks** for Sveltia CMS's text editor, plus the **build-side rendere
 
 ## Not doing (for now)
 
+- Visual (WYSIWYG) editing: writers edit Markdown with a live preview (Randal, 21 Nov 2026).
+- Video and audio hosting, perhaps for a long time; hosted video comes in through the Embed block.
 - A CMS, a host, or sign-in: Sveltia and the host site do those.
 - Hosting media: uploads go to the site's repository or its own storage.
 - AI-written prose, summaries, or rewrites.
