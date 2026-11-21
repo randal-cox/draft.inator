@@ -20,6 +20,7 @@ as a pull request the way Sveltia's editorial workflow does.
   else's. Tested against a fake GitHub.
 - **Editing inside a site** demo (`demo/site/`): a made-up archive whose "Edit this page" swaps the article for the
   editor, with the site's menus in view.
+- An editor box a site hides (`hidden`) now stays hidden.
 - `npm run demo` serves the demos on your own computer, to try a pull request before it's merged
   (`docs/try-a-pull-request.md`).
 - **Figure block** (`src/blocks/figure.js`): place an image with required alt text, a caption, its provenance
