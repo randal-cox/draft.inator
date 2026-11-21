@@ -17,6 +17,8 @@ Build tools that keep a site's citations tidy, documentation and live demos, and
 - **Cite block:** the directives it leaves alone now match citation.inator exactly, held there by a test against
   citation.inator's `markerKind`. A work whose id starts with `list`, `endnote`, `nocite`, `evidence`, or `credit`
   (such as `list-2001`) can now be opened in the form.
+- **Cite block fix:** unknown options separated by a known one (`{citation x | label:"a" | locator:3 | foo:1}`) were
+  regrouped on save. Each now stays where it was. Present since 0.1.0.
 - **Documentation** for each reader (`docs/README.md`): writers, getting started, the build tools, and how
   draft.inator and citation.inator fit together. The 0.3 evidence on Sveltia and the Figure block is in
   `docs/decisions/`.
