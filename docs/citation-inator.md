@@ -49,14 +49,14 @@ flowchart LR
 
 ## Versions
 
-draft.inator vendors citation.inator's tools bundle (`vendor/citation-inator/`, currently 0.2.0), so its tools and
+draft.inator vendors citation.inator's tools bundle (`vendor/citation-inator/`, currently 0.3.0), so its tools and
 tests need nothing installed. The site's own build uses whatever citation.inator version it takes; keep the two on the
 same version, and the same citation style, so notes agree with what readers see.
 
 ## What draft.inator has asked of citation.inator
 
-Requests are kept in [`docs/requests/`](requests/). Both from 21 Nov 2026 were delivered the same day (commit
-`adbb07e`, ahead of citation.inator's next release):
+Requests are kept in [`docs/requests/`](requests/). Both from 21 Nov 2026 were delivered the same day, and released in
+citation.inator 0.3.0 (#7, #8):
 
 - `markerKind`, citation.inator's own test of "citation or directive". The Cite block still needs a regular
   expression (Sveltia finds blocks with one), so `markerKind` is what the tests hold that expression to.

@@ -11,8 +11,8 @@
   draft.inator and citation.inator fit together.
 - **Live demos** (`demo/`, served by GitHub Pages): the Cite block in a stand-in editor, and the build tools on the
   sample site (`examples/sample-site/`), running the same code as the commands.
-- citation.inator's tools bundle is vendored in `vendor/citation-inator/` (MIT, notices kept): 0.2.0 plus Theandra's
-  commit `adbb07e`, which adds the two things draft.inator asked for.
+- citation.inator's tools bundle is vendored in `vendor/citation-inator/` (MIT, notices kept): **0.3.0**, from the
+  release tarball, checked against its published checksums. It adds the two things draft.inator asked for.
 - **Year letters settled:** notes describe the work alone ("Cox 1995"), with citation.inator's `noteContext: "work"`,
   so `draft-inator notes`, `works.js`, and the Cite block always agree. `"noteContext": "article"` is available.
 - The Cite block's directive test is now held to citation.inator's own `markerKind`.
