@@ -16,9 +16,12 @@ where it becomes a plug-in any site can use.
 | Path | What |
 |---|---|
 | `src/blocks/citation.js` | The Cite block: a Sveltia editor component that reads and writes citation.inator markers |
-| `test/` | `npm test` (Node 22, no dependencies): round-trip, quoting, option order, and preview checks |
+| `tools/` | Build tools: keep notes current, total tags, write `works.js` (`docs/tools.md`) |
+| `vendor/citation-inator/` | citation.inator's tools bundle, vendored so nothing needs installing |
+| `test/` | `npm test` (Node 22, no dependencies): round-trip, quoting, option order, preview, the tools, and agreement with citation.inator |
 | `docs/prd.md` | **The product requirements**: who it's for, what it does, what it won't do |
 | `docs/roadmap.md` | Milestones, in order |
+| `docs/tools.md` | The build tools, step by step |
 | `docs/data-contract.md` | What a host site provides (the works list, the topics) and what the blocks write |
 | `docs/origin.md` | Where each piece came from in korazonresearch.org, and what is still site-specific |
 | `docs/import-sketch.md` | Feasibility sketch: turning pasted APA/Chicago citations into markers |

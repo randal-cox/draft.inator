@@ -14,9 +14,19 @@ and the host taking it.
 
 ## 0.2: Notes and tags kept current (with citation.inator 0.2+)
 
-- [ ] Host build step: `annotateMarkers` over all content; check that fails a pull request with a stale note.
-- [ ] Tag totals from markers (`collectMarkerTags`), with curator add/block per work; handed to citation.inator as
-      record `tags`.
+- [x] Host build step: `draft-inator notes` runs `annotateMarkers` over all content; it fails a pull request with a
+      stale note, and `--write` fixes it.
+- [x] Tag totals from markers (`draft-inator tags`, from `collectMarkerTags`), with curator add/block per work; handed
+      to citation.inator as record `tags`.
+- [x] A JS producer for `works.js` (`draft-inator works`), from a citation.inator cache, so any site can make it.
+- [x] Skipped directive words match citation.inator exactly, tested against the vendored library. A request for
+      citation.inator to export its own test is drafted (`docs/requests/`), so the block can stop keeping a copy.
+- [ ] Year letters: the build writes "Cox 1995a" with the article in view, but `works.js` (and so the editor) says
+      "Cox 1995". Decide which gives way (Randal), then fix.
+- [ ] Documentation that holds a new site's hand: getting started, the Cite block for writers, the tools, and how
+      draft.inator and citation.inator fit together.
+- [ ] Live demos viewable from GitHub (GitHub Pages): the Cite block's form without installing Sveltia, a round trip,
+      and the build tools' output on a sample site.
 - [ ] Reference renderer for `{citation …}`: a thin call into citation.inator's compiler (documented, not
       reimplemented).
 

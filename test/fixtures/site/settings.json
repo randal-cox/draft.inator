@@ -1,0 +1,8 @@
+{
+  "cache": "citations.json",
+  "style": "chicago-author-date",
+  "content": ["content"],
+  "curation": "curation.json",
+  "topics": "topics.json",
+  "works": "works.js"
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "citation-inator.cache.v1",
+  "records": [
+    { "id": "bell-1992-ritual", "type": "book", "state": "resolved", "title": "Ritual Theory, Ritual Practice",
+      "authors": [{ "family": "Bell", "given": "Catherine" }], "issued": [1992] },
+    { "id": "turner-1969-ritual", "type": "book", "state": "resolved", "title": "The Ritual Process",
+      "authors": [{ "family": "Turner", "given": "Victor" }], "issued": [1969] },
+    { "id": "ainsworth-1978-patterns", "type": "book", "state": "resolved", "title": "Patterns of Attachment",
+      "authors": [{ "family": "Ainsworth" }, { "family": "Blehar" }, { "family": "Waters" }, { "family": "Wall" }], "issued": [1978] },
+    { "id": "smith-2003-rites", "state": "unresolved", "title": "", "citationText": "Smith 2003" }
+  ]
+}
