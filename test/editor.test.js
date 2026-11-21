@@ -50,3 +50,26 @@ test('title and counts', () => {
   assert.equal(r.words, 4);
   assert.equal(r.citations, 1);
 });
+
+test('a block that is not enabled is skipped: its tags stay as text', async () => {
+  const r = renderArticle('A {citation bell-1992-ritual}.\n\n{figure /a.png | alt:"x"}', { render: md, blocks: ['citation'] });
+  assert.equal(r.citations, 1);
+  assert.equal(r.figures, 0);
+  assert.ok(r.html.includes('{figure /a.png | alt:"x"}'));
+});
+
+test('with a block not loaded at all, rendering still works', async () => {
+  const saved = globalThis.window.DraftForms.components.figure;
+  delete globalThis.window.DraftForms.components.figure;
+  try {
+    const r = renderArticle('A {citation bell-1992-ritual}. {figure /a.png | alt:"x"}', { render: md });
+    assert.equal(r.citations, 1);
+  } finally { globalThis.window.DraftForms.components.figure = saved; }
+});
+
+test('bodyKind tells an HTML body from a Markdown one', async () => {
+  const { bodyKind } = await import('../src/editor/editor.js');
+  assert.equal(bodyKind('# Title\n\nA paragraph with <em>a little</em> HTML.\n'), 'markdown');
+  assert.equal(bodyKind('<p data-comment-target="a">One.</p>\n<ul class="cc-list"><li>Two</li></ul>\n<p>Three, longer, and more.</p>'), 'html');
+  assert.equal(bodyKind(''), 'markdown');
+});

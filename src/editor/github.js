@@ -64,11 +64,13 @@ export function createWorkflowSaver({ token, owner, repo, base = 'main', labelPr
 
     /**
      * Commit `text` to the entry's draft branch (making it from `base` if needed) and make sure a draft pull request
-     * is open for it. `sha` is the file's sha from load(): if the file changed since, a SaveConflict is thrown and
-     * nothing is written.
+     * is open for it. `sha` is required: the file's sha as load() (or the previous save) gave it, null for a new file.
+     * If the file changed since, a SaveConflict is thrown and nothing is written. Keep the returned `sha` for the
+     * next save.
      * @returns {Promise<{ pr: { number, url }, created: boolean, commit: string, sha: string }>}
      */
-    async save({ collection, slug, path, text, sha = null, message, title }) {
+    async save({ collection, slug, path, text, sha, message, title }) {
+      if (sha === undefined) throw new TypeError('save() needs the file\'s sha as load() gave it (null for a new file), so it never overwrites a newer save.');
       const branch = workflowBranch(collection, slug);
       message = message || `Edit ${collection} "${slug}"`;
       if (!(await call(`/git/ref/heads/${branch.split('/').map(encodeURIComponent).join('/')}`, { ok404: true }))) {

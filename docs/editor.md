@@ -48,11 +48,19 @@ const editor = mountEditor(document.querySelector('#edit-here'), {
 | `publicFolder` | Where uploads are written in tags (default `/uploads`) |
 | `storageKey` | Keep the draft, small uploads, and the view in this browser under this name. Off by default |
 | `fullWindow` | Fill the window instead of a box |
+| `blocks` | Only these blocks, such as `['citation']`. Default: every block the page loaded. Others get no button, and their tags stay as text |
+| `showImport` | Show the Import citations button (it does nothing yet) |
 
 `mountEditor` returns `{ ready, text, focus(), setLayout(id) }`. `text` reads and replaces the Markdown.
 
 Saving is the site's job. A site might open a pull request, commit to a draft branch, or post to its own server.
 draft.inator never decides where text goes.
+
+## Bodies written in HTML
+
+The editor edits Markdown. `bodyKind(body)` (from `editor.js`) returns `'html'` when most of a body is inside HTML
+elements; such a page shows its tags as text in the preview. Until the editor handles HTML bodies, a site can send
+those pages to its CMS instead.
 
 ## Front matter
 
@@ -82,8 +90,9 @@ let { text, sha } = await saver.load(entry);           // the open draft's text 
 const { pr, created } = await saver.save({ ...entry, text: edited, sha, message: 'CMS: edit essays "masks"' });
 ```
 
-`load` reads from the entry's open draft when there is one, so two writers never fork an entry. `save` takes the `sha`
-from `load` and throws `SaveConflict`, writing nothing, if someone saved in between. The token is the signed-in
+`load` reads from the entry's open draft when there is one, so two writers never fork an entry. `save` requires the
+`sha` from `load` (or from the previous save; `null` for a new file) and throws `SaveConflict`, writing nothing, if
+someone saved in between. The token is the signed-in
 writer's; the site decides where it comes from (for a Sveltia site, the one Sveltia already holds).
 
 ## Matching the site

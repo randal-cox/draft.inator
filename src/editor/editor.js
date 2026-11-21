@@ -32,15 +32,36 @@ function el(tag, attrs = {}, kids = []) {
   return n;
 }
 
-// Blocks found in Markdown: figures (lines of their own) and citations, outside code.
+// Blocks found in Markdown: figures (lines of their own) and citations, outside code. A block that isn't loaded (or
+// isn't enabled) is skipped, and its tags stay as text.
 function findBlocks(text, cite, figure) {
   const code = [...text.matchAll(CODE)].map(m => [m.index, m.index + m[0].length]);
   const inCode = at => code.some(([x, y]) => at >= x && at < y);
   const found = [];
-  for (const m of text.matchAll(new RegExp(figure.pattern.source, 'gm'))) if (!inCode(m.index)) found.push({ kind: 'figure', start: m.index, end: m.index + m[0].length, match: m });
-  for (const m of text.matchAll(new RegExp(cite.pattern.source, 'g'))) if (!inCode(m.index)) found.push({ kind: 'citation', start: m.index, end: m.index + m[0].length, match: m });
+  if (figure) for (const m of text.matchAll(new RegExp(figure.pattern.source, 'gm'))) if (!inCode(m.index)) found.push({ kind: 'figure', start: m.index, end: m.index + m[0].length, match: m });
+  if (cite) for (const m of text.matchAll(new RegExp(cite.pattern.source, 'g'))) if (!inCode(m.index)) found.push({ kind: 'citation', start: m.index, end: m.index + m[0].length, match: m });
   found.inCode = inCode;
   return found.sort((x, y) => x.start - y.start);
+}
+
+// The blocks the page loaded, limited to `allowed` (ids such as ['citation']) when given.
+function enabledBlocks(allowed) {
+  const all = (window.DraftForms && window.DraftForms.components) || {};
+  const on = id => all[id] && (!allowed || allowed.includes(id)) ? all[id] : null;
+  return { cite: on('citation'), figure: on('figure') };
+}
+
+/**
+ * Whether a page body is written in HTML rather than Markdown (most of its text is inside HTML elements). The editor
+ * edits Markdown; an HTML body would show its tags as text in the preview, so a site may prefer not to offer it.
+ * @param {string} body
+ * @returns {'markdown' | 'html'}
+ */
+export function bodyKind(body) {
+  const text = body.replace(CODE, '').trim();
+  if (!text) return 'markdown';
+  const inTags = (text.match(/<(p|div|ul|ol|li|section|table|h[1-6]|blockquote|figure)\b[^>]*>[\s\S]*?<\/\1>/gi) || []).join('').length;
+  return inTags / text.length > 0.5 ? 'html' : 'markdown';
 }
 
 /**
@@ -49,12 +70,13 @@ function findBlocks(text, cite, figure) {
  * @param {string} text  Markdown with draft.inator blocks.
  * @param {object} [options]
  * @param {(markdown: string) => string} [options.render]  The site's Markdown renderer (it must escape raw HTML).
+ * @param {string[]} [options.blocks]  Only these blocks (ids, such as ['citation']); default: every block loaded.
  * @param {(path: string) => string | null} [options.imageURL]  Where to load an image from; null if it isn't
  *   available (shown as a note, not a broken image). Default: the path itself.
  * @returns {{ html: string, title: string, words: number, citations: number, figures: number }}
  */
 export function renderArticle(text, options = {}) {
-  const F = window.DraftForms, cite = F.components.citation, figure = F.components.figure;
+  const { cite, figure } = enabledBlocks(options.blocks);
   const WORKS = Object.fromEntries((window.DRAFT_WORKS || []).map(w => [w.id, w]));
   const imageURL = options.imageURL || (p => p);
   const found = findBlocks(text, cite, figure), cited = [], parts = [];
@@ -88,7 +110,7 @@ export function renderArticle(text, options = {}) {
     .replace(/<p>DRAFTENDNOTES<\/p>|DRAFTENDNOTES/g, endnotes)
     .replace(/<p>DRAFTPH(\d+)X<\/p>/g, (m, n) => parts[n]).replace(/DRAFTPH(\d+)X/g, (m, n) => parts[n]);
   const h1 = text.match(/^#\s+(.+)$/m);
-  const prose = text.replace(new RegExp(cite.pattern.source, 'g'), '').replace(new RegExp(figure.pattern.source, 'gm'), '').replace(/[#>*_`[\]()-]/g, ' ');
+  const prose = found.reduceRight((t, b) => t.slice(0, b.start) + t.slice(b.end), text).replace(/[#>*_`[\]()-]/g, ' ');
   return { html, title: h1 ? h1[1] : '', words: (prose.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length,
     citations: found.filter(b => b.kind === 'citation').length, figures: found.filter(b => b.kind === 'figure').length };
 }
@@ -108,12 +130,15 @@ export function renderArticle(text, options = {}) {
  * @param {string} [options.publicFolder]  Where uploads are written (default `/uploads`).
  * @param {string} [options.previewClass]  The site's own class for article text, so the preview looks like the site.
  * @param {boolean} [options.fullWindow]  Fill the window instead of a box.
+ * @param {string[]} [options.blocks]  Only these blocks (such as ['citation']); default: every block the page loaded.
+ * @param {boolean} [options.showImport]  Show the (not yet working) Import citations button.
  */
 export function mountEditor(root, options = {}) {
   const F = window.DraftForms;
   if (!F) throw new Error('Load src/editor/forms.js (and the blocks) before mounting the editor.');
-  const cite = F.components.citation, figure = F.components.figure;
   const o = { label: 'Editing', publicFolder: '/uploads', storageKey: null, ...options };
+  // Only the blocks the page loaded (and, if `blocks` is given, allowed) appear: no button, no form, tags left as text.
+  const { cite, figure } = enabledBlocks(o.blocks);
   F.publicFolder = o.publicFolder;
   for (const img of o.images || []) {
     if (!F.imageSources.some(s => s.path === img.path)) F.imageSources.push({ label: img.label, path: img.path });
@@ -152,8 +177,8 @@ export function mountEditor(root, options = {}) {
     el('div', { class: 'di-group' }, [tb('heading', 'H', 'Heading'), tb('bold', [el('b', { text: 'B' })], 'Bold (Ctrl+B)'),
       tb('italic', [el('i', { text: 'I' })], 'Italic (Ctrl+I)'), tb('link', 'Link', 'Link (Ctrl+K)'), tb('code', 'Code', 'Code')]),
     el('div', { class: 'di-group' }, [tb('ul', '• List', 'Bulleted list'), tb('ol', '1. List', 'Numbered list'), tb('quote', 'Quote', 'Quotation')]),
-    el('div', { class: 'di-group di-blocks' }, [tb('citation', 'Citation', 'Insert a citation'), tb('figure', 'Figure', 'Insert a figure'), editButton,
-      tb('import', 'Import citations', 'Coming with citation.inator\'s importer', { disabled: true })])
+    el('div', { class: 'di-group di-blocks' }, [cite && tb('citation', 'Citation', 'Insert a citation'), figure && tb('figure', 'Figure', 'Insert a figure'),
+      (cite || figure) && editButton, o.showImport && tb('import', 'Import citations', 'Coming with citation.inator\'s importer', { disabled: true })])
   ]);
   const source = el('textarea', { class: 'di-source', spellcheck: 'true', 'aria-label': 'The article, in Markdown' });
   const preview = el('article', { class: ['di-article', o.previewClass].filter(Boolean).join(' '), 'aria-label': 'Preview' });
@@ -180,7 +205,7 @@ export function mountEditor(root, options = {}) {
   // An upload lives only in the browser it was made in; elsewhere renderArticle says so instead of a broken image.
   const imageURL = p => F.assets[p] || (SAMPLES.has(p) || !p.startsWith(o.publicFolder + '/') || !o.storageKey ? p : null);
   function render() {
-    const r = renderArticle(source.value, { render: o.render, imageURL });
+    const r = renderArticle(source.value, { render: o.render, imageURL, blocks: o.blocks });
     preview.innerHTML = r.html;
     title.textContent = r.title;
     counts.textContent = `${r.words} words · ${r.citations} citations · ${r.figures} figures`;

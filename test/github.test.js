@@ -91,3 +91,19 @@ test('a new file can be created, and a custom label prefix is used', async () =>
   await saver.save({ ...ENTRY, text: 'new\n', sha: s.sha });
   assert.deepEqual(Object.values(gh.state.labels)[0], ['decap-cms/draft']);
 });
+
+test('save without a sha is refused plainly, before anything is written', async () => {
+  const gh = fakeGitHub({ [PATH]: 'v1\n' });
+  const saver = createWorkflowSaver({ token: 'T', owner: 'o', repo: 'r', fetch: gh.fetch });
+  await assert.rejects(saver.save({ ...ENTRY, text: 'v2\n' }), /needs the file's sha/);
+  assert.equal(gh.state.calls.length, 0);
+});
+
+test('each save returns the sha for the next one', async () => {
+  const gh = fakeGitHub({ [PATH]: 'v1\n' });
+  const saver = createWorkflowSaver({ token: 'T', owner: 'o', repo: 'r', fetch: gh.fetch });
+  let { sha } = await saver.load(ENTRY);
+  ({ sha } = await saver.save({ ...ENTRY, text: 'v2\n', sha }));
+  ({ sha } = await saver.save({ ...ENTRY, text: 'v3\n', sha }));
+  assert.equal(gh.state.branches['cms/essays/masks'].files[PATH], 'v3\n');
+});

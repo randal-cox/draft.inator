@@ -10,5 +10,6 @@ mountEditor(document.getElementById('editor'), {
   reset: sample,
   render,
   images: SAMPLE_IMAGES,
-  storageKey: 'draft-inator-editor'
+  storageKey: 'draft-inator-editor',
+  showImport: true
 });
