@@ -23,6 +23,8 @@
   --di-bg: #171614; --di-surface: #201f1c; --di-ink: #ece8e1; --di-muted: #a8a196; --di-line: #3a3732;
   --di-accent: #e39a7f; --di-accent-ink: #1b1210; --di-focus: #8ab4ff; --di-mark: #5a4a12; color-scheme: dark;
 }
+/* A site hides the box with the hidden attribute; that must win over display: flex above. */
+.di-editor[hidden] { display: none !important; }
 .di-editor.di-full { height: 100%; min-height: 0; border: 0; border-radius: 0; box-shadow: none; }
 .di-editor *, .di-editor *::before, .di-editor *::after { box-sizing: border-box; }
 .di-editor :focus-visible { outline: 3px solid var(--di-focus); outline-offset: 2px; }
