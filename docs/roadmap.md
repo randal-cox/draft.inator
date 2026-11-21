@@ -22,7 +22,8 @@ and the host taking it.
 - [x] Skipped directive words match citation.inator exactly, tested against the vendored library. A request for
       citation.inator to export its own test is drafted (`docs/requests/`), so the block can stop keeping a copy.
 - [ ] Year letters: the build writes "Cox 1995a" with the article in view, but `works.js` (and so the editor) says
-      "Cox 1995". Decide which gives way (Randal), then fix.
+      "Cox 1995". Asked citation.inator for an `annotateMarkers` option that writes notes without year letters
+      (Randal, 21 Nov 2026; `docs/requests/`); then `draft-inator notes` uses it.
 - [ ] Documentation that holds a new site's hand: getting started, the Cite block for writers, the tools, and how
       draft.inator and citation.inator fit together.
 - [ ] Live demos viewable from GitHub (GitHub Pages): the Cite block's form without installing Sveltia, a round trip,

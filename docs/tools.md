@@ -128,4 +128,5 @@ It runs in a browser as well as Node; the live demos use it, so they show exactl
 When one article cites two works by the same author in the same year, citation.inator tells them apart with letters
 ("Cox 1995a", "Cox 1995b"). `notes` sees the whole article, so it writes the letters. `works.js` describes each work
 alone, so its notes have none, and the Cite block writes the note from `works.js` when a writer saves. Until this is
-settled, saving such a marker in the editor makes `notes` report it stale. See the open question in the roadmap.
+settled, saving such a marker in the editor makes `notes` report it stale. We've asked citation.inator for an option
+to write notes without year letters; `notes` will use it when it arrives.
