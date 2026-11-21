@@ -13,9 +13,9 @@ where it becomes a plug-in any site can use. Build tools (`draft-inator notes`, 
 
 ## See it working
 
-**[Live demos](https://randal-cox.github.io/draft.inator/demo/)**: the Cite block and the build tools, running in your
-browser. To run them on your own computer, `npm run demo`; to try a pull request before it's merged, see
-[`docs/try-a-pull-request.md`](docs/try-a-pull-request.md).
+**[Live demos](https://randal-cox.github.io/draft.inator/demo/)**: draft.inator's blocks in the real Sveltia CMS, the
+Cite block on its own, and the build tools, all running in your browser. To run them on your own computer,
+`npm run demo`; to try a pull request before it's merged, see [`docs/try-a-pull-request.md`](docs/try-a-pull-request.md).
 
 ![The Cite block demo](docs/images/cite-demo.png)
 
@@ -27,6 +27,7 @@ browser. To run them on your own computer, `npm run demo`; to try a pull request
 | Path | What |
 |---|---|
 | `src/blocks/citation.js` | The Cite block: a Sveltia editor component that reads and writes citation.inator markers |
+| `src/blocks/figure.js` | The Figure block: an image with alt text, caption, provenance, and placement (0.3) |
 | `demo/` | Live demos (GitHub Pages): the Cite block in a stand-in editor, and the build tools on a sample site |
 | `examples/sample-site/` | A small site the tests, demos, and docs all use |
 | `tools/` | Build tools: keep notes current, total tags, write `works.js` (`docs/tools.md`) |

@@ -1,0 +1,75 @@
+// renderArticle (src/editor/editor.js): the article as readers see it, from the same blocks the editor uses.
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+
+const root = new URL('..', import.meta.url).pathname;
+const works = JSON.parse(fs.readFileSync(root + 'test/fixtures/works.json', 'utf8'));
+globalThis.window = { DRAFT_WORKS: works };
+const ctx = vm.createContext({ window: globalThis.window });
+for (const f of ['src/editor/forms.js', 'src/blocks/citation.js', 'src/blocks/figure.js']) {
+  vm.runInContext(fs.readFileSync(root + f, 'utf8'), Object.assign(ctx, { CMS: globalThis.window.CMS }));
+}
+const { renderArticle } = await import('../src/editor/editor.js');
+const md = s => s.split(/\n{2,}/).map(p => (p.startsWith('<') || /^DRAFT/.test(p) ? p : `<p>${p}</p>`)).join('\n');
+
+test('figures are laid out as their tags say, escaped', () => {
+  const r = renderArticle('{figure /uploads/a.png | alt:"A <mask>" | caption:"Cap & co" | credit:"Ann" | align:right | width:half | wrap:yes}', { render: md });
+  assert.equal(r.html, '<figure class="fig align-right width-half wrap"><img src="/uploads/a.png" alt="A &lt;mask&gt;"><figcaption>Cap &amp; co <small>Ann</small></figcaption></figure>');
+  assert.equal(r.figures, 1);
+});
+
+test('citations show their notes and are listed at {citation endnote}', () => {
+  const r = renderArticle('First {citation bell-1992-ritual | locator:12}.\n\n{citation endnote}\n\nAfter.', { render: md });
+  assert.match(r.html, /<a class="cite" href="#di-ref-bell-1992-ritual">\(Bell 1992, 12\)<\/a>/);
+  assert.ok(r.html.indexOf('Works cited') < r.html.indexOf('After.'), 'the list goes where {citation endnote} is');
+  assert.match(r.html, /<li id="di-ref-bell-1992-ritual">Bell 1992\. <cite>Ritual Theory, Ritual Practice<\/cite>\.<\/li>/);
+});
+
+test('without {citation endnote} the list goes at the end; unknown works are marked', () => {
+  const r = renderArticle('A {citation someone-2001-unknown}.', { render: md });
+  assert.ok(r.html.trimEnd().endsWith('</section>'));
+  assert.match(r.html, /someone-2001-unknown <span class="unresolved">\(not yet found\)<\/span>/);
+});
+
+test('markers in code are left as text', () => {
+  const r = renderArticle('Code: `{citation bell-1992-ritual}` and `{figure /a.png | alt:x}`', { render: md });
+  assert.equal(r.citations, 0);
+  assert.ok(r.html.includes('`{citation bell-1992-ritual}`'));
+});
+
+test('an image that is not available says so instead of breaking', () => {
+  const r = renderArticle('{figure /uploads/gone.png | alt:"Gone"}', { render: md, imageURL: () => null });
+  assert.match(r.html, /<div class="di-missing" role="img" aria-label="Gone">\/uploads\/gone\.png isn't in this browser/);
+});
+
+test('title and counts', () => {
+  const r = renderArticle('# A title\n\nTwo words {citation bell-1992-ritual}.', { render: md });
+  assert.equal(r.title, 'A title');
+  assert.equal(r.words, 4);
+  assert.equal(r.citations, 1);
+});
+
+test('a block that is not enabled is skipped: its tags stay as text', async () => {
+  const r = renderArticle('A {citation bell-1992-ritual}.\n\n{figure /a.png | alt:"x"}', { render: md, blocks: ['citation'] });
+  assert.equal(r.citations, 1);
+  assert.equal(r.figures, 0);
+  assert.ok(r.html.includes('{figure /a.png | alt:"x"}'));
+});
+
+test('with a block not loaded at all, rendering still works', async () => {
+  const saved = globalThis.window.DraftForms.components.figure;
+  delete globalThis.window.DraftForms.components.figure;
+  try {
+    const r = renderArticle('A {citation bell-1992-ritual}. {figure /a.png | alt:"x"}', { render: md });
+    assert.equal(r.citations, 1);
+  } finally { globalThis.window.DraftForms.components.figure = saved; }
+});
+
+test('bodyKind tells an HTML body from a Markdown one', async () => {
+  const { bodyKind } = await import('../src/editor/editor.js');
+  assert.equal(bodyKind('# Title\n\nA paragraph with <em>a little</em> HTML.\n'), 'markdown');
+  assert.equal(bodyKind('<p data-comment-target="a">One.</p>\n<ul class="cc-list"><li>Two</li></ul>\n<p>Three, longer, and more.</p>'), 'html');
+  assert.equal(bodyKind(''), 'markdown');
+});

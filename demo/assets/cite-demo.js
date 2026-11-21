@@ -1,7 +1,7 @@
 /* Wires the Cite block demo: list the markers in the text, open one in the form, write it back. The block does the
    reading and writing (fromBlock, toBlock, toPreview); this file only moves text around. */
 (function () {
-  var block = window.DraftStandIn.components.citation;
+  var block = window.DraftForms.components.citation;
   var $ = function (id) { return document.getElementById(id); };
   var source = $('source'), form = $('form'), markerOut = $('marker'), previewOut = $('preview'), status = $('status');
   var global = new RegExp(block.pattern.source, 'g');
@@ -34,9 +34,9 @@
     markers().forEach(function (mk, i) {
       var items = block.fromBlock(mk.match).items;
       var name = items.map(function (it) { return (window.DRAFT_WORKS.find(function (w) { return w.id === it.work; }) || { note: it.work }).note; }).join('; ');
-      var button = window.DraftStandIn.el('button', { type: 'button', class: 'quiet', text: 'Open ' + (i + 1) + ': ' + name });
+      var button = window.DraftForms.el('button', { type: 'button', class: 'quiet', text: 'Open ' + (i + 1) + ': ' + name });
       button.addEventListener('click', function () { open(mk, i); });
-      list.appendChild(window.DraftStandIn.el('li', {}, [button, document.createElement('br'), window.DraftStandIn.el('code', { text: mk.raw })]));
+      list.appendChild(window.DraftForms.el('li', {}, [button, document.createElement('br'), window.DraftForms.el('code', { text: mk.raw })]));
     });
   }
 
@@ -51,7 +51,7 @@
     opened = mk;
     data = block.fromBlock(mk.match);
     $('form-state').textContent = 'Editing citation ' + (i + 1) + '. Save writes it back in place.';
-    window.DraftStandIn.drawForm(block, form, data, function (d, message) { show(message); });
+    window.DraftForms.drawForm(block, form, data, function (d, message) { show(message); });
     show('Opened citation ' + (i + 1) + '.');
     var first = form.querySelector('select, input');
     if (first) first.focus();
@@ -61,7 +61,7 @@
     opened = null;
     data = { items: [{}] };
     $('form-state').textContent = 'A new citation. Save puts it where the cursor was in the text.';
-    window.DraftStandIn.drawForm(block, form, data, function (d, message) { show(message); });
+    window.DraftForms.drawForm(block, form, data, function (d, message) { show(message); });
     show('Started a new citation.');
     form.querySelector('select').focus();
   });

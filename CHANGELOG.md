@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased (0.3)
+
+- **The live editor** (`demo/editor/`, on GitHub Pages): write an article in Markdown with the preview beside it,
+  above it, or hidden, or the preview alone. Hide the toolbar, or go plain for nothing but text. Citation and Figure
+  open the blocks' real forms in a dialog (Ctrl+E edits the one under the cursor); images upload or come from the
+  samples; the preview lays out figures and lists the works cited. The draft, small uploads, and the layout are kept
+  in the browser. No server, nothing sent anywhere.
+- **The editor is a component** (`src/editor/`): `mountEditor(element, options)` puts it in a whole window or in a
+  rounded, marked box inside a site's own page, in the site's colours; the site gives it a Markdown renderer and a
+  save function (`docs/editor.md`). `renderArticle()` renders a page the way the preview does. A **View** menu holds
+  the layouts, the toolbar switch, and plain mode.
+- **Front matter and saving** (`src/editor/frontmatter.js`, `src/editor/github.js`): set a page's front matter
+  aside byte for byte, and save as Sveltia's editorial workflow does (a `cms/<collection>/<slug>` branch and one
+  draft pull request labelled `sveltia-cms/draft`, never merged), refusing a save that would overwrite someone
+  else's. Tested against a fake GitHub.
+- **Editing inside a site** demo (`demo/site/`): a made-up archive whose "Edit this page" swaps the article for the
+  editor, with the site's menus in view.
+- `npm run demo` serves the demos on your own computer, to try a pull request before it's merged
+  (`docs/try-a-pull-request.md`).
+- **Figure block** (`src/blocks/figure.js`): place an image with required alt text, a caption, its provenance
+  (credit, licence, source), and how it sits (alignment, width, wrap). Upload or choose from the site's images; the
+  preview shows an upload before it's published; stock photo services are never offered. It writes one readable line,
+  `{figure /uploads/mask.jpg | alt:"…" | caption:"…" | credit:"…" | align:right | width:half}`, and round-trips it
+  unchanged, keeping unknown options and values where they were. Checked in Sveltia 0.262.4.
+- Data contract 0.3 (additive): the `{figure …}` tag.
+- **Demo in real Sveltia CMS** (`demo/sveltia/`): the Cite and Figure blocks in Sveltia 0.262.4 with its test backend,
+  seeded with a sample essay and images. No sign-in; changes stay in the browser.
+
 ## 0.2.0 · 2026-11-21 · Notes, tags, and works
 
 Build tools that keep a site's citations tidy, documentation and live demos, and citation.inator 0.3.0.

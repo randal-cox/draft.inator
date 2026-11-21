@@ -35,24 +35,43 @@ and the host taking it.
 
 ## 0.3: Figure
 
-- [ ] Figure block (upload or choose; alt text, caption, credit, licence; alignment; width; wrap).
-- [ ] Provenance record written from the form (korazonresearch.org keeps one per image).
+- [x] Figure block (upload or choose; alt text, caption, credit, licence, source; alignment; width; wrap), round-trip
+      tested and checked in Sveltia 0.262.4.
+- [x] Provenance in the tag (credit, licence, source), since a block can't write a second file.
+- [ ] `draft-inator figures`: collect each image's provenance from the tags, for hosts that keep records, and check
+      for missing alt text or conflicting credits.
 - [ ] Renderer: `<figure>` with sized copies.
-- [ ] Decide on Sveltia vs. the TipTap fallback from what this block needs. Evidence: Sveltia is enough
-      (`docs/decisions/0.3-figure-in-sveltia.md`); decision pending Randal.
+- [x] Sveltia, not the TipTap fallback (Randal, 21 Nov 2026; `docs/decisions/0.3-figure-in-sveltia.md`).
 
-## 0.4: Table, Embed, Callout
+## 0.4: The live article editor
+
+draft.inator's own editor, first as an open demo on GitHub Pages (`demo/editor/`), built from the same blocks, so it
+can grow into the editor real sites use (PRD principle 3).
+
+- [x] Markdown beside, above, or instead of the preview; a toolbar that hides; plain mode with nothing but the text.
+- [x] Cite and Figure open their real forms; images upload or come from the site; the draft stays in the browser.
+- [x] The preview lays out figures (alignment, width, wrap): the first figure renderer (`renderArticle`).
+- [x] A View menu for layouts, the toolbar, and plain.
+- [x] Inside a site's own page: a marked, rounded box in the site's colours (`demo/site/`; `docs/editor.md`).
+- [ ] In korazonresearch.org: Edit this page, saving as a pull request (asked the KR thread how its sign-in and
+      routes fit).
+- [ ] Real citations and endnotes in the preview, from citation.inator's browser compiler (#14).
+- [ ] citation.inator's import widget, in the editor's look and feel (with Theandra).
+- [x] The editor in `src/editor/` (`mountEditor`, `renderArticle`, the blocks' forms), with tests.
+- [x] Front matter kept byte for byte; saving as a Sveltia-compatible draft pull request (`github.js`).
+
+## 0.5: Table, Embed, Callout
 
 - [ ] Table with caption; raw-HTML escape hatch.
 - [ ] Embed (YouTube, Vimeo) with the privacy player.
 - [ ] Callout and pull quote.
 
-## 0.5: Links and audience
+## 0.6: Links and audience
 
 - [ ] Page link and glossary link by id (pages from the host's route map; glossary from the host's Lexicon).
 - [ ] Audience block (`data-for` roles).
 
-## 0.6: Preview like the site
+## 0.7: Preview like the site
 
 - [ ] Site fonts and styles in the preview (`registerPreviewStyle`); blocks drawn as the page will show them.
 

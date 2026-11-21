@@ -59,10 +59,15 @@ Copy `src/blocks/citation.js` to `admin/draft-inator/citation.js` and load it af
 <script src="https://unpkg.com/@sveltia/cms@0.262.4/dist/sveltia-cms.js"></script>
 <script src="/admin/draft-inator/works.js"></script>
 <script src="/admin/draft-inator/citation.js"></script>
+<script src="/admin/draft-inator/figure.js"></script>
 ```
 
-The order matters: the block reads the works list when it loads. Neither file uses inline scripts or event handlers,
-so a strict Content Security Policy is fine. Open the editor: a **Citation** block is now offered in the text editor.
+The Figure block (`src/blocks/figure.js`, copied the same way) needs no data from the build. It uploads to the site's
+`media_folder` and writes paths with its `public_folder`, as Sveltia's own image field does, and it never offers stock
+photo services. Your build renders `{figure …}` lines (see `docs/data-contract.md`).
+
+The order matters: the Cite block reads the works list when it loads. Neither file uses inline scripts or event handlers,
+so a strict Content Security Policy is fine. Open the editor: **Citation** and **Figure** are now in the text editor's Insert menu.
 
 ## 5. Check notes in pull requests
 
