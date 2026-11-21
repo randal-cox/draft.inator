@@ -106,7 +106,7 @@ A set of **blocks** for Sveltia CMS's text editor, plus the **build-side rendere
 
 ## Open questions
 
-1. **Licence.** citation.inator is MIT. Same here? (Randal to decide.)
+1. ~~**Licence.**~~ Decided: MIT, as citation.inator, so anyone can take it (Randal, 21 Nov 2026).
 2. **Renderer language.** korazonresearch.org renders in Python; most static-site builders are JavaScript. Ship JS
    renderers and keep the Python ones in the host? Both?
 3. **Packaging.** Vendored tarball (as korazonresearch.org takes citation.inator) or npm?
