@@ -7,6 +7,12 @@
   open the blocks' real forms in a dialog (Ctrl+E edits the one under the cursor); images upload or come from the
   samples; the preview lays out figures and lists the works cited. The draft, small uploads, and the layout are kept
   in the browser. No server, nothing sent anywhere.
+- **The editor is a component** (`src/editor/`): `mountEditor(element, options)` puts it in a whole window or in a
+  rounded, marked box inside a site's own page, in the site's colours; the site gives it a Markdown renderer and a
+  save function (`docs/editor.md`). `renderArticle()` renders a page the way the preview does. A **View** menu holds
+  the layouts, the toolbar switch, and plain mode.
+- **Editing inside a site** demo (`demo/site/`): a made-up archive whose "Edit this page" swaps the article for the
+  editor, with the site's menus in view.
 - `npm run demo` serves the demos on your own computer, to try a pull request before it's merged
   (`docs/try-a-pull-request.md`).
 - **Figure block** (`src/blocks/figure.js`): place an image with required alt text, a caption, its provenance

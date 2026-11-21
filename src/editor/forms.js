@@ -1,9 +1,10 @@
-/* A stand-in for Sveltia CMS, for the demos only. Sveltia draws a form from an editor component's `fields`; this does
-   the same for the field kinds draft.inator's blocks use (list, select, select with multiple, string, hidden), so a
-   block's real code can run in a plain page. It is not Sveltia, and it doesn't try to look like it. */
+/* draft.inator: forms for blocks outside Sveltia. A block describes its form as Sveltia fields (list, select, select
+   with multiple, string, boolean, image, hidden); this draws that form in a plain page, so the same block code runs
+   in draft.inator's own editor (src/editor/editor.js) and in the demos. Load it before the blocks: where Sveltia isn't
+   on the page, it collects the blocks they register. Plain browser JavaScript, no dependencies. */
 (function () {
   var components = {};
-  window.CMS = { registerEditorComponent: function (c) { components[c.id] = c; } };
+  if (!window.CMS) window.CMS = { registerEditorComponent: function (c) { components[c.id] = c; } };
 
   function el(tag, attrs, kids) {
     var n = document.createElement(tag);
@@ -29,7 +30,7 @@
     if (spec.widget === 'image') {
       // Choose one of the page's images, or upload one; an upload stays in this browser (an object URL), like an
       // unpublished upload in Sveltia, and is written with the site's public path.
-      var assets = window.DraftStandIn.assets, sources = window.DraftStandIn.imageSources || [];
+      var assets = window.DraftForms.assets, sources = window.DraftForms.imageSources || [];
       var wrap = el('div', { class: 'image-field' }, [el('label', { for: id, text: spec.label + (spec.required === false ? '' : ' (required)') })]);
       var pick = el('select', { id: id });
       pick.appendChild(el('option', { value: '', text: 'Choose an image…' }));
@@ -43,10 +44,10 @@
       file.addEventListener('change', function () {
         var f = file.files && file.files[0];
         if (!f) return;
-        var path = (window.DraftStandIn.publicFolder || '/uploads') + '/' + f.name.replace(/[^\w.-]+/g, '-');
+        var path = (window.DraftForms.publicFolder || '/uploads') + '/' + f.name.replace(/[^\w.-]+/g, '-');
         assets[path] = URL.createObjectURL(f);
         if (!sources.some(function (s) { return s.path === path; })) { sources.push({ label: f.name + ' (uploaded)', path: path }); pick.appendChild(el('option', { value: path, text: f.name + ' (uploaded)' })); }
-        if (window.DraftStandIn.onUpload) window.DraftStandIn.onUpload(path, f);
+        if (window.DraftForms.onUpload) window.DraftForms.onUpload(path, f);
         pick.value = path; show(path); change(path);
       });
       var upload = el('label', { for: fid, class: 'button quiet', text: 'Upload an image' });
@@ -131,5 +132,5 @@
     function redraw(message) { drawForm(component, host, data, onChange); onChange(data, message); }
   }
 
-  window.DraftStandIn = { components: components, drawForm: drawForm, el: el, assets: {}, imageSources: [], publicFolder: '/uploads' };
+  window.DraftForms = { components: components, drawForm: drawForm, el: el, assets: {}, imageSources: [], publicFolder: '/uploads' };
 })();

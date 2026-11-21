@@ -12,8 +12,8 @@
   <p class="kicker"><a href="./">draft.inator demos</a></p>
   <h1>The Cite block</h1>
   <p class="lede">Open a citation in the text, change it in the form, and save it back. This is the block's real code
-    (<code>src/blocks/citation.js</code>). It's running in a small stand-in for Sveltia CMS that draws the form from
-    the block's field list, so you can try it without setting up a site.</p>
+    (<code>src/blocks/citation.js</code>). It's running in draft.inator's own forms (<code>src/editor/forms.js</code>), which
+    draw the form from the block's field list, so you can try it without setting up a site.</p>
 </header>
 <main>
   <div class="grid two">
@@ -63,7 +63,7 @@
   </section>
 </main>
 <footer class="site">draft.inator · MIT · <a href="https://github.com/randal-cox/draft.inator">Source on GitHub</a></footer>
-<script src="assets/stand-in.js"></script>
+<script src="../src/editor/forms.js"></script>
 <script src="../examples/sample-site/works.js"></script>
 <script src="../src/blocks/citation.js"></script>
 <script src="assets/cite-demo.js"></script>

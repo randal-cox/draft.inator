@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; object-src 'none'; base-uri 'none'">
+  <title>Masks in ritual · Hollowmere Archive</title>
+  <link rel="stylesheet" href="site.css">
+  <link rel="stylesheet" href="../../src/editor/editor.css">
+</head>
+<body>
+  <p class="demo-banner">A made-up site, to show draft.inator's editor inside a site's own page.
+    <a href="../">All demos</a></p>
+  <header class="site-head">
+    <div class="wrap">
+      <a class="site-name" href="#">Hollowmere <span>Archive</span></a>
+      <nav aria-label="Site">
+        <a href="#">Collection</a>
+        <a href="#" aria-current="page">Essays</a>
+        <a href="#">Glossary</a>
+        <a href="#">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="crumbs"><a href="#">Essays</a> › Ritual</p>
+    <div class="page-actions">
+      <button type="button" id="edit-page" class="edit-page">Edit this page</button>
+    </div>
+    <article class="essay di-article" id="essay"></article>
+    <div id="editor-slot" hidden></div>
+  </main>
+
+  <footer class="site-foot">
+    <div class="wrap">
+      <p>Hollowmere Archive is a made-up site. Its sample images are CC0.</p>
+      <nav aria-label="Footer"><a href="#">Contact</a> <a href="#">Privacy</a></nav>
+    </div>
+  </footer>
+
+  <script src="../../src/editor/forms.js"></script>
+  <script src="../../examples/sample-site/works.js"></script>
+  <script src="../../src/blocks/citation.js"></script>
+  <script src="../../src/blocks/figure.js"></script>
+  <script type="module" src="site.mjs"></script>
+</body>
+</html>

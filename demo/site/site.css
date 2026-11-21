@@ -1,0 +1,47 @@
+/* Hollowmere Archive: a made-up site with its own look, so the editor can be seen inside someone else's page. */
+:root {
+  --paper: #f3f5f1; --card: #ffffff; --text: #1f2a24; --soft: #5a6b61; --rule: #cfd8d1;
+  --moss: #2f5d47; --moss-ink: #ffffff; --link: #2f5d47;
+  --head: "Gill Sans", "Gill Sans MT", "Trebuchet MS", system-ui, sans-serif;
+  --body: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --paper: #141a17; --card: #1b221e; --text: #e3ebe5; --soft: #9fb0a5; --rule: #2e3a33; --moss: #8cc2a5; --moss-ink: #0f1a14; --link: #9fd3b6; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--text); font: 17px/1.6 var(--body); }
+a { color: var(--link); }
+:focus-visible { outline: 3px solid #3b82f6; outline-offset: 2px; }
+.wrap { max-width: 64rem; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.demo-banner { margin: 0; padding: .4rem 16px; text-align: center; font: .82rem/1.4 var(--head); background: var(--text); color: var(--paper); }
+.demo-banner a { color: inherit; }
+.site-head { background: var(--moss); color: var(--moss-ink); }
+.site-head .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1.5rem; padding-block: .9rem; }
+.site-name { font: 600 1.35rem/1 var(--head); color: inherit; text-decoration: none; letter-spacing: .02em; }
+.site-name span { font-weight: 300; }
+.site-head nav { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; font: .95rem/1 var(--head); }
+.site-head nav a { color: inherit; text-decoration: none; padding: .35rem 0; border-bottom: 2px solid transparent; }
+.site-head nav a[aria-current="page"] { border-bottom-color: currentColor; }
+main.wrap { padding-block: 1.25rem 3rem; min-height: 60vh; }
+.crumbs { font: .85rem/1.4 var(--head); color: var(--soft); margin: 0 0 .5rem; }
+.page-actions { display: flex; justify-content: flex-end; margin-bottom: .5rem; }
+.edit-page { font: 600 .9rem/1 var(--head); color: var(--moss); background: transparent; border: 1px solid var(--moss); border-radius: 999px; padding: .5rem 1rem; cursor: pointer; }
+.edit-page:hover { background: var(--moss); color: var(--moss-ink); }
+.site-foot { border-top: 1px solid var(--rule); color: var(--soft); font: .85rem/1.5 var(--head); }
+.site-foot .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1rem; padding-block: 1.25rem; }
+.site-foot nav { display: flex; gap: 1rem; }
+
+/* The site's article styles: used on the page and, through previewClass, in the editor's preview. */
+.essay { max-width: 40rem; }
+.essay h1 { font: 600 2.2rem/1.15 var(--head); margin: 0 0 1rem; color: var(--moss); }
+.essay h2 { font: 600 1.35rem/1.25 var(--head); margin: 1.75rem 0 .5rem; }
+.essay p, .essay ul, .essay ol { margin: 0 0 1rem; }
+.essay blockquote { margin: 1.25rem 0; padding: .25rem 0 .25rem 1rem; border-left: 3px solid var(--moss); color: var(--soft); font-style: italic; }
+.essay a.cite { text-decoration: none; border-bottom: 1px dotted var(--link); }
+.essay .fig figcaption { font-family: var(--head); }
+.essay .endnotes { border-top: 1px solid var(--rule); }
+.essay .endnotes h2 { font-family: var(--head); font-size: 1rem; text-transform: uppercase; letter-spacing: .06em; color: var(--soft); }
+
+/* The editor, in this site's colours: a clearly marked, rounded box in the page. */
+#editor-slot.di-editor { --di-accent: var(--moss); --di-accent-ink: var(--moss-ink); --di-bg: var(--paper); --di-surface: var(--card); --di-ink: var(--text);
+  --di-muted: var(--soft); --di-line: var(--rule); --di-radius: 14px; height: min(78vh, 52rem); }

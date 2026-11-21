@@ -50,10 +50,14 @@ can grow into the editor real sites use (PRD principle 3).
 
 - [x] Markdown beside, above, or instead of the preview; a toolbar that hides; plain mode with nothing but the text.
 - [x] Cite and Figure open their real forms; images upload or come from the site; the draft stays in the browser.
-- [x] The preview lays out figures (alignment, width, wrap): the first figure renderer.
+- [x] The preview lays out figures (alignment, width, wrap): the first figure renderer (`renderArticle`).
+- [x] A View menu for layouts, the toolbar, and plain.
+- [x] Inside a site's own page: a marked, rounded box in the site's colours (`demo/site/`; `docs/editor.md`).
+- [ ] In korazonresearch.org: Edit this page, saving as a pull request (asked the KR thread how its sign-in and
+      routes fit).
 - [ ] Real citations and endnotes in the preview, from citation.inator's browser compiler (#14).
 - [ ] citation.inator's import widget, in the editor's look and feel (with Theandra).
-- [ ] The editor's parts moved from `demo/` into `src/`, with tests, once their shape settles.
+- [x] The editor in `src/editor/` (`mountEditor`, `renderArticle`, the blocks' forms), with tests.
 
 ## 0.5: Table, Embed, Callout
 
