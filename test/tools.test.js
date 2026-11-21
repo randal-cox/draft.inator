@@ -10,7 +10,7 @@ import { checkNotes } from '../tools/notes.js';
 import { totalTags, recordTags } from '../tools/tags.js';
 import { buildWorks, worksJs, topicsFrom } from '../tools/works.js';
 import { main } from '../tools/cli.js';
-import { loadBlock, roundtrip } from './harness.js';
+import { loadBlock, roundtrip, roundtripMarkdown } from './harness.js';
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 function site() {
@@ -136,4 +136,18 @@ test('year letters: the notes check, works.js, and the Cite block all say "Cox 1
   assert.equal(checkNotes(settings).stale, 0, 'saving in the editor leaves nothing stale');
   settings.noteContext = 'article';
   assert.equal(checkNotes(settings).stale, 2, 'a site that wants article notes can still have them');
+});
+
+test('repeated cycles of editor save, notes --write, and check stay stable', () => {
+  const { settings, read } = site();
+  const { components } = loadBlock(path.join(here, '../src/blocks/citation.js'), buildWorks(settings).works);
+  const file = path.join(settings.content[0], 'essays/ritual.md');
+  checkNotes(settings, { write: true });
+  const settled = read('ritual.md');
+  for (let i = 0; i < 3; i++) {
+    fs.writeFileSync(file, roundtripMarkdown(components.citation, read('ritual.md')));   // a writer opens and saves every citation
+    assert.equal(checkNotes(settings, { write: true }).written.length, 0, `cycle ${i + 1}: notes --write changed nothing`);
+    assert.equal(checkNotes(settings).stale, 0, `cycle ${i + 1}: the check passes`);
+    assert.equal(read('ritual.md'), settled, `cycle ${i + 1}: the file is byte-for-byte the same`);
+  }
 });

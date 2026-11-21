@@ -24,7 +24,7 @@ and the host taking it.
       Theandra on request, 21 Nov 2026).
 - [x] Year letters: notes describe the work alone ("Cox 1995"), using citation.inator's `noteContext: "work"`
       (delivered on request), so the build check, `works.js`, and the editor agree.
-- [ ] Re-vendor citation.inator from its next tagged release (today's copy is commit `adbb07e`).
+- [x] Re-vendored citation.inator from its tagged 0.3.0 release (#8).
 - [x] Documentation that holds a new site's hand: getting started, the Cite block for writers, the tools, and how
       draft.inator and citation.inator fit together (`docs/README.md`).
 - [x] Live demos viewable from GitHub (GitHub Pages, `demo/`): the Cite block's form without installing Sveltia, a

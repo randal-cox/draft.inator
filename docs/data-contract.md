@@ -52,8 +52,8 @@ citation.inator's marker grammar (0.2.0):
 - The marker's own option order is kept, and an option written quoted stays quoted.
 - `{citation endnote}` (and `{citation endnote | …}`), `{citation list …}`, `{citation nocite …}`, `{citation evidence}`,
   and `{citation credit}` are not citations of a work, and the block leaves them alone. A work whose id only starts
-  with one of those words (`list-2001`) is a citation. This follows citation.inator 0.2.0 exactly and is tested against
-  it (`test/conformance.test.js`).
+  with one of those words (`list-2001`) is a citation. This follows citation.inator exactly and is tested against its
+  `markerKind` (`test/conformance.test.js`).
 - `{cite …}` (citation.inator's short form) and a site's own `citationKeyword` are not opened by the block yet; they
   are left as written.
 
