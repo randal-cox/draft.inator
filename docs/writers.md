@@ -1,7 +1,8 @@
 # Citing a work and placing an image
 
 For writers using a site's editor (Sveltia CMS) with draft.inator's Cite and Figure blocks. You don't need to know any markup.
-To try it without a site, use the [Cite block demo](https://randal-cox.github.io/draft.inator/demo/cite.html).
+To try it without a site, use the [demo in Sveltia CMS](https://randal-cox.github.io/draft.inator/demo/sveltia/): the
+real editor, with both blocks, where nothing you do is published.
 
 ![The Cite block demo: the page's text with its citations on the left, and one citation open in the form on the right](images/cite-demo.png)
 

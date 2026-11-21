@@ -8,6 +8,8 @@
   `{figure /uploads/mask.jpg | alt:"…" | caption:"…" | credit:"…" | align:right | width:half}`, and round-trips it
   unchanged, keeping unknown options and values where they were. Checked in Sveltia 0.262.4.
 - Data contract 0.3 (additive): the `{figure …}` tag.
+- **Demo in real Sveltia CMS** (`demo/sveltia/`): the Cite and Figure blocks in Sveltia 0.262.4 with its test backend,
+  seeded with a sample essay and images. No sign-in; changes stay in the browser.
 
 ## 0.2.0 · 2026-11-21 · Notes, tags, and works
 
