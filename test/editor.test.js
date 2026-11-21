@@ -73,3 +73,9 @@ test('bodyKind tells an HTML body from a Markdown one', async () => {
   assert.equal(bodyKind('<p data-comment-target="a">One.</p>\n<ul class="cc-list"><li>Two</li></ul>\n<p>Three, longer, and more.</p>'), 'html');
   assert.equal(bodyKind(''), 'markdown');
 });
+
+test('the editor box stays hidden when a site hides it', () => {
+  const css = fs.readFileSync(root + 'src/editor/editor.css', 'utf8');
+  assert.match(css, /\.di-editor\[hidden\]\s*\{\s*display:\s*none\s*!important;?\s*\}/,
+    '.di-editor sets display: flex, which would otherwise override the hidden attribute');
+});
