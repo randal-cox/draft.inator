@@ -1,6 +1,6 @@
 {
   "name": "draft-inator",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Writing tools for static-site editors: blocks for Sveltia CMS (citations first), built around citation.inator.",
   "type": "module",
