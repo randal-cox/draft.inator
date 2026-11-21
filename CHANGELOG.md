@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased (0.3)
+## 0.3.0 · 2026-11-21 · Figures and the live editor
+
+The Figure block, and draft.inator's own article editor: in a whole window or in a box inside a site's page, saving
+as a pull request the way Sveltia's editorial workflow does.
 
 - **The live editor** (`demo/editor/`, on GitHub Pages): write an article in Markdown with the preview beside it,
   above it, or hidden, or the preview alone. Hide the toolbar, or go plain for nothing but text. Citation and Figure

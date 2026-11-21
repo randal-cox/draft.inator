@@ -33,14 +33,13 @@ and the host taking it.
 - Moved to 1.0: the reference renderer for `{citation …}` (a thin, documented call into citation.inator's compiler),
   with the other JS reference renderers.
 
-## 0.3: Figure
+## 0.3: Figure (released, v0.3.0, with the first of 0.4's editor)
 
 - [x] Figure block (upload or choose; alt text, caption, credit, licence, source; alignment; width; wrap), round-trip
       tested and checked in Sveltia 0.262.4.
 - [x] Provenance in the tag (credit, licence, source), since a block can't write a second file.
-- [ ] `draft-inator figures`: collect each image's provenance from the tags, for hosts that keep records, and check
-      for missing alt text or conflicting credits.
-- [ ] Renderer: `<figure>` with sized copies.
+- [x] Renderer: `renderArticle()` places figures as their tags say. Moved on: `draft-inator figures` and sized copies
+      (below, in 0.4).
 - [x] Sveltia, not the TipTap fallback (Randal, 21 Nov 2026; `docs/decisions/0.3-figure-in-sveltia.md`).
 
 ## 0.4: The live article editor
@@ -53,10 +52,13 @@ can grow into the editor real sites use (PRD principle 3).
 - [x] The preview lays out figures (alignment, width, wrap): the first figure renderer (`renderArticle`).
 - [x] A View menu for layouts, the toolbar, and plain.
 - [x] Inside a site's own page: a marked, rounded box in the site's colours (`demo/site/`; `docs/editor.md`).
-- [ ] In korazonresearch.org: Edit this page, saving as a pull request (asked the KR thread how its sign-in and
-      routes fit).
+- [ ] In korazonresearch.org: Edit this page, saving as a pull request (built in KR from 0.3.0's editor; awaiting
+      Randal's go-ahead there).
 - [ ] Real citations and endnotes in the preview, from citation.inator's browser compiler (#14).
-- [ ] citation.inator's import widget, in the editor's look and feel (with Theandra).
+- [ ] citation.inator's import widget, in the editor's look and feel (with Theandra, #16).
+- [ ] `draft-inator figures`: collect each image's provenance from the tags, for hosts that keep records, and check
+      for missing alt text or conflicting credits.
+- [ ] Sized copies of figure images in the reference renderer.
 - [x] The editor in `src/editor/` (`mountEditor`, `renderArticle`, the blocks' forms), with tests.
 - [x] Front matter kept byte for byte; saving as a Sveltia-compatible draft pull request (`github.js`).
 
