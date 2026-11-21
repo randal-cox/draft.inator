@@ -1,6 +1,6 @@
-# Citing a work
+# Citing a work and placing an image
 
-For writers using a site's editor (Sveltia CMS) with draft.inator's Cite block. You don't need to know any markup.
+For writers using a site's editor (Sveltia CMS) with draft.inator's Cite and Figure blocks. You don't need to know any markup.
 To try it without a site, use the [Cite block demo](https://randal-cox.github.io/draft.inator/demo/cite.html).
 
 ![The Cite block demo: the page's text with its citations on the left, and one citation open in the form on the right](images/cite-demo.png)
@@ -38,6 +38,25 @@ Open the citation block in the editor. Everything it holds appears in the form; 
 - **Other options (kept as written)** holds anything the form doesn't have a field for, such as a custom label. Leave
   it alone unless someone has asked you to change it.
 
+## Place an image
+
+1. Put the cursor on an empty line where the image belongs.
+2. In the editor, insert a **Figure** block from the **Insert** menu.
+3. Under **Image**, drop an image file, or choose **Browse** to upload one or pick one the site already has.
+4. Fill in **Alt text**: what the image shows, for someone who can't see it ("A carved wooden mask, painted red").
+   It's required. If the caption already says it all, say it briefly anyway.
+5. Add a **Caption** if readers should see one, and the image's **Credit**, **Licence**, and **Source**: who made it,
+   on what terms you can use it, and where it came from. These travel with the image wherever it's used.
+6. Choose how it sits: **Alignment** (left, right, centre, wide, or the full page), **Width**, and whether the text
+   **wraps** around it. Leave them empty for the site's usual layout.
+7. Save the block.
+
+The preview shows the image as soon as it's uploaded, before it's published. The file holds one readable line:
+
+```
+{figure /uploads/mask.jpg | alt:"A carved wooden mask" | caption:"Mask, about 1910" | credit:"Ann Cox" | licence:"CC BY 4.0"}
+```
+
 ## If something looks wrong
 
 | You see | It means | What to do |
@@ -45,4 +64,5 @@ Open the citation block in the editor. Everything it holds appears in the form; 
 | The work isn't in the list | It isn't in the site's references yet | Ask a curator to add it, or add it yourself if your site lets writers add works |
 | A work shows its in-text wording instead of a title | The site hasn't found the full reference yet | Nothing; cite it as usual. It will fill in when the reference is found |
 | A pull request check says a note is stale | A work's details changed after you cited it | A maintainer runs the notes tool to refresh it; your text is unaffected |
+| Sveltia won't save: "This field is required" | A figure has no image or no alt text | Fill them in; the message can stay on screen until you save again |
 | `{citation endnote}` or `{citation list …}` in a page | These place the endnotes or a reading list | Leave them; they aren't citations and can't be opened in the form |

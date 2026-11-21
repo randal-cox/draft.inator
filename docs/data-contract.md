@@ -1,4 +1,4 @@
-# The data contract (0.1)
+# The data contract (0.3)
 
 draft.inator's blocks run in the browser and know nothing about the host site's build. The host gives them data as
 globals, written by its build into one script loaded after Sveltia and before the blocks.
@@ -60,9 +60,42 @@ citation.inator's marker grammar (0.2.0):
 Guarantee (tested): reading a marker and writing it back changes nothing but its `note:`, and a second pass changes
 nothing.
 
+### Figure (0.3)
+
+One line of its own (a block, not inline):
+
+```
+{figure /uploads/mask.jpg | alt:"A carved wooden mask" | caption:"Mask, about 1910" | credit:"Ann Cox" |
+ licence:"CC BY 4.0" | source:"https://example.org/mask" | align:right | width:half | wrap:yes}
+```
+
+(Shown on two lines here; in a page it is one line.)
+
+| Option | Meaning |
+|---|---|
+| first part | The image's path, as Sveltia's `public_folder` writes it (`/uploads/…`). Quoted if it has spaces |
+| `alt` | What the image shows, for people who can't see it. The form requires it |
+| `caption` | Shown under the image |
+| `credit`, `licence`, `source` | The image's provenance: who made it, on what terms, and where it came from |
+| `align` | `left`, `right`, `centre`, `wide`, or `full`. None: the site's default |
+| `width` | `third`, `half`, `two-thirds`, or `full`. None: the site's default |
+| `wrap` | `yes`: text wraps around the image. `no` or none: it doesn't |
+
+- The same notation as citation markers: options separated by `|`, values quoted when they hold `;|"{}\:` or edge
+  spaces, `\` escapes.
+- Options the form doesn't show, and values the menus don't offer (`align:middle`), are kept as written, in place.
+  Renderers should ignore options they don't know.
+- The image's provenance is in the tag, so every change to it shows in a diff. A host that keeps provenance records
+  builds them from the tags; a block can't write a second file.
+- A `{figure …}` inside a paragraph or in code is not a block, and the block leaves it alone.
+
+Guarantee (tested, and checked in Sveltia 0.262.4): reading a figure and writing it back changes nothing, and a
+second pass changes nothing.
+
 ## Changes to this contract
 
 - 0.2 (additive): `draft-inator works` produces `works.js`; the skipped directives now match citation.inator exactly.
+- 0.3 (additive): the Figure block's `{figure …}` tag.
 
 
 Additive only within 0.x where possible. A breaking change bumps the minor version and is listed in the roadmap.

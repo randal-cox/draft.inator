@@ -26,6 +26,7 @@ browser. To run them locally, serve the repository (`python3 -m http.server`) an
 | Path | What |
 |---|---|
 | `src/blocks/citation.js` | The Cite block: a Sveltia editor component that reads and writes citation.inator markers |
+| `src/blocks/figure.js` | The Figure block: an image with alt text, caption, provenance, and placement (0.3) |
 | `demo/` | Live demos (GitHub Pages): the Cite block in a stand-in editor, and the build tools on a sample site |
 | `examples/sample-site/` | A small site the tests, demos, and docs all use |
 | `tools/` | Build tools: keep notes current, total tags, write `works.js` (`docs/tools.md`) |

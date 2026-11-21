@@ -35,11 +35,13 @@ and the host taking it.
 
 ## 0.3: Figure
 
-- [ ] Figure block (upload or choose; alt text, caption, credit, licence; alignment; width; wrap).
-- [ ] Provenance record written from the form (korazonresearch.org keeps one per image).
+- [x] Figure block (upload or choose; alt text, caption, credit, licence, source; alignment; width; wrap), round-trip
+      tested and checked in Sveltia 0.262.4.
+- [x] Provenance in the tag (credit, licence, source), since a block can't write a second file.
+- [ ] `draft-inator figures`: collect each image's provenance from the tags, for hosts that keep records, and check
+      for missing alt text or conflicting credits.
 - [ ] Renderer: `<figure>` with sized copies.
-- [ ] Decide on Sveltia vs. the TipTap fallback from what this block needs. Evidence: Sveltia is enough
-      (`docs/decisions/0.3-figure-in-sveltia.md`); decision pending Randal.
+- [x] Sveltia, not the TipTap fallback (Randal, 21 Nov 2026; `docs/decisions/0.3-figure-in-sveltia.md`).
 
 ## 0.4: Table, Embed, Callout
 

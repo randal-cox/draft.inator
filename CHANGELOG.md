@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased (0.3)
+
+- **Figure block** (`src/blocks/figure.js`): place an image with required alt text, a caption, its provenance
+  (credit, licence, source), and how it sits (alignment, width, wrap). Upload or choose from the site's images; the
+  preview shows an upload before it's published; stock photo services are never offered. It writes one readable line,
+  `{figure /uploads/mask.jpg | alt:"…" | caption:"…" | credit:"…" | align:right | width:half}`, and round-trips it
+  unchanged, keeping unknown options and values where they were. Checked in Sveltia 0.262.4.
+- Data contract 0.3 (additive): the `{figure …}` tag.
+
 ## Unreleased (0.2)
 
 - **Build tools** (`docs/tools.md`), plain Node with nothing to install:
