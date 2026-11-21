@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; object-src 'none'; base-uri 'none'">
+  <title>draft.inator editor</title>
+  <link rel="stylesheet" href="../assets/demo.css">
+  <link rel="stylesheet" href="editor.css">
+</head>
+<body data-layout="split">
+<header class="bar" id="bar">
+  <a class="brand" href="../">draft.inator</a>
+  <span class="doc-title" id="doc-title">Untitled</span>
+  <div class="controls">
+    <div class="segmented" role="radiogroup" aria-label="Layout" id="layout">
+      <button type="button" role="radio" data-layout="split" aria-checked="true" title="Writing and preview side by side">Side by side</button>
+      <button type="button" role="radio" data-layout="stacked" aria-checked="false" title="Writing above the preview">Stacked</button>
+      <button type="button" role="radio" data-layout="write" aria-checked="false" title="Writing only">Write</button>
+      <button type="button" role="radio" data-layout="preview" aria-checked="false" title="Preview only">Preview</button>
+    </div>
+    <button type="button" class="toggle" id="toggle-toolbar" aria-pressed="true">Toolbar</button>
+    <button type="button" class="toggle" id="toggle-plain" aria-pressed="false" title="Just the text, nothing else (Esc to leave)">Plain</button>
+    <button type="button" class="quiet" id="reset" title="Start again from the sample article">Reset</button>
+  </div>
+</header>
+
+<div class="toolbar" role="toolbar" aria-label="Formatting" id="toolbar">
+  <div class="group">
+    <button type="button" data-cmd="heading" title="Heading">H</button>
+    <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+    <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+    <button type="button" data-cmd="link" title="Link (Ctrl+K)">Link</button>
+    <button type="button" data-cmd="code" title="Code">Code</button>
+  </div>
+  <div class="group">
+    <button type="button" data-cmd="ul" title="Bulleted list">• List</button>
+    <button type="button" data-cmd="ol" title="Numbered list">1. List</button>
+    <button type="button" data-cmd="quote" title="Quotation">Quote</button>
+  </div>
+  <div class="group blocks">
+    <button type="button" data-cmd="citation" title="Insert a citation">Citation</button>
+    <button type="button" data-cmd="figure" title="Insert a figure">Figure</button>
+    <button type="button" data-cmd="edit" id="edit-block" disabled title="Put the cursor in a citation or figure (Ctrl+E)">Edit</button>
+    <button type="button" disabled title="Coming with citation.inator's importer">Import citations</button>
+  </div>
+</div>
+
+<main class="panes" id="panes">
+  <section class="pane write" aria-labelledby="write-h">
+    <h2 class="visually-hidden" id="write-h">Writing</h2>
+    <label class="visually-hidden" for="source">The article, in Markdown</label>
+    <textarea id="source" spellcheck="true"></textarea>
+  </section>
+  <section class="pane reader" aria-labelledby="preview-h" id="preview-pane">
+    <h2 class="visually-hidden" id="preview-h">Preview</h2>
+    <article id="preview" class="article"></article>
+    <p class="preview-note">Citations here show each work's note. Formatted citations and endnotes arrive with
+      citation.inator's browser compiler.</p>
+  </section>
+</main>
+
+<footer class="status">
+  <span id="counts"></span>
+  <span id="saved"></span>
+  <span class="visually-hidden" role="status" aria-live="polite" id="announce"></span>
+</footer>
+
+<button type="button" class="exit-plain" id="exit-plain" hidden>Leave plain (Esc)</button>
+
+<dialog id="block-dialog" aria-labelledby="dialog-title">
+  <form method="dialog" id="dialog-form">
+    <h2 id="dialog-title">Citation</h2>
+    <div id="dialog-fields"></div>
+    <h3>What it writes</h3>
+    <output id="dialog-out" class="code" for="dialog-fields"></output>
+    <p class="warn" id="dialog-error" role="alert"></p>
+    <div class="actions">
+      <button type="button" class="quiet" id="dialog-cancel">Cancel</button>
+      <button type="submit" id="dialog-save">Insert</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="../assets/stand-in.js"></script>
+<script src="../../examples/sample-site/works.js"></script>
+<script src="../../src/blocks/citation.js"></script>
+<script src="../../src/blocks/figure.js"></script>
+<script type="module" src="editor.mjs"></script>
+</body>
+</html>

@@ -42,8 +42,9 @@ A set of **blocks** for Sveltia CMS's text editor, plus the **build-side rendere
    that reads every existing tag in a corpus and writes it back unchanged (the Cite block does this for all 163 of
    korazonresearch.org's markers).
 2. **Plain text in the file.** Tags a person can read and edit by hand. Unknown options are kept, never dropped.
-3. **Keep Sveltia; add blocks.** No editor of our own unless Sveltia's blocks prove too limited (fallback: a block
-   editor such as TipTap; decided on evidence, not taste).
+3. **A full article editor that real sites use** (Randal, 21 Nov 2026). Sveltia is one host for the blocks, and the
+   current one; draft.inator's own editor (begun as the live editor demo, 0.4) is another. Whichever a site uses, the
+   blocks, the tags, and the round-trip guarantee are the same. Choices between them are made on evidence, not taste.
 4. **Algorithms first, AI last, always a way down.** Matching, parsing, and lookups use rules and open services
    (Crossref, Open Library). A language model, if ever used, is an optional plug-in behind the rules, measured
    before it's added, with a cost limit, and the tool works the same when it's off. (Randal, 20 Nov 2026.)
@@ -92,7 +93,6 @@ A set of **blocks** for Sveltia CMS's text editor, plus the **build-side rendere
 
 ## Not doing (for now)
 
-- A WordPress-style block editor of our own (see principle 3).
 - A CMS, a host, or sign-in: Sveltia and the host site do those.
 - Hosting media: uploads go to the site's repository or its own storage.
 - AI-written prose, summaries, or rewrites.

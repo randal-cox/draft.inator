@@ -43,18 +43,30 @@ and the host taking it.
 - [ ] Renderer: `<figure>` with sized copies.
 - [x] Sveltia, not the TipTap fallback (Randal, 21 Nov 2026; `docs/decisions/0.3-figure-in-sveltia.md`).
 
-## 0.4: Table, Embed, Callout
+## 0.4: The live article editor
+
+draft.inator's own editor, first as an open demo on GitHub Pages (`demo/editor/`), built from the same blocks, so it
+can grow into the editor real sites use (PRD principle 3).
+
+- [x] Markdown beside, above, or instead of the preview; a toolbar that hides; plain mode with nothing but the text.
+- [x] Cite and Figure open their real forms; images upload or come from the site; the draft stays in the browser.
+- [x] The preview lays out figures (alignment, width, wrap): the first figure renderer.
+- [ ] Real citations and endnotes in the preview, from citation.inator's browser compiler (#14).
+- [ ] citation.inator's import widget, in the editor's look and feel (with Theandra).
+- [ ] The editor's parts moved from `demo/` into `src/`, with tests, once their shape settles.
+
+## 0.5: Table, Embed, Callout
 
 - [ ] Table with caption; raw-HTML escape hatch.
 - [ ] Embed (YouTube, Vimeo) with the privacy player.
 - [ ] Callout and pull quote.
 
-## 0.5: Links and audience
+## 0.6: Links and audience
 
 - [ ] Page link and glossary link by id (pages from the host's route map; glossary from the host's Lexicon).
 - [ ] Audience block (`data-for` roles).
 
-## 0.6: Preview like the site
+## 0.7: Preview like the site
 
 - [ ] Site fonts and styles in the preview (`registerPreviewStyle`); blocks drawn as the page will show them.
 

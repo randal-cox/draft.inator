@@ -2,6 +2,11 @@
 
 ## Unreleased (0.3)
 
+- **The live editor** (`demo/editor/`, on GitHub Pages): write an article in Markdown with the preview beside it,
+  above it, or hidden, or the preview alone. Hide the toolbar, or go plain for nothing but text. Citation and Figure
+  open the blocks' real forms in a dialog (Ctrl+E edits the one under the cursor); images upload or come from the
+  samples; the preview lays out figures and lists the works cited. The draft, small uploads, and the layout are kept
+  in the browser. No server, nothing sent anywhere.
 - `npm run demo` serves the demos on your own computer, to try a pull request before it's merged
   (`docs/try-a-pull-request.md`).
 - **Figure block** (`src/blocks/figure.js`): place an image with required alt text, a caption, its provenance
