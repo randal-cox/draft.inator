@@ -38,7 +38,8 @@ and the host taking it.
 - [ ] Figure block (upload or choose; alt text, caption, credit, licence; alignment; width; wrap).
 - [ ] Provenance record written from the form (korazonresearch.org keeps one per image).
 - [ ] Renderer: `<figure>` with sized copies.
-- [ ] Decide on Sveltia vs. the TipTap fallback from what this block needs.
+- [ ] Decide on Sveltia vs. the TipTap fallback from what this block needs. Evidence: Sveltia is enough
+      (`docs/decisions/0.3-figure-in-sveltia.md`); decision pending Randal.
 
 ## 0.4: Table, Embed, Callout
 
