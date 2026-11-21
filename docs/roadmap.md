@@ -13,7 +13,7 @@ and the host taking it.
 - [x] First tag `v0.1.0`.
 - [ ] korazonresearch.org loads the block from the release instead of its own copy.
 
-## 0.2: Notes and tags kept current (with citation.inator 0.2+)
+## 0.2: Notes and tags kept current (released, v0.2.0)
 
 - [x] Host build step: `draft-inator notes` runs `annotateMarkers` over all content; it fails a pull request with a
       stale note, and `--write` fixes it.
@@ -29,9 +29,9 @@ and the host taking it.
       draft.inator and citation.inator fit together (`docs/README.md`).
 - [x] Live demos viewable from GitHub (GitHub Pages, `demo/`): the Cite block's form without installing Sveltia, a
       round trip, and the build tools' output on a sample site.
-- [x] GitHub Pages turned on (Randal, 21 Nov 2026: `main`, `/ (root)`). The demos appear once this merges.
-- [ ] Reference renderer for `{citation …}`: a thin call into citation.inator's compiler (documented, not
-      reimplemented).
+- [x] GitHub Pages turned on (Randal, 21 Nov 2026: `main`, `/ (root)`).
+- Moved to 1.0: the reference renderer for `{citation …}` (a thin, documented call into citation.inator's compiler),
+  with the other JS reference renderers.
 
 ## 0.3: Figure
 
@@ -61,7 +61,8 @@ and the host taking it.
 ## 1.0: A plug-in other sites use
 
 - [ ] One site file; nothing host-specific left in the blocks (see `origin.md`).
-- [ ] JS reference renderers; packaging decided; docs for a new site.
+- [ ] JS reference renderers, starting with `{citation …}` as a thin, documented call into citation.inator's
+      compiler; packaging decided; docs for a new site.
 - [ ] A second site adopts it.
 
 ## Stretch: Import citations (with citation.inator F4)

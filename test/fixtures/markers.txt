@@ -8,3 +8,4 @@ Unknown option kept: {citation bell-1992-ritual | label:"chapter" | locator:3}.
 Escaped quote: {citation turner-1969-ritual | prefix:"as \"liminal\" in"}.
 Old note refreshed: {citation bell-1992-ritual | note:"Bell 1991" | locator:2}.
 Not a cite: {citation endnote} {citation list | tags:consent} {citation nocite bell-1992-ritual}.
+Unknown options apart: {citation bell-1992-ritual | note:"Bell 1992" | label:"chapter" | locator:3 | suppress-year-letter:yes}.

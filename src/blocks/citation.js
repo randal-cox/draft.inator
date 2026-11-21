@@ -44,7 +44,7 @@
           if (m[1] === 'tags') item.tags = unquote(m[2]).split(',').map(function (t) { return t.trim(); }).filter(Boolean);
           else if (m[1] !== 'note') item[m[1]] = unquote(m[2]);
           item.order.push(m[1] + (/^\s*"/.test(m[2]) ? '"' : ''));   // '"': it was written quoted, so keep it so
-        } else if (b) { item.extra.push(b); if (item.order.indexOf('extra') < 0) item.order.push('extra'); }
+        } else if (b) { item.extra.push(b); item.order.push('extra'); }   // one 'extra' per unknown option, in place
       });
       item.extra = item.extra.join(' | ');
       item.order = item.order.join(',');             // the marker's own option order, kept when it's written back
@@ -54,20 +54,37 @@
 
   function build(items) {
     return '{citation ' + (items || []).filter(function (it) { return it && it.work; }).map(function (it) {
-      var was = (it.order || '').split(',');
+      var was = (it.order || '').split(',').filter(Boolean);
       function q(k, v) { return was.indexOf(k + '"') >= 0 ? quoteAlways(v) : quote(v); }
       var tags = it.tags || [], parts = {
         note: 'note:' + quoteAlways(NOTE[it.work] || it.work),
         locator: it.locator ? 'locator:' + (/\s/.test(it.locator) ? quoteAlways(it.locator) : q('locator', it.locator)) : '',
         prefix: it.prefix ? 'prefix:' + q('prefix', it.prefix) : '',
         form: it.form ? 'form:' + it.form : '',
-        tags: tags.length ? 'tags:' + tags.join(',') : '',
-        extra: it.extra || ''
+        tags: tags.length ? 'tags:' + tags.join(',') : ''
       };
-      var order = was.map(function (k) { return k.replace('"', ''); }).filter(function (k) { return k in parts; });
-      ['note', 'locator', 'prefix', 'form', 'tags', 'extra'].forEach(function (k) { if (order.indexOf(k) < 0) order.push(k); });
-      if (order.indexOf('note') > 0 && (it.order || '').indexOf('note') < 0) { order.splice(order.indexOf('note'), 1); order.unshift('note'); }
-      return [it.work].concat(order.map(function (k) { return parts[k]; }).filter(Boolean)).join(' | ');
+      // Unknown options go back where each one was. If the writer changed "Other options" so they no longer match
+      // one for one, they all go where the first one was.
+      var extras = it.extra ? split(it.extra, '|').filter(Boolean) : [];
+      var slots = was.filter(function (k) { return k === 'extra'; }).length, next = 0;
+      var out = [], seen = {};
+      was.forEach(function (k) {
+        k = k.replace('"', '');
+        if (k === 'extra') {
+          if (extras.length === slots) out.push(extras[next++]);
+          else if (next === 0 && extras.length) { out.push(extras.join(' | ')); next = -1; }
+        } else if (k in parts && !seen[k]) { seen[k] = true; if (parts[k]) out.push({ key: k, text: parts[k] }); }
+      });
+      ['note', 'locator', 'prefix', 'form', 'tags'].forEach(function (k) {
+        if (!seen[k] && parts[k]) out.push({ key: k, text: parts[k] });
+      });
+      if (!slots && extras.length) out.push(extras.join(' | '));
+      // A note the marker didn't have goes first.
+      if (was.indexOf('note') < 0 && was.indexOf('note"') < 0) {
+        var at = out.findIndex ? out.findIndex(function (o) { return o && o.key === 'note'; }) : -1;
+        if (at > 0) out.unshift(out.splice(at, 1)[0]);
+      }
+      return [it.work].concat(out.map(function (o) { return typeof o === 'string' ? o : o.text; })).join(' | ');
     }).join('; ') + '}';
   }
 
