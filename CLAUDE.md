@@ -20,6 +20,10 @@ first; `docs/origin.md` says what came from korazonresearch.org and what is stil
 - **The data contract** (`docs/data-contract.md`) is the only coupling to a host; change it additively, and record
   changes there.
 - Work on a branch and open a pull request; Randal reviews and merges. Don't merge your own.
+- **Releasing:** bump `version` in `package.json` and add a `## X.Y.Z · date · title` section to `CHANGELOG.md` in the
+  same pull request. When it merges, `.github/workflows/release.yml` tags it and publishes the release with that
+  section as its notes. Versions with a `-` are never released.
+- Base every pull request on `main`; don't stack them.
 - House style for prose: Oxford comma, including before "&"; sentence case for headings; "consent" lowercase except
   at the start of a sentence or in a title.
 - Anything for Theandra (citation.inator) is given to Randal as paste-ready text.

@@ -1,0 +1,25 @@
+# Tags and publishes a release when a new version reaches main. Bump "version" in package.json and add a matching
+# "## X.Y.Z · date · title" section to CHANGELOG.md in the same pull request; merging it does the rest. Versions with a
+# "-" (0.3.0-dev) are never released.
+name: Release
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+concurrency: release
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+      - name: Tag and publish the version in package.json, if it is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/release.mjs
