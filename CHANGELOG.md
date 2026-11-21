@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased (0.2)
+
+- **Build tools** (`docs/tools.md`), plain Node with nothing to install:
+  - `draft-inator notes` checks every marker's `note:` against citation.inator and fails on a stale one; `--write`
+    refreshes them, changing nothing else.
+  - `draft-inator tags` totals the topics writers gave each work, with a curator's additions and blocks.
+  - `draft-inator works` writes the data contract's `works.js` from a citation.inator cache.
+- citation.inator 0.2.0's tools bundle is vendored in `vendor/citation-inator/` (MIT, notices kept).
+- **Cite block:** the directives it leaves alone now match citation.inator exactly. A work whose id starts with
+  `list`, `endnote`, `nocite`, `evidence`, or `credit` (such as `list-2001`) can now be opened in the form.
+
 ## 0.1.0 · 2026-11-21
 
 The first release: the Cite block, packaged from korazonresearch.org, where it was built.

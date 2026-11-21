@@ -15,11 +15,12 @@ Everything here started in korazonresearch.org (repository `Teatro-Korazon/koraz
 ## Still tied to the host (to remove before 1.0)
 
 - **The works list's shape** comes from the host's records (`content/references/<id>.yml`, with `cited_as` for works
-  not yet resolved). The contract is generic; the producer isn't. A reference producer in JS, reading citation.inator
-  records and a cache, would let any site generate `works.js`.
+  not yet resolved). The contract is generic; the producer isn't. `draft-inator works` (0.2) now produces it from a
+  citation.inator cache, so any site can generate `works.js`.
 - **The topics** are the host's reference-topic list (6 groups, 34 topics, 9 kinds), shown as "Group › Topic".
 - **The skipped marker words** (`endnote`, `list`, `nocite`, `evidence`, `credit`) match citation.inator 0.2.0's
-  directives; they should come from citation.inator, not a hard-coded list.
+  directives exactly and are tested against it, but the block still keeps its own copy. Requested from citation.inator
+  (`docs/requests/citation-inator-2026-11-21.md`).
 - **Sign-in, page history, and the route map** are the host's (a Cloudflare Pages function for GitHub sign-in;
   `/admin/history.html`; `kr_build/routes.py`). The page-link block will need a route map in the data contract.
 - **The Sveltia version** (0.262.4) is pinned by the host.

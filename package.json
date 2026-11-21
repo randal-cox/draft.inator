@@ -7,7 +7,8 @@
   "license": "MIT",
   "author": "Randal Cox",
   "repository": { "type": "git", "url": "git+https://github.com/randal-cox/draft.inator.git" },
-  "files": ["src", "docs", "CHANGELOG.md", "LICENSE"],
+  "files": ["src", "tools", "vendor", "docs", "CHANGELOG.md", "LICENSE"],
+  "bin": { "draft-inator": "tools/cli.js" },
   "scripts": {
     "test": "node --test test/*.test.js"
   },

@@ -92,7 +92,10 @@
         { name: 'order', label: 'Option order', widget: 'hidden', required: false }
       ]
     }],
-    pattern: /\{citation (?!endnote\b|list\b|nocite\b|evidence\b|credit\b)((?:[^{}\\]|\\.)*)\}/,
+    // Directives are not citations of a work; leave them alone. Matches citation.inator 0.2.0's own test exactly
+    // ({citation endnote}, {citation endnote | …}, {citation list …}, {citation nocite …}, {citation evidence},
+    // {citation credit}), so a work whose id merely starts with one of those words (list-2001) still opens.
+    pattern: /\{citation (?!\s*(?:endnote\s*[|}]|(?:list|nocite)[ \t]|(?:evidence|credit)\s*\}))((?:[^{}\\]|\\.)*)\}/,
     fromBlock: function (match) { return { items: parse(match[1]) }; },
     toBlock: function (data) { return build(data.items); },
     toPreview: function (data) {
