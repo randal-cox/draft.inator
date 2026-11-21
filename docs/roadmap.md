@@ -58,6 +58,7 @@ can grow into the editor real sites use (PRD principle 3).
 - [ ] Real citations and endnotes in the preview, from citation.inator's browser compiler (#14).
 - [ ] citation.inator's import widget, in the editor's look and feel (with Theandra).
 - [x] The editor in `src/editor/` (`mountEditor`, `renderArticle`, the blocks' forms), with tests.
+- [x] Front matter kept byte for byte; saving as a Sveltia-compatible draft pull request (`github.js`).
 
 ## 0.5: Table, Embed, Callout
 

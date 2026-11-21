@@ -54,6 +54,38 @@ const editor = mountEditor(document.querySelector('#edit-here'), {
 Saving is the site's job. A site might open a pull request, commit to a draft branch, or post to its own server.
 draft.inator never decides where text goes.
 
+## Front matter
+
+The editor edits a page's body. Set the YAML front matter aside and put it back exactly:
+
+```js
+import { splitFrontMatter, joinFrontMatter } from '/admin/draft-inator/editor/frontmatter.js';
+const { frontMatter, body } = splitFrontMatter(fileText);
+// … mountEditor(el, { text: body, save: async edited => save(joinFrontMatter({ frontMatter, body: edited })) })
+```
+
+`joinFrontMatter(splitFrontMatter(text))` is always `text`, byte for byte.
+
+## Saving as a pull request, the way Sveltia does
+
+For a site that uses Sveltia's editorial workflow, `src/editor/github.js` saves where Sveltia would, so its
+Workflow view shows these drafts as its own. One branch per entry, `cms/<collection>/<slug>`, and one draft pull
+request labelled `sveltia-cms/draft`; later saves add commits to it. It never merges.
+
+```js
+import { createWorkflowSaver, SaveConflict } from '/admin/draft-inator/editor/github.js';
+
+const saver = createWorkflowSaver({ token, owner: 'org', repo: 'site', base: 'main', labelPrefix: 'sveltia-cms/' });
+const entry = { collection: 'essays', slug: 'masks', path: 'content/essays/masks.md' };
+let { text, sha } = await saver.load(entry);           // the open draft's text if there is one, else main's
+// … edit …
+const { pr, created } = await saver.save({ ...entry, text: edited, sha, message: 'CMS: edit essays "masks"' });
+```
+
+`load` reads from the entry's open draft when there is one, so two writers never fork an entry. `save` takes the `sha`
+from `load` and throws `SaveConflict`, writing nothing, if someone saved in between. The token is the signed-in
+writer's; the site decides where it comes from (for a Sveltia site, the one Sveltia already holds).
+
 ## Matching the site
 
 Set the editor's colours on its box; everything else follows:

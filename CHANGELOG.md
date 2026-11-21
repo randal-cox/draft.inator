@@ -11,6 +11,10 @@
   rounded, marked box inside a site's own page, in the site's colours; the site gives it a Markdown renderer and a
   save function (`docs/editor.md`). `renderArticle()` renders a page the way the preview does. A **View** menu holds
   the layouts, the toolbar switch, and plain mode.
+- **Front matter and saving** (`src/editor/frontmatter.js`, `src/editor/github.js`): set a page's front matter
+  aside byte for byte, and save as Sveltia's editorial workflow does (a `cms/<collection>/<slug>` branch and one
+  draft pull request labelled `sveltia-cms/draft`, never merged), refusing a save that would overwrite someone
+  else's. Tested against a fake GitHub.
 - **Editing inside a site** demo (`demo/site/`): a made-up archive whose "Edit this page" swaps the article for the
   editor, with the site's menus in view.
 - `npm run demo` serves the demos on your own computer, to try a pull request before it's merged
