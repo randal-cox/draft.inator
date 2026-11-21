@@ -1,0 +1,12 @@
+{
+  "name": "draft-inator",
+  "version": "0.1.0-dev",
+  "private": true,
+  "description": "Writing tools for static-site editors: blocks for Sveltia CMS (citations first), built around citation.inator.",
+  "type": "module",
+  "files": ["src", "docs"],
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=22" }
+}

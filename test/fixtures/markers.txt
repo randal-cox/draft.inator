@@ -1,0 +1,10 @@
+Plain: {citation bell-1992-ritual}.
+Located: {citation bell-1992-ritual | locator:12}.
+Spaced locator: {citation turner-1969-ritual | locator:"pp. 4–6"}.
+Several: {citation bell-1992-ritual; turner-1969-ritual | prefix:"see also"}.
+Form first: {citation ainsworth-1978-patterns | form:narrative | locator:7}.
+Tags: {citation 10.1177/1363460704040142 | tags:ritual-theory,consent}.
+Unknown option kept: {citation bell-1992-ritual | label:"chapter" | locator:3}.
+Escaped quote: {citation turner-1969-ritual | prefix:"as \"liminal\" in"}.
+Old note refreshed: {citation bell-1992-ritual | note:"Bell 1991" | locator:2}.
+Not a cite: {citation endnote} {citation list | tags:consent} {citation nocite bell-1992-ritual}.
