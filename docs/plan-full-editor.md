@@ -1,6 +1,6 @@
 # Plan: a full article editor
 
-Draft for Randal, 21 Nov 2026. Not yet decided; nothing here is built unless marked.
+Randal, 21 Nov 2026. The main decisions are made (see [Decided](#decided)); nothing here is built unless marked.
 
 **Goal.** Writing and managing articles the way people do in WordPress or Joomla, for a site whose content lives in a
 git repository and is published as static pages. That means editing, article handling, metadata, media, and the people
@@ -48,7 +48,7 @@ Key: ✅ done · 🟡 partly · ⬜ not yet. Priority: **M** must, **S** should,
 | Find and replace | Plug-in | Editor | — | ⬜ | S |
 | Spell check | Browser | Browser | Browser | ✅ browser (`spellcheck`) | M |
 | Raw HTML escape hatch, with limits | Custom HTML (needs `unfiltered_html`) | Editor setting | HTML card | ⬜ allowed tags only (see 6) | L |
-| Rich-text (WYSIWYG) editing | Default | Default | Default | ⬜ decide (see decisions) | S |
+| Rich-text (WYSIWYG) editing | Default | Default | Default | **Not doing** (Randal, 21 Nov 2026): Markdown with a preview | — |
 | Keyboard and screen reader use | ✅ | ✅ | ✅ | ✅ for what exists; keep testing | M |
 
 ## 2. Article handling
@@ -62,7 +62,7 @@ Key: ✅ done · 🟡 partly · ⬜ not yet. Priority: **M** must, **S** should,
 | Trash and restore; delete | Trash, 30 days | Trashed, then delete | Delete (permanent) | ⬜ delete = a PR that removes the file; restore from history. A trash list from git | M |
 | Revisions: compare and restore | Revisions screen, colour diff, Restore | Versions | Post history | ⬜ history from git commits, a readable diff, Restore as a new draft | M |
 | Locking while someone edits | — (warning) | Check-in, check-out | — | 🟡 the open draft branch is the lock; ⬜ show "Ann is editing" | S |
-| A list of all articles: search, filter, sort | Posts list | Articles list, batch | Posts list | ⬜ from the repository or a build index | M |
+| A list of all articles: search, filter, sort | Posts list | Articles list, batch | Posts list | ⬜ the article list (below) | M |
 | Batch actions | Bulk edit, trash | Batch | — | ⬜ later | L |
 | New article from a template | Patterns | — | — | ⬜ per collection | S |
 | Duplicate an article | Plug-in | Save as Copy | Duplicate | ⬜ | L |
@@ -82,7 +82,7 @@ Key: ✅ done · 🟡 partly · ⬜ not yet. Priority: **M** must, **S** should,
 | Edit: crop, rotate, scale, focal point | Edit image | Crop, resize | Built-in image editor | ⬜ crop and rotate in the browser; focal point in the sidecar | S |
 | Sized copies and modern formats | Generated sizes | — | ✅ | ⬜ at build time, in the renderer | S |
 | Replace a file everywhere | Plug-in | — | — | ⬜ keep the path, swap the file, in one PR | L |
-| Video and audio, documents | ✅ | ✅ | Video, Audio, File cards | ⬜ after images; big files to object storage | L |
+| Video and audio, documents | ✅ | ✅ | Video, Audio, File cards | Deferred, perhaps for a long time (Randal); embeds of hosted video come with the Embed block | — |
 | Stock photo services | Openverse | — | GIF search | Off by default (privacy, provenance) | — |
 
 A **sidecar record** per file, `static/uploads/mask.jpg.yml`, holds what belongs to the image rather than to one use
@@ -136,9 +136,75 @@ on the host keep them valid.
 | Roles | Contributor, Author, Editor, Administrator | Groups with ACL | Contributor, Author, Editor, Administrator | Map to: **contributor** (can open drafts), **editor** (can merge), **admin**. Enforced by the repository: write access and branch protection on `main` |
 | Edit own versus others' | `edit_others_posts` | Edit Own | Editor edits others' | ⬜ CODEOWNERS on content paths, or a per-article `editors` list checked in CI. GitHub alone can't stop a writer opening a PR on any file, but nothing merges without review |
 | Publish | `publish_posts` | Edit State | Author and up | Merging to `main`, gated by branch protection and required reviews |
-| Who can see a page | Private, password | Access levels | Public, members, paid, tiers | Static pages are public. `unlisted` is free; real restriction needs the host to gate paths (Cloudflare Access, or a Pages function checking sign-in). ⬜ decide |
+| Who can see a page | Private, password | Access levels | Public, members, paid, tiers | draft.inator exposes the structure; the host enforces it (see [the permission structure](#the-permission-structure)) |
 | Upload | `upload_files` | Media permissions | — | Same as editing; limits checked in CI |
 | Audit | — | Action logs | History log | git log, PRs, reviews: free |
+
+## The article list
+
+Randal: "we need searches and all kinds of annoying things." Everything WordPress's Posts screen and Joomla's
+Articles list let an editor do, over the site's content:
+
+- **Search** the text of every article (title, body, excerpt, authors, tags), not only titles.
+- **Filter**, combinably:
+  - collection; status, including *has an open draft* and *in review*; author; tag and topic; visibility;
+  - date ranges (published, modified, created);
+  - problems: unresolved citations, missing alt text, missing excerpt or preview image, an HTML body.
+- **Sort** by modified, published, title, author, or order.
+- **Columns** chosen by the editor (title, status, authors, dates, visibility, tags, words, citations, figures).
+- **Saved views**, such as "my drafts", "in review", "members only", or "needs alt text", remembered per person.
+- **Counts per status** at the top, as WordPress shows them (All, Published, Drafts, In review, Trash).
+- **Quick actions on a row:** edit, view, history, unpublish, move to trash, restore. Bulk actions later.
+- **Paging and speed:** fast with thousands of articles. One list across collections, with the collection as a filter.
+
+**Where the data comes from:** an index the site's build writes (`articles.json`: every article's front matter,
+counts, problems, and path), searched in the browser with a small index draft.inator builds (no dependencies). It's
+overlaid live with open drafts and their review state from the GitHub API, so a draft opened a minute ago shows at
+once. The index never includes the text of pages a reader couldn't see, if the list is ever shown outside the CMS.
+
+## The permission structure
+
+Randal: pages only some readers may see are needed; KR can do some of the lifting, and draft.inator must at least
+expose the permission structure. So draft.inator **describes and checks** who may see and edit what, and the **host
+enforces** reading at its edge (KR: a Cloudflare Pages function or Access, checking sign-in).
+
+**1. The site declares its groups** (in the site file):
+
+```yaml
+access:
+  groups:
+    members: { label: "Members", description: "Signed-in members" }
+    board:   { label: "Board" }
+  editing:
+    contributors: [ "@Teatro-Korazon/writers" ]   # may open drafts
+    editors:      [ "@Teatro-Korazon/editors" ]   # may review and merge
+```
+
+**2. Each article says who may see it, and optionally who may edit it:**
+
+```yaml
+visibility: public          # or: unlisted | members | [board, members]
+editors: [ann-cox, board]   # optional: beyond the site's editors
+```
+
+**3. draft.inator does its part:**
+- **The editor:** a visibility control in the settings panel, offering only the site's groups. A clear "Visible to:
+  Board" badge on the box and in the preview.
+- **The article list:** filters by visibility.
+- **The build tool:** `draft-inator access` writes `access.json` (each page's path and the groups that may read it)
+  for the host to enforce.
+- **A check that fails a pull request if a restricted page would leak:** linked from a public page, in the public
+  sitemap or search index, in a feed, or in a public works-cited "Cited in" list.
+- **Editing:** turns `editors` into a CODEOWNERS file, or a CI check, so a change to a page needs a review from someone
+  allowed to edit it. Merging stays gated by branch protection.
+- **The data contract** gets the fields and `access.json`'s shape. Audience passages inside a page (the roadmap's
+  Audience block) use the same groups.
+
+**4. The host does its part:** serves a restricted page only to readers in its groups, using `access.json`, and keeps
+restricted pages out of public caches.
+
+Limit: in a git-based site, anyone who can read the repository can read every page's source. Restricted pages
+therefore need the repository itself to be private, as KR's is.
 
 ## 6. Security and limits
 
@@ -157,30 +223,27 @@ on the host keep them valid.
 - **Privacy.** No tracking, no third-party fetches from the editor (stock photos off), and lookups send only
   references (PRD principle 6).
 
-## Decisions for Randal
+## Decided
 
-1. **Rich text or Markdown?** WordPress, Joomla, and Ghost all edit visually. Today draft.inator edits Markdown beside
-   a preview. A visual mode, typing into the formatted article, is the largest single piece of work here. Options:
-   Markdown with preview (now); a visual editor built on ProseMirror or TipTap that still saves the same Markdown and
-   tags; or both, switchable. I'd recommend both, visual added after 1.0's basics, because the blocks and round-trip
-   rules don't change.
-2. **Private pages.** Do some readers need pages others can't see (members, groups)? If yes, the host must gate paths.
-   That's a host feature draft.inator describes in its contract, not something a static editor can enforce.
-3. **Where media lives.** In the repository (simple, reviewable, fine for images) or in object storage such as R2 (for
-   video and large files). I'd start with the repository and sidecar records, and add object storage when video comes.
-4. **The article list.** Read it from the GitHub API live (no build needed, slower on big sites) or from an index the
-   build writes (fast, slightly stale). I'd use the build index, with live status for open drafts.
-5. **Sveltia's role.** With draft.inator's editor doing all of this, Sveltia remains useful for form-shaped
-   collections (people, topics, settings). Keep both, sharing the blocks and the save path?
+Randal, 21 Nov 2026:
 
-## A possible order
+1. **No visual editing.** Writers edit Markdown with a live preview. Not WYSIWYG, not later.
+2. **Pages only some readers may see: yes.** draft.inator exposes the permission structure and checks it; KR and other
+   hosts enforce reading (see [the permission structure](#the-permission-structure)).
+3. **Media: the repository, with a sidecar record per image.** That's the plan. Video is deferred, perhaps for a long
+   time.
+4. **The article list needs search and "all kinds of annoying things":** see [the article list](#the-article-list).
+
+Still open: **Sveltia's role.** Keep it for form-shaped collections (people, topics, settings) beside draft.inator's
+editor, sharing the blocks and the save path?
+
+## Order
 
 | Milestone | Contents |
 |---|---|
 | 0.4 (now) | KR's "Edit this page"; real citations in the preview (#14); the import widget (#16); recover an unsaved draft |
-| 0.5 | **Article metadata**: a settings panel beside the editor for the fields in 4 (title, slug, authors, dates, status, excerpt, image, tags, SEO, social, visibility), validated against the data contract |
-| 0.6 | **Article handling**: the article list (search, filter, states); history with readable diffs and Restore; unpublish, trash, and restore; scheduled publishing with a scheduled build |
-| 0.7 | **Media library**: browse, details, sidecar provenance, usage, crop and rotate, upload limits and EXIF stripping |
-| 0.8 | Table, Embed, Callout, page links; find and replace; templates |
-| 0.9 | **Permissions**: roles mapped to repository access, CODEOWNERS or an `editors` check in CI, and the visibility contract for hosts |
-| 1.0 | A second site adopts it; docs for a new site; then the visual editing mode |
+| 0.5 | **Article metadata and the permission structure**: a settings panel for the fields in 4, including `visibility` and `editors`; the site's groups; the data contract for both |
+| 0.6 | **The article list and handling**: search, filters, saved views, counts; history with readable diffs and Restore; unpublish, trash, restore; scheduled publishing |
+| 0.7 | **Media library** (images): browse, details, sidecar provenance, usage, crop and rotate, upload limits, EXIF stripping |
+| 0.8 | **Access checks**: `access.json` for hosts, the leak check, CODEOWNERS or an `editors` check; Table, Embed, Callout, page links |
+| 1.0 | A second site adopts it; docs for a new site |

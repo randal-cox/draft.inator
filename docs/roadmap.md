@@ -60,20 +60,35 @@ can grow into the editor real sites use (PRD principle 3).
 - [x] The editor in `src/editor/` (`mountEditor`, `renderArticle`, the blocks' forms), with tests.
 - [x] Front matter kept byte for byte; saving as a Sveltia-compatible draft pull request (`github.js`).
 
-## 0.5: Table, Embed, Callout
+## 0.5: Article metadata and the permission structure
 
-- [ ] Table with caption; raw-HTML escape hatch.
-- [ ] Embed (YouTube, Vimeo) with the privacy player.
-- [ ] Callout and pull quote.
+From `docs/plan-full-editor.md` (decided 21 Nov 2026).
 
-## 0.6: Links and audience
+- [ ] A settings panel beside the editor: title, slug, authors, dates, status, excerpt, preview image with alt text,
+      tags and topics, SEO and social cards, canonical address, noindex, redirects.
+- [ ] Who may see a page (`visibility`: public, unlisted, members, or the site's groups) and who may edit it
+      (`editors`), from groups the site declares.
+- [ ] The data contract for these fields, validated in the editor and by a build check.
 
-- [ ] Page link and glossary link by id (pages from the host's route map; glossary from the host's Lexicon).
-- [ ] Audience block (`data-for` roles).
+## 0.6: The article list and article handling
 
-## 0.7: Preview like the site
+- [ ] The article list: full-text search, combinable filters (collection, status and open drafts, author, tag,
+      visibility, dates, problems such as missing alt text), sorting, chosen columns, saved views, counts per status.
+- [ ] History with readable diffs and Restore; recover an unsaved draft.
+- [ ] Unpublish, trash, and restore; scheduled publishing with a scheduled build.
 
-- [ ] Site fonts and styles in the preview (`registerPreviewStyle`); blocks drawn as the page will show them.
+## 0.7: The media library (images)
+
+- [ ] Browse and search the site's images; details with a sidecar record (alt, credit, licence, source, focal point).
+- [ ] Where each image is used; unused images; crop and rotate; upload limits; GPS data stripped.
+- Video and audio deferred.
+
+## 0.8: Access checks and more blocks
+
+- [ ] `draft-inator access`: `access.json` for hosts to enforce; a check that fails a pull request if a restricted
+      page would leak (public links, sitemap, search index, feeds); CODEOWNERS or an `editors` check.
+- [ ] Table, Embed (privacy player), Callout and pull quote; page and glossary links; the Audience block.
+- [ ] Site fonts and styles in the preview.
 
 ## 1.0: A plug-in other sites use
 
