@@ -11,11 +11,23 @@ callouts, links) to [Sveltia CMS](https://github.com/sveltia/sveltia-cms), with
 reads and writes every one of that site's 163 citation markers without changing what readers see. This repository is
 where it becomes a plug-in any site can use.
 
+## See it working
+
+**[Live demos](https://randal-cox.github.io/draft.inator/demo/)**: the Cite block and the build tools, running in your
+browser. To run them locally, serve the repository (`python3 -m http.server`) and open `/demo/`.
+
+![The Cite block demo](docs/images/cite-demo.png)
+
+**[Documentation](docs/README.md)**: [for writers](docs/writers.md), [getting started](docs/getting-started.md),
+[the build tools](docs/tools.md), and [how draft.inator and citation.inator fit together](docs/citation-inator.md).
+
 ## What's here
 
 | Path | What |
 |---|---|
 | `src/blocks/citation.js` | The Cite block: a Sveltia editor component that reads and writes citation.inator markers |
+| `demo/` | Live demos (GitHub Pages): the Cite block in a stand-in editor, and the build tools on a sample site |
+| `examples/sample-site/` | A small site the tests, demos, and docs all use |
 | `tools/` | Build tools: keep notes current, total tags, write `works.js` (`docs/tools.md`) |
 | `vendor/citation-inator/` | citation.inator's tools bundle, vendored so nothing needs installing |
 | `test/` | `npm test` (Node 22, no dependencies): round-trip, quoting, option order, preview, the tools, and agreement with citation.inator |

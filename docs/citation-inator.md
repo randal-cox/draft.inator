@@ -1,0 +1,68 @@
+# draft.inator and citation.inator
+
+[citation.inator](https://github.com/randal-cox/citation.inator) is the citation library: it reads citation markers in
+a page, looks works up, formats citations and endnotes, and shows readers a panel about each source. draft.inator is
+the writing side: it gives writers a form for those markers, and keeps the markers tidy across a whole site.
+
+draft.inator never formats a citation for readers. citation.inator does that, in the site's build.
+
+## Who does what
+
+| Job | draft.inator | citation.inator |
+|---|---|---|
+| The marker grammar (`{citation id \| locator:12}`) | Writes it | Defines it, reads it |
+| A form for writers | **Cite block** | |
+| Citations, endnotes, and reading lists readers see | | Compiler |
+| A work's short description ("Bell 1992") | Shows it | `describeCitation` |
+| Notes in markers kept current | `draft-inator notes` (runs it over a site) | `annotateMarkers` |
+| Tag totals per work | `draft-inator tags` (adds curation) | `collectMarkerTags` |
+| The editor's list of works | `draft-inator works` | `describeCitation` over the cache |
+| Looking works up (Crossref, Open Library) | | Its resolvers |
+| Which markers are citations and which are directives | Follows it; tested against it | Defines it |
+
+## How data moves
+
+```mermaid
+flowchart LR
+  cache[("citations.json<br>citation.inator cache")]
+  works["works.js<br>DRAFT_WORKS, DRAFT_TOPICS"]
+  block["Cite block<br>in Sveltia"]
+  pages["Pages<br>Markdown with markers"]
+  html["Pages for readers"]
+  cache -- "draft-inator works" --> works
+  works --> block
+  block -- "writes markers" --> pages
+  cache -- "draft-inator notes" --> pages
+  pages -- "draft-inator tags" --> tags["record tags"]
+  tags --> cache
+  pages -- "citation.inator compiler" --> html
+  cache --> html
+```
+
+1. The site's build keeps a citation.inator cache: one record per work.
+2. `draft-inator works` turns the cache into `works.js`, which the Cite block reads in the editor.
+3. Writers cite works; the block writes markers into the page files, each with a `note:`.
+4. In each pull request, `draft-inator notes` checks every note against the cache, so a changed record never leaves
+   a misleading note behind.
+5. `draft-inator tags` totals the topics writers gave each work; curators adjust them; they become the records' tags.
+6. The site's build compiles the pages with citation.inator for readers.
+
+## Versions
+
+draft.inator vendors citation.inator's tools bundle (`vendor/citation-inator/`, currently 0.2.0), so its tools and
+tests need nothing installed. The site's own build uses whatever citation.inator version it takes; keep the two on the
+same version, and the same citation style, so notes agree with what readers see.
+
+## What draft.inator has asked of citation.inator
+
+Requests are kept in [`docs/requests/`](requests/). Open now:
+
+- Export its own test of "citation or directive", so the Cite block can stop keeping a copy.
+- An `annotateMarkers` option that writes notes without year letters ("Cox 1995", not "Cox 1995a"), so the build
+  and the editor agree.
+
+## Larger plug-ins
+
+Small blocks (Cite, Figure, Table, Embed, Callout, Links) stay in draft.inator. A larger piece, such as citation
+import, may become its own project. If it does, it talks to draft.inator only through the
+[data contract](data-contract.md), as a host site does.

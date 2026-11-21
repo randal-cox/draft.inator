@@ -1,4 +1,4 @@
-// The build tools, on a small sample site (test/fixtures/site). Each test works on a fresh copy.
+// The build tools, on the sample site (examples/sample-site). Each test works on a fresh copy.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -15,8 +15,8 @@ import { loadBlock, roundtrip } from './harness.js';
 const here = path.dirname(new URL(import.meta.url).pathname);
 function site() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'draft-inator-'));
-  fs.cpSync(path.join(here, 'fixtures/site'), dir, { recursive: true });
-  return { dir, settings: loadSettings(path.join(dir, 'settings.json')), read: f => fs.readFileSync(path.join(dir, 'content/essays', f), 'utf8') };
+  fs.cpSync(path.join(here, '../examples/sample-site'), dir, { recursive: true });
+  return { dir, settings: loadSettings(path.join(dir, 'draft-inator.json')), read: f => fs.readFileSync(path.join(dir, 'content/essays', f), 'utf8') };
 }
 const quiet = () => { const lines = []; return { out: s => lines.push(s), err: s => lines.push(s), lines }; };
 const withoutNotes = s => s.replace(/ \| note:"(?:[^"\\]|\\.)*"/g, '');
@@ -106,12 +106,18 @@ test('the Cite block and the notes check agree, so saving in the editor never ma
 
 test('command line: notes exits 1 when stale, 0 after --write; works --check', () => {
   const { dir } = site();
-  const config = path.join(dir, 'settings.json');
+  const config = path.join(dir, 'draft-inator.json');
   assert.equal(main(['notes', '--config', config], quiet()), 1);
   assert.equal(main(['notes', '--config', config, '--write'], quiet()), 0);
   assert.equal(main(['notes', '--config', config], quiet()), 0);
+  fs.rmSync(path.join(dir, 'works.js'));
   assert.equal(main(['works', '--config', config, '--check'], quiet()), 1, 'no works.js yet');
   assert.equal(main(['works', '--config', config], quiet()), 0);
   assert.equal(main(['works', '--config', config, '--check'], quiet()), 0);
   assert.equal(main(['bogus'], quiet()), 2);
+});
+
+test('the sample site\'s works.js (used by the demos) is current', () => {
+  const config = path.join(here, '../examples/sample-site/draft-inator.json');
+  assert.equal(main(['works', '--config', config, '--check'], quiet()), 0, 'run: node tools/cli.js works --config examples/sample-site/draft-inator.json');
 });
