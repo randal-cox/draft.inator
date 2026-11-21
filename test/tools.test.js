@@ -121,3 +121,19 @@ test('the sample site\'s works.js (used by the demos) is current', () => {
   const config = path.join(here, '../examples/sample-site/draft-inator.json');
   assert.equal(main(['works', '--config', config, '--check'], quiet()), 0, 'run: node tools/cli.js works --config examples/sample-site/draft-inator.json');
 });
+
+test('year letters: the notes check, works.js, and the Cite block all say "Cox 1995", so they never undo each other', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'draft-inator-'));
+  const rec = (id, given) => ({ id, type: 'book', state: 'resolved', title: 'On ' + given, authors: [{ family: 'Cox', given }], issued: [1995] });
+  const cache = { schema: 'citation-inator.cache.v1', records: [rec('cox-1995-rites', 'Ann'), rec('cox-1995-masks', 'Ann')] };
+  fs.writeFileSync(path.join(dir, 'page.md'), 'Rites {citation cox-1995-rites} and masks {citation cox-1995-masks | locator:4}.\n');
+  const settings = { cache, style: 'chicago-author-date', content: [dir] };
+  checkNotes(settings, { write: true });
+  const written = fs.readFileSync(path.join(dir, 'page.md'), 'utf8');
+  assert.equal(written, 'Rites {citation cox-1995-rites | note:"Cox 1995"} and masks {citation cox-1995-masks | locator:4 | note:"Cox 1995"}.\n');
+  const { components } = loadBlock(path.join(here, '../src/blocks/citation.js'), buildWorks(settings).works);
+  fs.writeFileSync(path.join(dir, 'page.md'), roundtrip(components.citation, written));
+  assert.equal(checkNotes(settings).stale, 0, 'saving in the editor leaves nothing stale');
+  settings.noteContext = 'article';
+  assert.equal(checkNotes(settings).stale, 2, 'a site that wants article notes can still have them');
+});

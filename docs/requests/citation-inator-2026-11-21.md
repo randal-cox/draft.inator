@@ -2,6 +2,9 @@
 
 Paste-ready. Randal passes this on as text.
 
+**Status:** both delivered by Theandra, 21 Nov 2026, commit `adbb07e` (`markerKind`; `noteContext: "work"`). draft.inator
+uses both.
+
 ---
 
 Hi Theandra,

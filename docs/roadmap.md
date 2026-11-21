@@ -10,7 +10,8 @@ and the host taking it.
 - [x] Tests on Node alone: round-trip, second pass stable, quoting kept, option order kept, unknown options kept.
 - [x] Licence: MIT, as citation.inator (Randal, 21 Nov 2026).
 - [x] A changelog.
-- [ ] First tag `v0.1.0` (after this merges); korazonresearch.org loads the block from the release instead of its own copy.
+- [x] First tag `v0.1.0`.
+- [ ] korazonresearch.org loads the block from the release instead of its own copy.
 
 ## 0.2: Notes and tags kept current (with citation.inator 0.2+)
 
@@ -19,11 +20,11 @@ and the host taking it.
 - [x] Tag totals from markers (`draft-inator tags`, from `collectMarkerTags`), with curator add/block per work; handed
       to citation.inator as record `tags`.
 - [x] A JS producer for `works.js` (`draft-inator works`), from a citation.inator cache, so any site can make it.
-- [x] Skipped directive words match citation.inator exactly, tested against the vendored library. A request for
-      citation.inator to export its own test is drafted (`docs/requests/`), so the block can stop keeping a copy.
-- [ ] Year letters: the build writes "Cox 1995a" with the article in view, but `works.js` (and so the editor) says
-      "Cox 1995". Asked citation.inator for an `annotateMarkers` option that writes notes without year letters
-      (Randal, 21 Nov 2026; `docs/requests/`); then `draft-inator notes` uses it.
+- [x] Skipped directive words match citation.inator exactly, tested against its own `markerKind` (delivered by
+      Theandra on request, 21 Nov 2026).
+- [x] Year letters: notes describe the work alone ("Cox 1995"), using citation.inator's `noteContext: "work"`
+      (delivered on request), so the build check, `works.js`, and the editor agree.
+- [ ] Re-vendor citation.inator from its next tagged release (today's copy is commit `adbb07e`).
 - [x] Documentation that holds a new site's hand: getting started, the Cite block for writers, the tools, and how
       draft.inator and citation.inator fit together (`docs/README.md`).
 - [x] Live demos viewable from GitHub (GitHub Pages, `demo/`): the Cite block's form without installing Sveltia, a
