@@ -7,9 +7,9 @@ callouts, links) to [Sveltia CMS](https://github.com/sveltia/sveltia-cms), with
 
 > "Behold, my draft.inator! Now the entire Tri-State Area will have to address my reviewer comments!" (Theandra)
 
-**Status: 0.1.0.** One block works: **Cite**. It was built inside korazonresearch.org (Korazon Research), where it
+**Status: 0.2.0.** One block works: **Cite**. It was built inside korazonresearch.org (Korazon Research), where it
 reads and writes every one of that site's 163 citation markers without changing what readers see. This repository is
-where it becomes a plug-in any site can use.
+where it becomes a plug-in any site can use. Build tools (`draft-inator notes`, `tags`, `works`) keep a whole site's citations tidy.
 
 ## See it working
 
