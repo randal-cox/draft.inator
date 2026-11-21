@@ -58,7 +58,8 @@ same version, and the same citation style, so notes agree with what readers see.
 Requests are kept in [`docs/requests/`](requests/). Open now:
 
 - Export its own test of "citation or directive", so the Cite block can stop keeping a copy.
-- A view on year letters ("Cox 1995a") in notes, which the build and the editor currently disagree about.
+- An `annotateMarkers` option that writes notes without year letters ("Cox 1995", not "Cox 1995a"), so the build
+  and the editor agree.
 
 ## Larger plug-ins
 

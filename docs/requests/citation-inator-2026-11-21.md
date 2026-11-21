@@ -22,12 +22,17 @@ Could the tools bundle (and the browser bundle) export one of these?
 
 Either would also cover the `{cite …}` short form.
 
-**2. Notes without year letters (a question first).** When an article cites two works by the same author and year,
+**2. Notes without year letters.** When an article cites two works by the same author and year,
 `annotateMarkers` writes `note:"Cox 1995a"`, which is right for that article. The editor's works list comes from
-`describeCitation`, which has no article in view and gives `Cox 1995`. So saving the marker in the editor changes the
-note back, and the next check calls it stale. Would an `annotateMarkers` option that writes the context-free
-description (no year letters) make sense to you, given that notes are for editors reading source and not for readers?
-Or would you rather we keep the letters the build wrote? Either is fine with us; we'd like your view before choosing.
+`describeCitation`, which has no article in view and gives `Cox 1995`. So when a writer saves that citation in the
+editor, the note goes back to `Cox 1995`, and the next check calls it stale. The build and the editor keep undoing
+each other.
+
+Could `annotateMarkers` take an option to write the context-free description instead, the same text
+`describeCitation` gives (no year letters)? For example `annotateMarkers(source, cache, { noteContext: "work" })`,
+with today's behaviour as the default. Notes are for editors reading source, not for readers, so "Cox 1995" is
+enough there; readers still get "Cox 1995a" from the compiler. With that option, draft.inator's check and editor
+would always agree.
 
 Thanks,
 Randal (for draft.inator)
