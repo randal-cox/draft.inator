@@ -38,6 +38,14 @@ test('options the form does not show are kept', () => {
   assert.ok(out.includes('label:"chapter"'));
 });
 
+test('unknown options separated by known ones each stay where they were', () => {
+  const marker = '{citation bell-1992-ritual | note:"Bell 1992" | label:"chapter" | locator:3 | suppress-year-letter:yes}';
+  assert.equal(roundtrip(cite, marker), marker);
+  const [item] = window.DRAFT_CITATION.parse('bell-1992-ritual | label:"a" | locator:3 | x:1');
+  item.extra = 'label:"b"';   // the writer edited "Other options": what's left goes where the first one was
+  assert.equal(window.DRAFT_CITATION.build([item]), '{citation bell-1992-ritual | note:"Bell 1992" | label:"b" | locator:3}');
+});
+
 test('parse and build agree', () => {
   const { parse, build } = window.DRAFT_CITATION;
   const items = parse('bell-1992-ritual | locator:12 | tags:a,b; turner-1969-ritual | prefix:"see also"');
