@@ -12,6 +12,7 @@ Start with whichever describes you.
 | **Working with citation.inator** | [How the two fit together](citation-inator.md) |
 | **Writing a renderer or another block** | [The data contract](data-contract.md) |
 | **Reading past decisions** | [`docs/decisions/`](decisions/) |
+| **Planning the full editor** | [What a full article editor needs](plan-full-editor.md) |
 | **Deciding what comes next** | [Product requirements](prd.md), [roadmap](roadmap.md), [where it came from](origin.md) |
 
 Changes are listed in the [changelog](../CHANGELOG.md).
