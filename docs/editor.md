@@ -46,7 +46,7 @@ const editor = mountEditor(document.querySelector('#edit-here'), {
 | `previewClass` | Your article class; your styles win over the editor's defaults |
 | `images` | `[{ label, path, url? }]`: images a figure can use. `url` if the path isn't where the browser finds it |
 | `publicFolder` | Where uploads are written in tags (default `/uploads`) |
-| `storageKey` | Keep the draft, small uploads, and the view in this browser under this name. Off by default |
+| `storageKey` | Keep the draft, small uploads, and the view in this browser under this name. Off by default. The page's own text always loads; a kept draft that differs is offered (Restore or Discard), with a warning if the page has changed since, and is forgotten after a successful save |
 | `fullWindow` | Fill the window instead of a box |
 | `blocks` | Only these blocks, such as `['citation']`. Default: every block the page loaded. Others get no button, and their tags stay as text |
 | `importer` | Turns on Import citations: `{ process, describe?, onRecords?, siteCache?, recordId? }` (see Importing citations) |

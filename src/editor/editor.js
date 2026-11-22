@@ -116,6 +116,21 @@ export function renderArticle(text, options = {}) {
 }
 
 /**
+ * What to do with a draft kept in this browser when the editor opens. The page's own text always loads; a kept draft
+ * that differs is offered, never applied unasked.
+ * @param {string} given  The page's text as the site gave it now.
+ * @param {{ text: string, base?: string, at?: number } | null} kept  The kept draft: its text, the text it started
+ *   from, and when it was kept.
+ * @returns {'none' | 'same' | 'offer' | 'offer-changed'}  Nothing kept; kept but identical (forget it); offer it;
+ *   offer it, warning that the page has changed since the draft began.
+ */
+export function recoveryChoice(given, kept) {
+  if (!kept || typeof kept.text !== 'string') return 'none';
+  if (kept.text === given) return 'same';
+  return kept.base === undefined || kept.base === given ? 'offer' : 'offer-changed';
+}
+
+/**
  * @param {HTMLElement} root  Where the editor goes. It fills the element; give it a height (or `fullWindow`).
  * @param {object} options
  * @param {string | (() => Promise<string>)} options.text  The Markdown to edit.
@@ -192,6 +207,10 @@ export function mountEditor(root, options = {}) {
   const counts = el('span'), saved = el('span'), live = el('span', { class: 'di-sr', role: 'status', 'aria-live': 'polite' });
   const status = el('div', { class: 'di-status' }, [counts, saved, live]);
   const exitPlain = el('button', { type: 'button', class: 'di-exit-plain', text: 'Leave plain (Esc)', hidden: true });
+  const recoverText = el('span'), recoverButton = el('button', { type: 'button', class: 'di-primary', text: 'Restore them' });
+  const discardButton = el('button', { type: 'button', class: 'di-quiet', text: 'Discard' });
+  const recover = el('div', { class: 'di-recover', role: 'region', 'aria-label': 'Unsaved changes', hidden: true },
+    [recoverText, el('span', { class: 'di-recover-actions' }, [recoverButton, discardButton])]);
 
   const dTitle = el('h2', { text: 'Citation' }), dFields = el('div'), dOut = el('output', { class: 'di-code' });
   const dError = el('p', { class: 'di-error', role: 'alert' });
@@ -199,7 +218,7 @@ export function mountEditor(root, options = {}) {
   const dForm = el('form', { method: 'dialog' }, [dTitle, dFields, el('h3', { text: 'What it writes' }), dOut, dError, el('div', { class: 'di-actions' }, [dCancel, dSave])]);
   const dialog = el('dialog', { class: 'di-dialog' }, [dForm]);
   dialog.setAttribute('aria-label', 'Block');
-  root.append(head, toolbar, panes, status, exitPlain, dialog);
+  root.append(head, recover, toolbar, panes, status, exitPlain, dialog);
 
   const announce = msg => { live.textContent = ''; setTimeout(() => { live.textContent = msg; }, 30); };
 
@@ -369,13 +388,19 @@ export function mountEditor(root, options = {}) {
   // ---------- Save, Done, Reset ----------
   if (saveButton) saveButton.addEventListener('click', async () => {
     saveButton.disabled = true; saved.textContent = 'Saving…';
-    try { const msg = await o.save(source.value); saved.textContent = msg || 'Saved'; announce(saved.textContent); }
+    try {
+      const text = source.value, msg = await o.save(text);
+      base = text; forgetDraft();   // saved: the kept copy has done its job
+      saved.textContent = msg || 'Saved'; announce(saved.textContent);
+    }
     catch (error) { saved.textContent = 'Not saved: ' + (error?.message || error); announce(saved.textContent); }
     finally { saveButton.disabled = false; }
   });
   if (doneButton) doneButton.addEventListener('click', () => o.done(source.value));
   if (resetButton) resetButton.addEventListener('click', async () => {
-    replace(0, source.value.length, await o.reset());
+    const text = await o.reset();
+    base = text;
+    replace(0, source.value.length, text);
     source.setSelectionRange(0, 0); source.scrollTop = 0;
     announce('Back to the sample article.');
   });
@@ -406,30 +431,60 @@ export function mountEditor(root, options = {}) {
     }
   }
 
+  // ---------- Drafts kept in this browser ----------
+  // Kept as { text, base, at }: the writer's text, the page text it started from, and when. On opening, the page's
+  // own text always loads and a kept draft that differs is offered (recoveryChoice), never applied unasked, so a
+  // newer save by someone else is never hidden. Saving forgets the kept draft.
+  let base = '';
+  const readDraft = () => {
+    const raw = store.get('draft');
+    if (raw) { try { return JSON.parse(raw); } catch { return null; } }
+    const old = store.get('text');   // drafts kept by 0.3.0, as plain text
+    return old == null ? null : { text: old };
+  };
+  const keepDraft = text => store.set('draft', JSON.stringify({ text, base, at: Date.now() }));
+  const forgetDraft = () => { if (o.storageKey) try { localStorage.removeItem(o.storageKey + ':draft'); localStorage.removeItem(o.storageKey + ':text'); } catch {} };
+  function offerDraft(kept, changed) {
+    const when = kept.at ? new Date(kept.at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'an earlier visit';
+    recoverText.textContent = `You have changes kept in this browser from ${when}.` +
+      (changed ? ' The page has changed since you made them, so restoring them would replace the newer version.' : '');
+    recover.hidden = false;
+    recover.classList.toggle('di-recover-changed', changed);
+    const done = msg => { recover.hidden = true; announce(msg); source.focus(); };
+    recoverButton.onclick = () => { restoreUploads(kept.text); replace(0, source.value.length, kept.text); done('Your kept changes are back. Undo returns to the page as it was.'); };
+    discardButton.onclick = () => { forgetDraft(); done('Kept changes discarded.'); };
+    announce(recoverText.textContent);
+  }
+
   // ---------- Start ----------
   let timer;
   source.addEventListener('input', () => {
     render(); updateEditButton();
     if (!o.storageKey) return;
     clearTimeout(timer);
-    timer = setTimeout(() => { saved.textContent = store.set('text', source.value) ? 'Draft kept in this browser' : 'Draft not kept: browser storage is off'; }, 400);
+    timer = setTimeout(() => {
+      if (source.value === base) { forgetDraft(); saved.textContent = ''; return; }
+      saved.textContent = keepDraft(source.value) ? 'Draft kept in this browser' : 'Draft not kept: browser storage is off';
+    }, 400);
   });
   for (const ev of ['click', 'keyup', 'select']) source.addEventListener(ev, updateEditButton);
 
   const ready = (async () => {
-    const kept = store.get('text');
-    source.value = kept ?? (typeof o.text === 'function' ? await o.text() : o.text || '');
-    restoreUploads(source.value);
+    const given = typeof o.text === 'function' ? await o.text() : o.text || '';
+    source.value = base = given;
+    restoreUploads(given);
     setLayout(store.get('layout') || o.layout || 'split', true);
     setToolbar(store.get('toolbar') !== '0', true);
-    saved.textContent = kept ? 'Draft restored from this browser' : '';
+    const kept = readDraft(), choice = recoveryChoice(given, kept);
+    if (choice === 'same') forgetDraft();
+    if (choice === 'offer' || choice === 'offer-changed') offerDraft(kept, choice === 'offer-changed');
     render(); updateEditButton();
   })();
 
   return {
     ready,
     get text() { return source.value; },
-    set text(v) { source.value = v; render(); updateEditButton(); },
+    set text(v) { source.value = base = v; render(); updateEditButton(); },
     focus() { source.focus(); },
     setLayout
   };

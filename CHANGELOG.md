@@ -8,6 +8,9 @@
   Unmatched citations stay as written. Try it: `demo/editor/?sample=import`.
 - The Cite block takes works added while editing (`DRAFT_CITATION.addWorks`), so imported works get notes at once.
 - Toolbar buttons are named by their visible text for screen readers (a tooltip no longer replaces it).
+- **Kept drafts are offered, not loaded silently.** The editor always opens the page's own text; changes kept in the
+  browser are offered with their time (Restore them, or Discard), with a warning if the page has changed since, so a
+  newer save is never hidden. Restore is one undoable step; a successful save forgets the kept draft.
 
 ## 0.3.0 · 2026-11-21 · Figures and the live editor
 

@@ -81,7 +81,8 @@ From `docs/plan-full-editor.md` (decided 21 Nov 2026).
 
 - [ ] The article list: full-text search, combinable filters (collection, status and open drafts, author, tag,
       visibility, dates, problems such as missing alt text), sorting, chosen columns, saved views, counts per status.
-- [ ] History with readable diffs and Restore; recover an unsaved draft.
+- [ ] History with readable diffs and Restore.
+- [x] Recover an unsaved draft: offered, never loaded silently.
 - [ ] Unpublish, trash, and restore; scheduled publishing with a scheduled build.
 
 ## 0.7: The media library (images)

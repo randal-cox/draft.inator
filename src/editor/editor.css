@@ -170,3 +170,9 @@
 .di-import-choice { display: flex; gap: .5rem; align-items: baseline; margin: .2rem 0; }
 .di-editor .di-import-choice label { margin: 0; font-weight: 400; }
 .di-import-choice small { color: var(--di-muted); }
+/* Unsaved changes kept in this browser, offered when the editor opens. */
+.di-recover { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem;
+  padding: .5rem .9rem; background: var(--di-mark); border-bottom: 1px solid var(--di-line); font-size: .9rem; }
+.di-recover[hidden] { display: none; }
+.di-recover-actions { display: flex; gap: .4rem; }
+.di-recover.di-recover-changed { border-left: 4px solid #b3261e; }
