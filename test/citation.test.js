@@ -65,3 +65,13 @@ test('the preview reads like the page', () => {
   assert.equal(cite.toPreview(cite.fromBlock(['', 'bell-1992-ritual; turner-1969-ritual | prefix:"see also"'])),
     '(Bell 1992; see also Turner 1969)');
 });
+
+test('works added later (by an import) get their notes and appear in the form', () => {
+  const { addWorks, build } = window.DRAFT_CITATION;
+  assert.equal(build([{ work: 'local:ref-new' }]), '{citation local:ref-new | note:"local:ref-new"}');
+  addWorks([{ id: 'local:ref-new', note: 'Cox 1995', title: 'Masks and makers' }]);
+  assert.equal(build([{ work: 'local:ref-new' }]), '{citation local:ref-new | note:"Cox 1995"}');
+  const options = cite.fields[0].fields.find(f => f.name === 'work').options;
+  assert.ok(options.some(o => o.value === 'local:ref-new' && o.label === 'Cox 1995 · Masks and makers'));
+  assert.equal(cite.toPreview(cite.fromBlock(['', 'local:ref-new | locator:3'])), '(Cox 1995, 3)');
+});

@@ -154,3 +154,19 @@
 .di-article .fig.align-full { width: 100%; clear: both; }
 .di-article .di-missing { display: grid; place-items: center; aspect-ratio: 3 / 2; border: 1px dashed var(--di-line); border-radius: 3px;
   color: var(--di-muted); font: .85rem/1.4 var(--di-sans); padding: 1rem; text-align: center; }
+
+/* Import citations: the review dialog. */
+.di-editor .di-import { width: min(48rem, calc(100vw - 32px)); }
+.di-import-controls { display: flex; flex-wrap: wrap; gap: .5rem .75rem; align-items: end; }
+.di-import-controls label { margin: 0; width: 100%; }
+.di-editor .di-import-controls select { width: auto; flex: 1 1 12rem; }
+.di-import-summary { margin: .75rem 0 .25rem; font-weight: 600; }
+.di-import-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .6rem; }
+.di-import-row { border: 1px solid var(--di-line); border-radius: 8px; padding: .5rem .75rem; background: var(--di-surface); }
+.di-import-context { margin: 0 0 .25rem; font: .95rem/1.5 var(--di-serif); }
+.di-import-context mark { background: var(--di-mark); color: inherit; padding: 0 .1em; border-radius: 2px; }
+.di-editor .di-import-item { margin: .35rem 0 .1rem; padding: .3rem .7rem .5rem; }
+.di-editor .di-import-item legend { font-size: .85rem; }
+.di-import-choice { display: flex; gap: .5rem; align-items: baseline; margin: .2rem 0; }
+.di-editor .di-import-choice label { margin: 0; font-weight: 400; }
+.di-import-choice small { color: var(--di-muted); }

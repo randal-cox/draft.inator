@@ -49,12 +49,39 @@ const editor = mountEditor(document.querySelector('#edit-here'), {
 | `storageKey` | Keep the draft, small uploads, and the view in this browser under this name. Off by default |
 | `fullWindow` | Fill the window instead of a box |
 | `blocks` | Only these blocks, such as `['citation']`. Default: every block the page loaded. Others get no button, and their tags stay as text |
-| `showImport` | Show the Import citations button (it does nothing yet) |
+| `importer` | Turns on Import citations: `{ process, describe?, onRecords?, siteCache?, recordId? }` (see Importing citations) |
+| `showImport` | Show the Import citations button even without an importer (disabled) |
 
 `mountEditor` returns `{ ready, text, focus(), setLayout(id) }`. `text` reads and replaces the Markdown.
 
 Saving is the site's job. A site might open a pull request, commit to a draft branch, or post to its own server.
 draft.inator never decides where text goes.
+
+## Importing citations
+
+With citation.inator's importer, the toolbar's **Import citations** finds author–date citations such as
+"(Bell, 1992, p. 94)" and the reference list in the article, and shows each citation in its sentence with the work it
+matches and why ("authors match, year matches").
+- **Proposed, not applied:** unique matches start selected and can be changed; others need a choice; "Leave as
+  written" is always there.
+- **One undoable step:** accepted citations become `{citation …}` markers, keeping locators, prefixes, and the
+  narrative form, and the typed reference list can be replaced by `{citation endnote}`.
+- **Unmatched citations stay exactly as written.**
+
+```js
+import { processImportRequest } from '/admin/draft-inator/citation-import.mjs';   // citation.inator 0.4.0
+import { describeCitation } from '/admin/draft-inator/citation-tools.mjs';
+
+mountEditor(el, { ..., importer: {
+  process: processImportRequest,
+  describe: (id, cache) => describeCitation(id, cache, { citationStyle: 'chicago-author-date' }).text,
+  onRecords: (records, cache) => keepNewWorks(records)   // e.g. reference files in the page's pull request
+} });
+```
+
+New works join the editor's works list at once (with notes) and are handed to `onRecords` for the site to keep.
+Coming with citation.inator 0.4.0: matching against the works the site already has (`siteCache`) and site-chosen ids
+for new works (`recordId`); the options are already passed through.
 
 ## Bodies written in HTML
 

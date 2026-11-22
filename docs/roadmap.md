@@ -55,7 +55,8 @@ can grow into the editor real sites use (PRD principle 3).
 - [ ] In korazonresearch.org: Edit this page, saving as a pull request (built in KR from 0.3.0's editor; awaiting
       Randal's go-ahead there).
 - [ ] Real citations and endnotes in the preview, from citation.inator's browser compiler (#14).
-- [ ] citation.inator's import widget, in the editor's look and feel (with Theandra, #16).
+- [ ] citation.inator's import widget, in the editor's look and feel (with Theandra, #16). 🟡 Built against
+      0.4.0-preview.1 (`src/editor/importer.js`); waiting on `siteCache` and `recordId` (#16) and the 0.4.0 release.
 - [ ] `draft-inator figures`: collect each image's provenance from the tags, for hosts that keep records, and check
       for missing alt text or conflicting credits.
 - [ ] Sized copies of figure images in the reference renderer.

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased (0.4)
+
+- **Import citations** in the editor, with citation.inator's importer: finds author–date citations and the reference
+  list, shows each citation in its sentence with its matched work and the evidence, and converts the accepted ones to
+  `{citation …}` markers in one undoable step, optionally replacing the reference list with `{citation endnote}`.
+  Unmatched citations stay as written. Try it: `demo/editor/?sample=import`.
+- The Cite block takes works added while editing (`DRAFT_CITATION.addWorks`), so imported works get notes at once.
+- Toolbar buttons are named by their visible text for screen readers (a tooltip no longer replaces it).
+
 ## 0.3.0 · 2026-11-21 · Figures and the live editor
 
 The Figure block, and draft.inator's own article editor: in a whole window or in a box inside a site's page, saving

@@ -5,8 +5,15 @@
    any option the form doesn't show (a label, fallback words) is kept as it was. */
 (function () {
   if (!window.CMS) return;
-  var WORKS = window.DRAFT_WORKS || [], TOPICS = window.DRAFT_TOPICS || [];
-  var NOTE = {}; WORKS.forEach(function (w) { NOTE[w.id] = w.note; });
+  var TOPICS = window.DRAFT_TOPICS || [];
+  // The works a writer can cite, indexed. addWorks() (below) adds to them in place, so works an import brings in
+  // appear in the form and get their notes at once.
+  var NOTE = {}, WORK_OPTIONS = [];
+  function index() {
+    NOTE = {}; WORK_OPTIONS.length = 0;
+    (window.DRAFT_WORKS || []).forEach(function (w) { NOTE[w.id] = w.note; WORK_OPTIONS.push({ label: w.note + ' · ' + w.title, value: w.id }); });
+  }
+  index();
   var FORMS = ['parenthetical', 'narrative', 'author-only', 'suppress-author', 'suppress-year'];
   var SHOWN = ['note', 'locator', 'prefix', 'form', 'tags'];
 
@@ -88,7 +95,13 @@
     }).join('; ') + '}';
   }
 
-  window.DRAFT_CITATION = { parse: parse, build: build };   // for the tests
+  function addWorks(list) {
+    if (!window.DRAFT_WORKS) window.DRAFT_WORKS = [];
+    (list || []).forEach(function (w) { if (w && w.id && !(w.id in NOTE)) { window.DRAFT_WORKS.push(w); NOTE[w.id] = w.note; } });
+    index();
+  }
+
+  window.DRAFT_CITATION = { parse: parse, build: build, addWorks: addWorks };
 
   CMS.registerEditorComponent({
     id: 'citation',
@@ -98,7 +111,7 @@
       name: 'items', label: 'Works cited here', label_singular: 'Work', widget: 'list',
       fields: [
         { name: 'work', label: 'Work (search by author, year, or title)', widget: 'select',
-          options: WORKS.map(function (w) { return { label: w.note + ' · ' + w.title, value: w.id }; }) },
+          options: WORK_OPTIONS },
         { name: 'locator', label: 'Page or section (such as 12, or "pp. 4–6")', widget: 'string', required: false },
         { name: 'prefix', label: 'Words before it (such as "see also")', widget: 'string', required: false },
         { name: 'form', label: 'How it reads', widget: 'select', required: false,

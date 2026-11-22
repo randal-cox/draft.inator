@@ -131,7 +131,9 @@ export function renderArticle(text, options = {}) {
  * @param {string} [options.previewClass]  The site's own class for article text, so the preview looks like the site.
  * @param {boolean} [options.fullWindow]  Fill the window instead of a box.
  * @param {string[]} [options.blocks]  Only these blocks (such as ['citation']); default: every block the page loaded.
- * @param {boolean} [options.showImport]  Show the (not yet working) Import citations button.
+ * @param {boolean} [options.showImport]  Show the Import citations button even without an importer (disabled).
+ * @param {object} [options.importer]  Turns on Import citations: { process, describe?, siteCache?, recordId?,
+ *   onRecords? } (see src/editor/importer.js). `process` is citation.inator's processImportRequest.
  */
 export function mountEditor(root, options = {}) {
   const F = window.DraftForms;
@@ -171,14 +173,16 @@ export function mountEditor(root, options = {}) {
   const saveButton = o.save && el('button', { type: 'button', class: 'di-primary', text: 'Save' });
   head.append(...[resetButton, doneButton, saveButton].filter(Boolean));
 
-  const tb = (cmd, text, label, extra = {}) => el('button', { type: 'button', 'data-cmd': cmd, title: label, 'aria-label': label, ...extra }, typeof text === 'string' ? [document.createTextNode(text)] : text);
+  // The tooltip (title) may say more; the spoken name is the visible text, except for one-letter buttons (`name`).
+  const tb = (cmd, text, label, extra = {}) => el('button', { type: 'button', 'data-cmd': cmd, title: label, ...extra }, typeof text === 'string' ? [document.createTextNode(text)] : text);
   const editButton = tb('edit', 'Edit', 'Put the cursor in a citation or figure (Ctrl+E)', { disabled: true });
   const toolbar = el('div', { class: 'di-toolbar', role: 'toolbar', 'aria-label': 'Formatting' }, [
-    el('div', { class: 'di-group' }, [tb('heading', 'H', 'Heading'), tb('bold', [el('b', { text: 'B' })], 'Bold (Ctrl+B)'),
-      tb('italic', [el('i', { text: 'I' })], 'Italic (Ctrl+I)'), tb('link', 'Link', 'Link (Ctrl+K)'), tb('code', 'Code', 'Code')]),
+    el('div', { class: 'di-group' }, [tb('heading', 'H', 'Heading', { 'aria-label': 'Heading' }), tb('bold', [el('b', { text: 'B' })], 'Bold (Ctrl+B)', { 'aria-label': 'Bold' }),
+      tb('italic', [el('i', { text: 'I' })], 'Italic (Ctrl+I)', { 'aria-label': 'Italic' }), tb('link', 'Link', 'Link (Ctrl+K)'), tb('code', 'Code', 'Code')]),
     el('div', { class: 'di-group' }, [tb('ul', '• List', 'Bulleted list'), tb('ol', '1. List', 'Numbered list'), tb('quote', 'Quote', 'Quotation')]),
     el('div', { class: 'di-group di-blocks' }, [cite && tb('citation', 'Citation', 'Insert a citation'), figure && tb('figure', 'Figure', 'Insert a figure'),
-      (cite || figure) && editButton, o.showImport && tb('import', 'Import citations', 'Coming with citation.inator\'s importer', { disabled: true })])
+      (cite || figure) && editButton, (o.importer || o.showImport) && tb('import', 'Import citations',
+        o.importer ? 'Find citations such as (Bell, 1992) and convert them' : 'Coming with citation.inator\'s importer', { disabled: !o.importer })])
   ]);
   const source = el('textarea', { class: 'di-source', spellcheck: 'true', 'aria-label': 'The article, in Markdown' });
   const preview = el('article', { class: ['di-article', o.previewClass].filter(Boolean).join(' '), 'aria-label': 'Preview' });
@@ -247,7 +251,12 @@ export function mountEditor(root, options = {}) {
     quote: () => prefixLines('> '),
     citation: () => openBlock('citation'),
     figure: () => openBlock('figure'),
-    edit: () => { const b = blockAt(source.value, source.selectionStart); if (b) openBlock(b.kind, b); }
+    edit: () => { const b = blockAt(source.value, source.selectionStart); if (b) openBlock(b.kind, b); },
+    import: async () => {
+      const { openImport } = await import('./importer.js');
+      openImport({ el, root, getText: () => source.value, replace, announce, focus: () => source.focus(),
+        addWorks: works => { window.DRAFT_CITATION?.addWorks(works); render(); } }, o.importer);
+    }
   };
   toolbar.addEventListener('click', e => { const b = e.target.closest('button[data-cmd]'); if (b && !b.disabled && COMMANDS[b.dataset.cmd]) COMMANDS[b.dataset.cmd](); });
   function updateEditButton() {
