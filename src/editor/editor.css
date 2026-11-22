@@ -154,3 +154,10 @@
 .di-article .fig.align-full { width: 100%; clear: both; }
 .di-article .di-missing { display: grid; place-items: center; aspect-ratio: 3 / 2; border: 1px dashed var(--di-line); border-radius: 3px;
   color: var(--di-muted); font: .85rem/1.4 var(--di-sans); padding: 1rem; text-align: center; }
+
+/* Unsaved changes kept in this browser, offered when the editor opens. */
+.di-recover { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem;
+  padding: .5rem .9rem; background: var(--di-mark); border-bottom: 1px solid var(--di-line); font-size: .9rem; }
+.di-recover[hidden] { display: none; }
+.di-recover-actions { display: flex; gap: .4rem; }
+.di-recover.di-recover-changed { border-left: 4px solid #b3261e; }
