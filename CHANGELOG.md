@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased (0.4)
+
+- **Kept drafts are offered, not loaded silently.** The editor always opens the page's own text; changes kept in the
+  browser are offered with their time (Restore them, or Discard), with a warning if the page has changed since, so a
+  newer save is never hidden. Restore is one undoable step; a successful save forgets the kept draft.
+
 ## 0.3.0 · 2026-11-21 · Figures and the live editor
 
 The Figure block, and draft.inator's own article editor: in a whole window or in a box inside a site's page, saving

@@ -79,3 +79,12 @@ test('the editor box stays hidden when a site hides it', () => {
   assert.match(css, /\.di-editor\[hidden\]\s*\{\s*display:\s*none\s*!important;?\s*\}/,
     '.di-editor sets display: flex, which would otherwise override the hidden attribute');
 });
+
+test('a kept draft is offered, never loaded unasked', async () => {
+  const { recoveryChoice } = await import('../src/editor/editor.js');
+  assert.equal(recoveryChoice('page', null), 'none');
+  assert.equal(recoveryChoice('page', { text: 'page' }), 'same', 'identical: nothing to offer');
+  assert.equal(recoveryChoice('page v1', { text: 'my edit', base: 'page v1' }), 'offer');
+  assert.equal(recoveryChoice('page v2', { text: 'my edit', base: 'page v1' }), 'offer-changed', 'someone saved since: warn');
+  assert.equal(recoveryChoice('page', { text: 'old plain draft' }), 'offer', 'drafts kept by 0.3.0 (no base) are offered');
+});
