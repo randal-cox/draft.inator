@@ -4,6 +4,7 @@
    keys a writer changes are touched; keys the collection doesn't describe, and values too complex for a form, are
    kept exactly as written. Plain browser JavaScript; the parts without a page also run in Node. */
 import { readFrontMatter, writeFrontMatter } from './yaml.js';
+import { picker } from './picker.js';
 
 // Widgets the panel edits. Anything else (object, code, map, a list of objects, a site's own widget) is kept as is.
 const EDITED = new Set(['string', 'text', 'number', 'boolean', 'datetime', 'date', 'select', 'relation', 'list', 'image', 'file']);
@@ -87,6 +88,35 @@ export function applyDetail(frontMatter, name, value, hadKey) {
   return writeFrontMatter(frontMatter, { [name]: isEmpty(value) && !hadKey ? undefined : value });
 }
 
+/**
+ * Positions for an order field, from the other entries of the page's collection: each says which entries already
+ * hold it, so a writer chooses a place, not a bare number.
+ * @param {string} name  The field ("order").
+ * @param {Array<object>} siblings  The collection's other entries ({ slug, title, [name]: number }).
+ * @returns {Array<{ value: number, label: string, hint: string }>}
+ */
+export function orderOptions(name, siblings = []) {
+  const placed = siblings.filter(e => typeof e[name] === 'number').sort((a, b) => a[name] - b[name]);
+  const top = placed.length ? placed[placed.length - 1][name] : 0;
+  const out = [];
+  for (let n = 1; n <= top + 1; n++) {
+    const here = placed.filter(e => e[name] === n).map(e => `“${e.title || e.name || e.slug}”`);
+    out.push({ value: n, label: String(n), hint: here.length ? 'with ' + here.join(', ') : n > top ? 'after all the others' : 'free' });
+  }
+  return out;
+}
+
+/**
+ * Choices for a list of plain values (keywords): the field's own `options`, or else the values the collection's
+ * other entries use, most used first.
+ */
+export function listSuggestions(field, siblings = []) {
+  if (Array.isArray(field.options)) return field.options.map(o => (typeof o === 'object' ? o : { value: String(o), label: String(o) }));
+  const count = new Map();
+  for (const e of siblings) for (const v of [].concat(e[field.name] ?? [])) if (v !== '' && v != null) count.set(String(v), (count.get(String(v)) || 0) + 1);
+  return [...count].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([v, n]) => ({ value: v, label: v, hint: n > 1 ? `on ${n} pages` : '' }));
+}
+
 // ---------- The panel (needs a page) ----------
 
 let uid = 0;
@@ -102,24 +132,32 @@ function el(tag, attrs = {}, kids = []) {
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/, DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+const choicesOf = f => (f.options || []).map(o => (typeof o === 'object' ? o : { value: String(o), label: String(o) }));
+const singular = f => (f.label_singular || f.label.replace(/ies$/, 'y').replace(/s$/, '')).toLowerCase();
+const article = w => (/^[aeiou]/i.test(w) ? 'an ' : 'a ') + w;
 
 /**
- * Draw the Details panel into `host`.
+ * Draw the Details panel into `host`: the title large, a subtitle under it, a summary that opens when wanted, and
+ * the rest as compact rows whose choosers open only when asked for.
  * @param {HTMLElement} host
  * @param {object} options
  * @param {Array<object>} options.fields  The collection's fields.
  * @param {string} options.frontMatter  The page's front matter, delimiters included ('' for none).
- * @param {(frontMatter: string, message?: string) => void} options.change  Called with the new front matter.
- * @param {Record<string, Array<object>>} [options.entries]  Entries for relation fields, by collection.
- * @param {Array<{label, path}>} [options.images]  Images an image field can offer.
+ * @param {(frontMatter: string) => void} options.change  Called with the new front matter.
+ * @param {Record<string, Array<object>>} [options.entries]  Entries by collection, for relations, keyword
+ *   suggestions, and order.
+ * @param {string} [options.collection]  The page's own collection name (its entries are the page's siblings).
+ * @param {string} [options.slug]  The page's own slug, so it isn't its own sibling.
+ * @param {Array<{label, path, url?}>} [options.images]  Images an image field can offer.
  * @returns {{ show(problems: Array<{name, message}>): void, values(): object }}
  */
-export function drawDetails(host, { fields, frontMatter, change, entries = {}, images = [] }) {
+export function drawDetails(host, { fields, frontMatter, change, entries = {}, collection = null, slug = null, images = [] }) {
   let fm = frontMatter;
   const start = readFrontMatter(fm);
   const had = new Set(start.order);
   const values = { ...start.values };
-  const shown = panelFields(fields);
+  const shown = panelFields(fields).filter(f => f.widget !== 'hidden');
+  const siblings = (collection && entries[collection] || []).filter(e => !slug || e.slug !== slug);
   const errors = {};
   host.textContent = '';
   host.classList.add('di-fields');
@@ -131,115 +169,107 @@ export function drawDetails(host, { fields, frontMatter, change, entries = {}, i
     change(fm);
   };
 
+  const lead = shown.find(f => f.edited && f.widget === 'string' && f.name === 'title') || shown.find(f => f.edited && f.widget === 'string');
+  const sub = shown.find(f => f.edited && f.widget === 'string' && f !== lead && /^(subtitle|sub_title|dek|standfirst)$/.test(f.name));
+  const top = el('div', { class: 'di-top' }), rows = el('div', { class: 'di-props' });
+  host.append(top, rows);
+
   for (const f of shown) {
-    if (f.widget === 'hidden') continue;
-    const id = 'di-d' + (++uid), errId = id + '-err', hintId = id + '-hint';
+    const id = 'di-d' + (++uid), labelId = id + '-label', errId = id + '-err', hintId = id + '-hint';
     const err = errors[f.name] = el('p', { class: 'di-field-error', id: errId, hidden: true });
     const hint = f.hint ? el('p', { class: 'di-hint', id: hintId, text: f.hint }) : null;
-    const described = [hint && hintId, errId].filter(Boolean).join(' ');
-    const labelText = f.label + (f.required && f.edited ? ' (required)' : '');
-    const wrap = el('div', { class: 'di-field', 'data-name': f.name });
+    const describedBy = [hint && hintId, errId].filter(Boolean).join(' ');
+    const req = f.required && f.edited ? el('span', { class: 'di-req', text: ' (required)' }) : null;
     const v = values[f.name];
-    const complex = had.has(f.name) && start.editable[f.name] === false;
+    const kept = !f.edited || (had.has(f.name) && start.editable[f.name] === false);
+    const field = el('div', { class: 'di-field', 'data-name': f.name });
 
-    if (!f.edited || complex) {
-      // Shown so nothing in the page is invisible, but not editable here.
-      wrap.append(el('span', { class: 'di-field-label', text: f.label }),
-        el('p', { class: 'di-kept', text: had.has(f.name) ? 'Kept as written; edit it in the file.' : 'Not set. This kind of field is edited in the file.' }));
-      host.append(wrap); continue;
-    }
-
-    let input;
-    const label = el('label', { for: id, text: labelText });
-    const common = { id, 'aria-describedby': described };
-    if (f.widget === 'boolean') {
-      input = el('input', { ...common, type: 'checkbox', checked: v === true });
-      input.addEventListener('change', () => set(f.name, input.checked));
-      wrap.classList.add('di-field-check');
-      wrap.append(...[input, el('label', { for: id, text: f.label }), hint, err].filter(Boolean));
-      host.append(wrap); continue;
-    }
-    if ((f.widget === 'select' || f.widget === 'relation') && f.multiple) {
-      const options = f.widget === 'relation' ? relationOptions(f, entries) : (f.options || []).map(o => (typeof o === 'object' ? o : { value: String(o), label: String(o) }));
-      const chosen = Array.isArray(v) ? v.map(String) : [];
-      const box = el('fieldset', { class: 'di-checks', 'aria-describedby': described }, [el('legend', { text: labelText })]);
-      let filter = null;
-      if (options.length > 8) {
-        filter = el('input', { type: 'search', class: 'di-filter', 'aria-label': `Find in ${f.label}`, placeholder: 'Find…' });
-        box.append(filter);
-      }
-      const list = el('div', { class: 'di-check-list' });
-      for (const o of options) {
-        const cid = 'di-d' + (++uid);
-        const c = el('input', { type: 'checkbox', id: cid, value: o.value, checked: chosen.includes(o.value) });
-        c.addEventListener('change', () => {
-          const i = chosen.indexOf(o.value);
-          if (c.checked && i < 0) chosen.push(o.value);
-          if (!c.checked && i >= 0) chosen.splice(i, 1);
-          set(f.name, chosen.slice());
-        });
-        list.append(el('label', { for: cid, 'data-text': (o.label + ' ' + o.value).toLowerCase() }, [c, document.createTextNode(' ' + o.label)]));
-      }
-      if (!options.length) list.append(el('p', { class: 'di-hint', text: f.widget === 'relation' ? `This site has no ${f.collection} yet.` : 'No choices.' }));
-      if (filter) filter.addEventListener('input', () => {
-        const q = filter.value.trim().toLowerCase();
-        for (const l of list.querySelectorAll('label')) l.hidden = !!q && !l.dataset.text.includes(q);
-      });
-      box.append(list);
-      // Values not among the choices (an entry since renamed) are kept, and said, so nothing vanishes unseen.
-      const unknown = chosen.filter(x => !options.some(o => o.value === x));
-      if (unknown.length) box.append(el('p', { class: 'di-hint', text: 'Also kept, not in the list: ' + unknown.join(', ') }));
-      box.append(...[hint, err].filter(Boolean));
-      wrap.append(box); host.append(wrap); continue;
-    }
-    if (f.widget === 'select' || f.widget === 'relation') {
-      const options = f.widget === 'relation' ? relationOptions(f, entries) : (f.options || []).map(o => (typeof o === 'object' ? o : { value: String(o), label: String(o) }));
-      const cur = v == null ? '' : String(v);
-      input = el('select', common);
-      input.append(el('option', { value: '', text: f.required ? 'Choose…' : '(none)', selected: !cur }));
-      if (cur && !options.some(o => String(o.value) === cur)) input.append(el('option', { value: cur, text: cur + ' (not in the list)', selected: true }));
-      for (const o of options) input.append(el('option', { value: o.value, text: o.label, selected: String(o.value) === cur }));
-      input.addEventListener('change', () => {
-        const o = options.find(x => String(x.value) === input.value);
-        set(f.name, o ? o.value : input.value);
-      });
-    } else if (f.widget === 'text') {
-      input = el('textarea', { ...common, rows: 3 });
+    // The title and subtitle: full width, the title large.
+    if (!kept && (f === lead || f === sub)) {
+      const input = el('input', { type: 'text', id, class: f === lead ? 'di-lead' : 'di-sub', 'aria-describedby': describedBy, placeholder: f.label });
       input.value = v == null ? '' : String(v);
       input.addEventListener('input', () => set(f.name, input.value));
+      field.append(...[el('label', { for: id, class: 'di-top-label' }, [document.createTextNode(f.label), req]), input, hint, err].filter(Boolean));
+      top.append(field); continue;
+    }
+    // Longer text: one line of it, opened when wanted.
+    if (!kept && f.widget === 'text') {
+      const area = el('textarea', { id, rows: 3, 'aria-describedby': describedBy, hidden: true });
+      area.value = v == null ? '' : String(v);
+      const peek = el('span', { class: 'di-peek' });
+      const toggle = el('button', { type: 'button', class: 'di-disclose', 'aria-expanded': 'false', 'aria-controls': id }, [
+        el('span', { class: 'di-disclose-label' }, [document.createTextNode(f.label), req]), peek]);
+      const drawPeek = () => { peek.textContent = area.value.trim() ? area.value.trim().replace(/\s+/g, ' ') : `Add ${article(f.label.toLowerCase())}`; peek.classList.toggle('di-none', !area.value.trim()); };
+      drawPeek();
+      toggle.addEventListener('click', () => {
+        const opening = area.hidden;
+        area.hidden = !opening; toggle.setAttribute('aria-expanded', String(opening)); peek.hidden = opening;
+        if (opening) area.focus(); else drawPeek();
+      });
+      area.addEventListener('input', () => set(f.name, area.value));
+      area.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); toggle.click(); toggle.focus(); } });
+      area.setAttribute('aria-label', f.label);
+      field.classList.add('di-text');
+      field.append(...[toggle, area, hint, err].filter(Boolean));
+      top.append(field); continue;
+    }
+
+    // Everything else: a row, its label beside its value.
+    field.classList.add('di-prop');
+    const label = el(kept ? 'span' : 'label', { class: 'di-prop-label', id: labelId, for: kept ? null : id }, [document.createTextNode(f.label), req]);
+    const value = el('div', { class: 'di-prop-value' });
+    field.append(label, value);
+    rows.append(field);
+    if (kept) {
+      value.append(el('span', { class: 'di-kept', text: had.has(f.name) ? 'Kept as written' : 'Not set' }));
+      field.classList.add('di-prop-kept');
+      continue;
+    }
+    label.removeAttribute('for');
+    const add = node => value.append(...[node, hint, err].filter(Boolean));
+    const choose = opts => { const p = picker({ label: f.label, describedBy, required: f.required, onChange: x => set(f.name, x), ...opts }); return p.element; };
+
+    if (f.widget === 'boolean') {
+      const box = el('input', { type: 'checkbox', role: 'switch', id, checked: v === true, 'aria-labelledby': labelId, 'aria-describedby': describedBy });
+      box.addEventListener('change', () => set(f.name, box.checked));
+      add(el('span', { class: 'di-switch' }, [box]));
+    } else if (f.widget === 'relation' || f.widget === 'select') {
+      const opts = () => (f.widget === 'relation' ? relationOptions(f, entries) : choicesOf(f));
+      add(choose({ noun: article(singular(f)), multiple: !!f.multiple, value: v, options: opts }));
     } else if (f.widget === 'list') {
-      input = el('textarea', { ...common, rows: 3 });
-      input.value = Array.isArray(v) ? v.join('\n') : v == null ? '' : String(v);
-      label.textContent = labelText + ', one per line';
-      input.addEventListener('input', () => set(f.name, input.value.split('\n').map(s => s.trim()).filter(Boolean)));
+      add(choose({ noun: article(singular(f)), multiple: true, value: Array.isArray(v) ? v : v == null || v === '' ? [] : [v], options: () => listSuggestions(f, siblings), create: true }));
+    } else if (f.widget === 'image' || f.widget === 'file') {
+      const thumb = p => images.find(i => i.path === p)?.url || p;
+      add(choose({ noun: article(f.widget === 'image' ? 'image' : 'file'), value: v, thumbs: f.widget === 'image',
+        options: () => images.map(i => ({ value: i.path, label: i.label, thumb: i.url || i.path })).concat(
+          v && !images.some(i => i.path === v) ? [{ value: v, label: String(v), thumb: thumb(v) }] : []),
+        create: typed => (/^(\/|https?:\/\/)\S+$/.test(typed) ? typed : null) }));
+    } else if (f.widget === 'number' && siblings.some(e => typeof e[f.name] === 'number')) {
+      add(choose({ noun: 'a place', value: v,
+        options: () => orderOptions(f.name, siblings).map(o => (o.value === values[f.name] && o.hint === 'free' ? { ...o, hint: 'this page' } : o)),
+        create: typed => (/^-?\d+(\.\d+)?$/.test(typed) ? Number(typed) : null) }));
     } else if (f.widget === 'number') {
-      input = el('input', { ...common, type: 'number', step: f.step ?? (f.value_type === 'int' ? 1 : 'any'), min: f.min, max: f.max });
+      const input = el('input', { type: 'number', id, class: 'di-short', 'aria-labelledby': labelId, 'aria-describedby': describedBy,
+        step: f.step ?? (f.value_type === 'int' ? 1 : 'any'), min: f.min, max: f.max });
       input.value = v == null ? '' : String(v);
       input.addEventListener('input', () => set(f.name, input.value === '' ? '' : Number(input.value)));
+      add(input);
     } else if (f.widget === 'datetime' || f.widget === 'date') {
-      const dateOnly = f.widget === 'date' || f.time_format === false;
-      const cur = v == null ? '' : String(v);
-      // A value in a form the browser's picker can't show stays editable as text.
-      const fits = !cur || (dateOnly ? DATE : DATETIME).test(cur);
-      input = el('input', { ...common, type: fits ? (dateOnly ? 'date' : 'datetime-local') : 'text' });
+      const dateOnly = f.widget === 'date' || f.time_format === false, cur = v == null ? '' : String(v);
+      const fits = !cur || (dateOnly ? DATE : DATETIME).test(cur);   // a value the picker can't show stays text
+      const input = el('input', { type: fits ? (dateOnly ? 'date' : 'datetime-local') : 'text', id, class: 'di-short', 'aria-labelledby': labelId, 'aria-describedby': describedBy });
       input.value = cur;
       input.addEventListener('input', () => set(f.name, input.value));
+      add(input);
     } else {
-      // string, image, file: a line of text; image and file suggest the site's images.
-      input = el('input', { ...common, type: 'text' });
+      const input = el('input', { type: 'text', id, 'aria-labelledby': labelId, 'aria-describedby': describedBy });
       input.value = v == null ? '' : String(v);
-      if ((f.widget === 'image' || f.widget === 'file') && images.length) {
-        const listId = id + '-list';
-        input.setAttribute('list', listId);
-        host.append(el('datalist', { id: listId }, images.map(i => el('option', { value: i.path, text: i.label }))));
-      }
       input.addEventListener('input', () => set(f.name, input.value));
+      add(input);
     }
-    wrap.append(...[label, input, hint, err].filter(Boolean));
-    host.append(wrap);
   }
 
-  const extra = start.order.filter(k => !shown.some(f => f.name === k));
+  const extra = start.order.filter(k => !panelFields(fields).some(f => f.name === k));
   if (extra.length) host.append(el('p', { class: 'di-hint di-extra', text: 'Also in this page, kept as written: ' + extra.join(', ') }));
 
   return {
@@ -251,7 +281,8 @@ export function drawDetails(host, { fields, frontMatter, change, entries = {}, i
         const e = errors[p.name];
         if (e) { e.textContent = e.textContent ? e.textContent + ' ' + p.message : p.message; e.hidden = false; }
       }
-      const first = problems[0] && host.querySelector(`[data-name="${CSS.escape(problems[0].name)}"] input, [data-name="${CSS.escape(problems[0].name)}"] select, [data-name="${CSS.escape(problems[0].name)}"] textarea`);
+      const row = problems[0] && host.querySelector(`[data-name="${CSS.escape(problems[0].name)}"]`);
+      const first = row && row.querySelector('input:not([hidden]), select, textarea:not([hidden]), button');
       if (first) first.focus();
     }
   };

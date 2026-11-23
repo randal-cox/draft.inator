@@ -154,6 +154,7 @@ export function recoveryChoice(given, kept) {
  * @param {Array<object>} [options.fields]  The page's collection fields (Sveltia's format). With them, `text` is the
  *   whole file, and its front matter is edited in a Details panel; without, `text` is the body alone, as before.
  * @param {string} [options.collection]  Or: a collection name to find in `window.DRAFT_COLLECTIONS`.
+ * @param {string} [options.slug]  The page's slug, so it isn't listed among its collection's other entries.
  * @param {Record<string, Array<object>>} [options.entries]  Entries for relation fields, by collection
  *   (default `window.DRAFT_ENTRIES`).
  * @param {boolean} [options.showImport]  Show the (not yet working) Import citations button.
@@ -229,7 +230,8 @@ export function mountEditor(root, options = {}) {
   const dialog = el('dialog', { class: 'di-dialog' }, [dForm]);
   dialog.setAttribute('aria-label', 'Block');
   const detailsHost = el('div', { class: 'di-details-body' });
-  const details = fields && el('details', { class: 'di-details', open: true }, [el('summary', { text: 'Details' }), detailsHost]);
+  // Open, except on a narrow screen, where the text comes first and Details is a tap away.
+  const details = fields && el('details', { class: 'di-details', open: !window.matchMedia?.('(max-width: 40rem)').matches }, [el('summary', { text: 'Details' }), detailsHost]);
   root.append(...[head, recover, details, toolbar, panes, status, exitPlain, dialog].filter(Boolean));
 
   const announce = msg => { live.textContent = ''; setTimeout(() => { live.textContent = msg; }, 30); };
@@ -243,7 +245,7 @@ export function mountEditor(root, options = {}) {
     if (!fields) return text;
     const parts = splitFrontMatter(text);
     frontMatter = parts.frontMatter;
-    panel = drawDetails(detailsHost, { fields, frontMatter, entries, images: o.images || [],
+    panel = drawDetails(detailsHost, { fields, frontMatter, entries, images: o.images || [], collection: collection?.name || o.collection || null, slug: o.slug || null,
       change: fm => { frontMatter = fm; changed(); } });
     return parts.body;
   }

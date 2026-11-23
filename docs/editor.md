@@ -52,7 +52,8 @@ const editor = mountEditor(document.querySelector('#edit-here'), {
 | `showImport` | Show the Import citations button (it does nothing yet) |
 | `collection` | A collection in `window.DRAFT_COLLECTIONS`: adds the Details panel, and `text` becomes the whole file (see below) |
 | `fields` | Or the collection's fields directly |
-| `entries` | Entries for relation fields, by collection. Default: `window.DRAFT_ENTRIES` |
+| `entries` | Entries by collection: choices for relation fields, keyword suggestions (values the collection's other entries use), and places for an order field. Default: `window.DRAFT_ENTRIES` |
+| `slug` | The page's slug, so it isn't counted among its collection's other entries |
 
 `mountEditor` returns `{ ready, text, focus(), setLayout(id) }`. `text` reads and replaces the Markdown.
 

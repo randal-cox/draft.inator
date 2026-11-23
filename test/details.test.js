@@ -2,7 +2,7 @@
 // and that a change touches only its own key.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { panelFields, relationOptions, checkDetails, applyDetail } from '../src/editor/details.js';
+import { panelFields, relationOptions, checkDetails, applyDetail, orderOptions, listSuggestions } from '../src/editor/details.js';
 
 const fields = [
   { name: 'title', label: 'Title' },
@@ -56,4 +56,22 @@ test('a change touches only its own key; clearing a key the page lacked adds not
   assert.equal(applyDetail(fm, 'summary', 'Short', false), fm.replace('---\n', '---\n').replace(/---\n$/, 'summary: Short\n---\n'));
   assert.equal(applyDetail(fm, 'title', '', true), fm.replace('title: Masks', 'title: ""'), 'a cleared key the page had stays, empty');
   assert.equal(applyDetail('', 'title', 'New', false), '---\ntitle: New\n---\n', 'a page without front matter gets some');
+});
+
+test('an order is chosen as a place among the other entries', () => {
+  const siblings = [{ slug: 'b', title: 'B', order: 1 }, { slug: 'c', title: 'C', order: 3 }, { slug: 'd', title: 'D', order: 3 }, { slug: 'e', title: 'E' }];
+  assert.deepEqual(orderOptions('order', siblings), [
+    { value: 1, label: '1', hint: 'with “B”' },
+    { value: 2, label: '2', hint: 'free' },
+    { value: 3, label: '3', hint: 'with “C”, “D”' },
+    { value: 4, label: '4', hint: 'after all the others' }
+  ]);
+  assert.deepEqual(orderOptions('order', []), [{ value: 1, label: '1', hint: 'after all the others' }]);
+});
+
+test('keywords suggest what the other entries use, most used first; a field\'s own options win', () => {
+  const siblings = [{ keywords: ['play', 'ritual'] }, { keywords: ['ritual'] }, { keywords: 'masks' }, {}];
+  assert.deepEqual(listSuggestions({ name: 'keywords' }, siblings), [
+    { value: 'ritual', label: 'ritual', hint: 'on 2 pages' }, { value: 'masks', label: 'masks', hint: '' }, { value: 'play', label: 'play', hint: '' }]);
+  assert.deepEqual(listSuggestions({ name: 'keywords', options: ['a', { value: 'b', label: 'Bee' }] }, siblings), [{ value: 'a', label: 'a' }, { value: 'b', label: 'Bee' }]);
 });

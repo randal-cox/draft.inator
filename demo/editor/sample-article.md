@@ -7,6 +7,8 @@ authors:
   - mara-ellison
 topics: [ritual-theory]
 summary: A short essay on what a mask changes, written to show draft.inator's editor.
+keywords: [masks, threshold]
+order: 2
 draft: true
 seo:
   title: Masks in ritual · Hollowmere

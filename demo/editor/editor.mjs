@@ -25,7 +25,8 @@ function demoSave(text) {
 mountEditor(document.getElementById('editor'), {
   fullWindow: true,
   label: 'draft.inator',
-  collection: 'essays',      // the Details panel, from examples/sample-site/collections.js
+  collection: 'essays',
+  slug: 'masks-in-ritual',      // the Details panel, from examples/sample-site/collections.js
   text: sampleArticle,
   reset: sampleArticle,
   save: async text => demoSave(text),
