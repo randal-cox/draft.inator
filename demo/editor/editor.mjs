@@ -19,7 +19,9 @@ mountEditor(document.getElementById('editor'), {
   storageKey: importSample ? 'draft-inator-editor-import' : 'draft-inator-editor',
   importer: {
     process: processImportRequest,
+    // The sample site's own citation records: a reference it already has is offered as that work, not a new one.
+    siteCache: await (await fetch(new URL('../../examples/sample-site/citations.json', import.meta.url))).json(),
     describe: (id, cache) => describeCitation(id, cache, { citationStyle: 'chicago-author-date' }).text,
-    onRecords: records => console.info(`Imported ${records.length} new work(s); a site would keep them with the page.`)
+    onRecords: records => console.info(`New works: ${records.map(r => r.id).join(', ') || 'none'}. A site would keep them with the page.`)
   }
 });

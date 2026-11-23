@@ -68,10 +68,29 @@ test('the preview reads like the page', () => {
 
 test('works added later (by an import) get their notes and appear in the form', () => {
   const { addWorks, build } = window.DRAFT_CITATION;
-  assert.equal(build([{ work: 'local:ref-new' }]), '{citation local:ref-new | note:"local:ref-new"}');
-  addWorks([{ id: 'local:ref-new', note: 'Cox 1995', title: 'Masks and makers' }]);
-  assert.equal(build([{ work: 'local:ref-new' }]), '{citation local:ref-new | note:"Cox 1995"}');
+  assert.equal(build([{ work: 'ref-new' }]), '{citation ref-new | note:"ref-new"}');
+  addWorks([{ id: 'ref-new', note: 'Cox 1995', title: 'Masks and makers' }]);
+  assert.equal(build([{ work: 'ref-new' }]), '{citation ref-new | note:"Cox 1995"}');
+  assert.equal(build(window.DRAFT_CITATION.parse('local:ref-new')), '{citation local:ref-new | note:"Cox 1995"}', 'written local:, found all the same');
   const options = cite.fields[0].fields.find(f => f.name === 'work').options;
-  assert.ok(options.some(o => o.value === 'local:ref-new' && o.label === 'Cox 1995 · Masks and makers'));
+  assert.ok(options.some(o => o.value === 'ref-new' && o.label === 'Cox 1995 · Masks and makers'));
   assert.equal(cite.toPreview(cite.fromBlock(['', 'local:ref-new | locator:3'])), '(Cox 1995, 3)');
+});
+
+test('local: ids are the same work: chosen in the picker, noted, and written back as they were', () => {
+  const { parse, build } = window.DRAFT_CITATION;
+  const [item] = parse('local:bell-1992-ritual | locator:"p. 94"');
+  assert.equal(item.work, 'bell-1992-ritual', 'the picker sees the work');
+  assert.equal(build([item]), '{citation local:bell-1992-ritual | note:"Bell 1992" | locator:"p. 94"}', 'the note is the work\'s; the form stays');
+  const [bare] = parse('bell-1992-ritual');
+  assert.equal(build([bare]), '{citation bell-1992-ritual | note:"Bell 1992"}', 'bare stays bare');
+});
+
+test('a changed or new work is written bare, unless that would read as a directive', () => {
+  const { parse, build } = window.DRAFT_CITATION;
+  const [item] = parse('local:bell-1992-ritual');
+  item.work = 'turner-1969-ritual';
+  assert.match(build([item]), /^\{citation turner-1969-ritual \|/);
+  assert.match(build([{ work: 'list' }]), /^\{citation local:list \|/);
+  assert.match(build([{ work: 'list-2001' }]), /^\{citation list-2001 \|/);
 });

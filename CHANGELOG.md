@@ -8,6 +8,10 @@
   Unmatched citations stay as written. Try it: `demo/editor/?sample=import`.
 - The Cite block takes works added while editing (`DRAFT_CITATION.addWorks`), so imported works get notes at once.
 - Toolbar buttons are named by their visible text for screen readers (a tooltip no longer replaces it).
+- **`local:` ids are read as the work they name.** `{citation local:bell-1992-ritual}` (as citation.inator's importer
+  writes) opens with Bell selected and Bell's note, and is written back in the form it had. A newly chosen work is
+  written bare, or `local:` when its id is a directive word such as `list`. Checked against citation.inator's
+  `markerKind`.
 - **Kept drafts are offered, not loaded silently.** The editor always opens the page's own text; changes kept in the
   browser are offered with their time (Restore them, or Discard), with a warning if the page has changed since, so a
   newer save is never hidden. Restore is one undoable step; a successful save forgets the kept draft.

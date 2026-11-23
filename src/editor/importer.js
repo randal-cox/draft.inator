@@ -19,6 +19,52 @@ function fallbackNote(r) {
 }
 
 /**
+ * A site-style id for a new work: first author's family name, year, and the title's first word, as in
+ * bell-1992-ritual (the sample site's and korazonresearch.org's scheme), made unique against `taken`. A site with
+ * another scheme passes its own `recordId`.
+ * @param {object} record  A citation.inator record.
+ * @param {{ taken: string[] }} context
+ */
+export function siteStyleId(record, { taken = [] } = {}) {
+  const slug = v => String(v ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const first = record.authors?.[0];
+  const who = slug(first?.family || (first?.literal || '').split(/\s+/)[0]) || 'anon';
+  const year = /^\d{4}$/.test(String(record.issued?.[0])) ? String(record.issued[0]) : 'nd';
+  const word = (record.title || '').split(/[\s:]+/).map(slug).find(w => w && !['a', 'an', 'the'].includes(w)) || 'work';
+  const base = `${who}-${year}-${word}`;
+  let id = base, n = 2;
+  while (taken.includes(id)) id = `${base}-${n++}`;
+  return id;
+}
+
+/**
+ * Which works an applied import adds: the new records (not the site's own, reused) that a converted citation points
+ * to. citation.inator also names uncited references in the list, which are not kept.
+ * @param {{ recordMap: object, newRecordIds: string[], cache: { records: object[] } }} preview
+ * @param {Array<{ targets: Array<{ recordId: string }> }>} decisions
+ * @returns {object[]} records, with the ids the site gave them
+ */
+export function worksToKeep(preview, decisions) {
+  const cited = new Set(decisions.flatMap(d => d.targets.map(t => preview.recordMap?.[t.recordId] ?? t.recordId)));
+  const fresh = new Set(preview.newRecordIds ?? [...cited]);
+  return (preview.cache?.records || []).filter(rec => cited.has(rec.id) && fresh.has(rec.id));
+}
+
+// What a proposed site work has in common with the imported reference, in words.
+function siteEvidence(candidate) {
+  const out = [];
+  for (const e of [].concat(candidate.evidence || [])) {   // one evidence object (preview.3), or a list
+    const a = e.assessment || {};
+    const same = Object.entries(a.comparisons || {}).filter(([, v]) => v).map(([k]) => k);
+    if (e.sharedIdentifierCount) out.push(`${e.sharedIdentifierCount} shared identifier${e.sharedIdentifierCount === 1 ? '' : 's'}`);
+    if (same.length) out.push(same.join(', ') + ' match');
+    const differ = [...(a.differences || []), ...(a.conflicts || [])].map(d => (typeof d === 'string' ? d : d.field || d.code)).filter(Boolean);
+    if (differ.length) out.push('differs: ' + differ.join(', '));
+  }
+  return out.join('; ');
+}
+
+/**
  * The one edit that applies an import: the smallest stretch of the original text covering every accepted edit (and,
  * if asked, the reference list, replaced by {citation endnote}), and what replaces it. Pure, so it can be tested.
  * @param {string} analysed  The text the import was analysed from.
@@ -42,14 +88,15 @@ export function planReplacement(analysed, preview, bibliography = null) {
  * @param {object} options  The editor's `importer` option:
  *   process     citation.inator's processImportRequest (required)
  *   describe    (markerId, cache) => short note, for the works list (citation.inator's describeCitation)
- *   siteCache   the site's own citation cache, so matches can be works it already has (when citation.inator supports it)
- *   recordId    (record, { taken }) => the id the site gives a new work (when citation.inator supports it)
+ *   siteCache   the site's own citation cache: references that look like works the site already has are offered
+ *               for the writer to confirm, so they aren't added twice
+ *   recordId    (record, { taken }) => the id the site gives a new work (default: siteStyleId, bell-1992-ritual)
  *   onRecords   (records, cache) => the site keeps new works (for example, alongside the page in the same pull request)
  *   style       the starting style (default 'auto')
  */
 export function openImport(editor, options) {
   const { el, root } = editor;
-  let style = options.style || 'auto', analysed = null, context = null, matches = [], chosen = [];
+  let style = options.style || 'auto', analysed = null, context = null, matches = [], chosen = [], siteChoice = {};
 
   const title = el('h2', { text: 'Import citations' });
   const intro = el('p', { class: 'hint', text: 'Finds citations such as (Bell, 1992) and the reference list in this article, and turns the ones you accept into citations of works. Anything you leave stays as written.' });
@@ -58,6 +105,9 @@ export function openImport(editor, options) {
   const controls = el('div', { class: 'di-import-controls' }, [el('label', { for: 'di-import-style', text: 'Citation style' }), styleSelect, find]);
   const summary = el('p', { class: 'di-import-summary', role: 'status', 'aria-live': 'polite' });
   const list = el('ol', { class: 'di-import-list' });
+  const siteHead = el('h3', { text: 'Works this site already has', hidden: true });
+  const siteIntro = el('p', { class: 'hint', hidden: true, text: 'These references look like works already on the site. Use the site\'s work, or add the reference as a new one.' });
+  const siteList = el('div', { class: 'di-import-site' });
   const replaceBox = el('input', { type: 'checkbox', id: 'di-import-replace' });
   const replaceLabel = el('label', { for: 'di-import-replace' });
   const replaceRow = el('div', { class: 'check di-import-replace', hidden: true }, [replaceBox, replaceLabel]);
@@ -65,7 +115,7 @@ export function openImport(editor, options) {
   const cancel = el('button', { type: 'button', class: 'di-quiet', text: 'Cancel' });
   const apply = el('button', { type: 'button', class: 'di-primary', text: 'Apply', disabled: true });
   const dialog = el('dialog', { class: 'di-dialog di-import', 'aria-labelledby': 'di-import-h' },
-    [el('div', {}, [title, intro, controls, summary, list, replaceRow, error, el('div', { class: 'di-actions' }, [cancel, apply])])]);
+    [el('div', {}, [title, intro, controls, summary, list, siteHead, siteIntro, siteList, replaceRow, error, el('div', { class: 'di-actions' }, [cancel, apply])])]);
   title.id = 'di-import-h';
   root.append(dialog);
 
@@ -80,8 +130,7 @@ export function openImport(editor, options) {
     error.textContent = ''; list.textContent = '';
     analysed = editor.getText();
     context = { mode: 'document', source: analysed, style, citationKeyword: 'citation', namespace: 'draft-import',
-      limits: { references: 300 }, ...(options.siteCache && { siteCache: options.siteCache }),
-      ...(options.recordId && { recordId: options.recordId }) };
+      limits: { references: 300 }, ...(options.siteCache && { siteCache: options.siteCache }) };
     let a;
     try { a = options.process(context); } catch (e) { error.textContent = 'The importer stopped: ' + e.message; return; }
     if (a.formatChoiceRequired && style === 'auto') {
@@ -92,6 +141,13 @@ export function openImport(editor, options) {
     matches = a.review.matches;
     // A unique match is proposed (selected, visibly, and changeable); anything else waits for the writer.
     chosen = matches.map(m => m.items.map(it => (it.state === 'unique' && it.candidates?.length === 1 ? it.candidates[0].recordId : null)));
+    // A site work is proposed the same way: one candidate with nothing in conflict is selected, visibly; the writer
+    // confirms it by converting, or chooses to add the reference as a new work.
+    siteChoice = {};
+    for (const s of a.siteMatches || []) {
+      const only = s.candidates?.length === 1 ? s.candidates[0] : null;
+      siteChoice[s.recordId] = only && ![].concat(only.evidence || []).some(e => e.assessment?.conflicts?.length) ? only.recordId : null;
+    }
     draw();
   }
 
@@ -125,8 +181,31 @@ export function openImport(editor, options) {
       });
       list.append(row);
     });
+    drawSite();
     tally();
     const first = list.querySelector('input'); if (first) first.focus();
+  }
+
+  function drawSite() {
+    siteList.textContent = '';
+    const proposals = (context.result.siteMatches || []).filter(s => s.candidates?.length);
+    siteHead.hidden = siteIntro.hidden = !proposals.length;
+    for (const s of proposals) {
+      const ref = context.result.referenceRecords.find(r => r.id === s.recordId);
+      const set = el('fieldset', { class: 'di-import-item' }, [el('legend', { text: `${ref ? fallbackNote(ref) : s.recordId}: ${ref?.title || ''}` })]);
+      for (const c of s.candidates) {
+        const id = `di-site-${s.recordId}-${c.recordId}`, why = siteEvidence(c);
+        const radio = el('input', { type: 'radio', name: `di-site-${s.recordId}`, id, checked: siteChoice[s.recordId] === c.recordId });
+        radio.addEventListener('change', () => { siteChoice[s.recordId] = c.recordId; });
+        set.append(el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id }, [
+          el('span', { text: `Use the site's “${c.title || c.recordId}”` }), el('small', { text: ` · ${c.recordId}${why ? ' · ' + why : ''}` })])]));
+      }
+      const nid = `di-site-${s.recordId}-new`;
+      const fresh = el('input', { type: 'radio', name: `di-site-${s.recordId}`, id: nid, checked: !siteChoice[s.recordId] });
+      fresh.addEventListener('change', () => { siteChoice[s.recordId] = null; });
+      set.append(el('div', { class: 'di-import-choice' }, [fresh, el('label', { for: nid, text: 'Add it as a new work' })]));
+      siteList.append(set);
+    }
   }
 
   const ready = () => matches.map((m, i) => m.items.length && chosen[i].every(Boolean));
@@ -161,7 +240,11 @@ export function openImport(editor, options) {
     const r = ready();
     const decisions = matches.map((m, i) => r[i] && { citationIndex: i, action: 'accept', targets: chosen[i].map(recordId => ({ recordId })) }).filter(Boolean);
     let p;
-    try { p = options.process({ ...context, result: undefined, action: 'preview', review: context.result.review, reviewId: context.result.review.reviewId, decisions }); }
+    const recordDecisions = Object.entries(siteChoice).filter(([, site]) => site).map(([recordId, siteRecordId]) => ({ recordId, siteRecordId }));
+    try {
+      p = options.process({ ...context, result: undefined, action: 'preview', review: context.result.review, reviewId: context.result.review.reviewId,
+        decisions, ...(options.siteCache && { recordDecisions }), recordId: options.recordId || siteStyleId });
+    }
     catch (e) { error.textContent = 'The importer stopped: ' + e.message; return; }
     if (!p.edits?.length) { error.textContent = 'Nothing could be converted.'; return; }
     // Close first: the text behind an open dialog can't take focus, and without focus the edit would bypass the
@@ -170,13 +253,14 @@ export function openImport(editor, options) {
     const bib = !replaceRow.hidden && replaceBox.checked ? context.result.document.bibliography : null;
     const plan = planReplacement(analysed, p, bib);
     editor.replace(plan.start, plan.end, plan.text);
-    // The works the new citations point to join the works list, with notes, and go to the site to keep.
-    const used = new Set(decisions.flatMap(d => d.targets.map(t => t.recordId)));
-    const records = (p.cache?.records || []).filter(rec => used.has(rec.id));
-    editor.addWorks(records.map(rec => ({ id: `local:${rec.id}`, note: options.describe?.(`local:${rec.id}`, p.cache) || fallbackNote(rec), title: rec.title || '' })));
+    // New works the converted citations point to join the works list, with notes, and go to the site to keep.
+    // The site's own works, reused, are already there.
+    const records = worksToKeep(p, decisions);
+    editor.addWorks(records.map(rec => ({ id: rec.id, note: options.describe?.(rec.id, p.cache) || fallbackNote(rec), title: rec.title || '' })));
     options.onRecords?.(records, p.cache);
-    const left = matches.length - decisions.length;
-    editor.announce(`Converted ${decisions.length} citation${decisions.length === 1 ? '' : 's'}${left ? `; ${left} left as written` : ''}. Undo reverses it.`);
+    const left = matches.length - decisions.length, reused = (p.reusedRecordIds || []).length;
+    editor.announce(`Converted ${decisions.length} citation${decisions.length === 1 ? '' : 's'}${left ? `; ${left} left as written` : ''}` +
+      `${records.length ? `; ${records.length} new work${records.length === 1 ? '' : 's'}` : ''}${reused ? `; ${reused} of the site's own` : ''}. Undo reverses the text.`);
   }
 
   dialog.showModal();
