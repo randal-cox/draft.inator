@@ -1,7 +1,13 @@
 # Changelog
 
-## Unreleased (0.4)
+## Unreleased
 
+- **The Details panel (0.5).** With `collection` (or `fields`), the editor takes the whole file: front matter as a
+  form above the text, drawn from the site's collection fields in Sveltia's format (`DRAFT_COLLECTIONS`), with
+  relations such as authors and topics picked from `DRAFT_ENTRIES`. Save checks required fields, patterns, and number
+  ranges first and shows each problem beside its field. Only the keys a writer changes are written, in their own
+  style; everything else in the front matter stays byte for byte (`src/editor/yaml.js`). Additive: without
+  `collection`, the editor works as before. The editor demo shows it.
 - **Kept drafts are offered, not loaded silently.** The editor always opens the page's own text; changes kept in the
   browser are offered with their time (Restore them, or Discard), with a warning if the page has changed since, so a
   newer save is never hidden. Restore is one undoable step; a successful save forgets the kept draft.

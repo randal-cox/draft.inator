@@ -8,8 +8,13 @@
        save: async text => 'Pull request opened',   // optional: where Save sends the text
      });
 
+   With `fields` (or `collection`), the editor takes the whole file: front matter in a Details panel drawn from the
+   collection's fields, the body in the text box; `save` and `text` then carry the whole file.
+
    Load src/editor/forms.js, the works list, and the blocks (src/blocks/*.js) first, as classic scripts. Plain
    browser JavaScript, no dependencies, no inline handlers, so it runs under a strict Content Security Policy. */
+import { splitFrontMatter } from './frontmatter.js';
+import { drawDetails, checkDetails } from './details.js';
 
 const LAYOUTS = [
   { id: 'split', label: 'Side by side' },
@@ -146,6 +151,11 @@ export function recoveryChoice(given, kept) {
  * @param {string} [options.previewClass]  The site's own class for article text, so the preview looks like the site.
  * @param {boolean} [options.fullWindow]  Fill the window instead of a box.
  * @param {string[]} [options.blocks]  Only these blocks (such as ['citation']); default: every block the page loaded.
+ * @param {Array<object>} [options.fields]  The page's collection fields (Sveltia's format). With them, `text` is the
+ *   whole file, and its front matter is edited in a Details panel; without, `text` is the body alone, as before.
+ * @param {string} [options.collection]  Or: a collection name to find in `window.DRAFT_COLLECTIONS`.
+ * @param {Record<string, Array<object>>} [options.entries]  Entries for relation fields, by collection
+ *   (default `window.DRAFT_ENTRIES`).
  * @param {boolean} [options.showImport]  Show the (not yet working) Import citations button.
  */
 export function mountEditor(root, options = {}) {
@@ -159,6 +169,10 @@ export function mountEditor(root, options = {}) {
     if (!F.imageSources.some(s => s.path === img.path)) F.imageSources.push({ label: img.label, path: img.path });
     if (img.url) F.assets[img.path] = img.url;
   }
+  const collection = o.collection && (window.DRAFT_COLLECTIONS || []).find(c => c.name === o.collection);
+  if (o.collection && !collection && !o.fields) throw new Error(`No collection "${o.collection}" in window.DRAFT_COLLECTIONS.`);
+  const fields = o.fields || collection?.fields || null;
+  const entries = o.entries || window.DRAFT_ENTRIES || {};
   const SAMPLES = new Set((o.images || []).map(i => i.path));
 
   const store = {
@@ -214,9 +228,25 @@ export function mountEditor(root, options = {}) {
   const dForm = el('form', { method: 'dialog' }, [dTitle, dFields, el('h3', { text: 'What it writes' }), dOut, dError, el('div', { class: 'di-actions' }, [dCancel, dSave])]);
   const dialog = el('dialog', { class: 'di-dialog' }, [dForm]);
   dialog.setAttribute('aria-label', 'Block');
-  root.append(head, recover, toolbar, panes, status, exitPlain, dialog);
+  const detailsHost = el('div', { class: 'di-details-body' });
+  const details = fields && el('details', { class: 'di-details', open: true }, [el('summary', { text: 'Details' }), detailsHost]);
+  root.append(...[head, recover, details, toolbar, panes, status, exitPlain, dialog].filter(Boolean));
 
   const announce = msg => { live.textContent = ''; setTimeout(() => { live.textContent = msg; }, 30); };
+
+  // ---------- The whole file: front matter (the Details panel) and body (the text box) ----------
+  // Without `fields` there is no front matter here: the text box holds everything given, as before 0.5.
+  let frontMatter = '', panel = null;
+  const whole = () => frontMatter + source.value;
+  // Take a whole file: draw its front matter into the panel; return the body for the text box.
+  function load(text) {
+    if (!fields) return text;
+    const parts = splitFrontMatter(text);
+    frontMatter = parts.frontMatter;
+    panel = drawDetails(detailsHost, { fields, frontMatter, entries, images: o.images || [],
+      change: fm => { frontMatter = fm; changed(); } });
+    return parts.body;
+  }
 
   // ---------- Blocks in the text, and the preview ----------
   const blocks = text => findBlocks(text, cite, figure);
@@ -226,7 +256,7 @@ export function mountEditor(root, options = {}) {
   function render() {
     const r = renderArticle(source.value, { render: o.render, imageURL, blocks: o.blocks });
     preview.innerHTML = r.html;
-    title.textContent = r.title;
+    title.textContent = (panel && typeof panel.values().title === 'string' && panel.values().title) || r.title;
     counts.textContent = `${r.words} words · ${r.citations} citations · ${r.figures} figures`;
   }
 
@@ -380,18 +410,25 @@ export function mountEditor(root, options = {}) {
   if (saveButton) saveButton.addEventListener('click', async () => {
     saveButton.disabled = true; saved.textContent = 'Saving…';
     try {
-      const text = source.value, msg = await o.save(text);
+      if (panel) {
+        const problems = checkDetails(fields, panel.values());
+        if (problems.length) {
+          details.open = true; panel.show(problems);
+          throw new Error(problems.length === 1 ? problems[0].message : `${problems.length} details need attention: ${problems.map(p => p.label).join(', ')}.`);
+        }
+      }
+      const text = whole(), msg = await o.save(text);
       base = text; forgetDraft();   // saved: the kept copy has done its job
       saved.textContent = msg || 'Saved'; announce(saved.textContent);
     }
     catch (error) { saved.textContent = 'Not saved: ' + (error?.message || error); announce(saved.textContent); }
     finally { saveButton.disabled = false; }
   });
-  if (doneButton) doneButton.addEventListener('click', () => o.done(source.value));
+  if (doneButton) doneButton.addEventListener('click', () => o.done(whole()));
   if (resetButton) resetButton.addEventListener('click', async () => {
     const text = await o.reset();
     base = text;
-    replace(0, source.value.length, text);
+    replace(0, source.value.length, load(text));
     source.setSelectionRange(0, 0); source.scrollTop = 0;
     announce('Back to the sample article.');
   });
@@ -442,31 +479,36 @@ export function mountEditor(root, options = {}) {
     recover.hidden = false;
     recover.classList.toggle('di-recover-changed', changed);
     const done = msg => { recover.hidden = true; announce(msg); source.focus(); };
-    recoverButton.onclick = () => { restoreUploads(kept.text); replace(0, source.value.length, kept.text); done('Your kept changes are back. Undo returns to the page as it was.'); };
+    recoverButton.onclick = () => { restoreUploads(kept.text); replace(0, source.value.length, load(kept.text)); done(fields ? 'Your kept changes are back. Reload the page to see it as it was.' : 'Your kept changes are back. Undo returns to the page as it was.'); };
     discardButton.onclick = () => { forgetDraft(); done('Kept changes discarded.'); };
     announce(recoverText.textContent);
   }
 
   // ---------- Start ----------
   let timer;
-  source.addEventListener('input', () => {
+  function changed() {
     render(); updateEditButton();
     if (!o.storageKey) return;
     clearTimeout(timer);
     timer = setTimeout(() => {
-      if (source.value === base) { forgetDraft(); saved.textContent = ''; return; }
-      saved.textContent = keepDraft(source.value) ? 'Draft kept in this browser' : 'Draft not kept: browser storage is off';
+      if (whole() === base) { forgetDraft(); saved.textContent = ''; return; }
+      saved.textContent = keepDraft(whole()) ? 'Draft kept in this browser' : 'Draft not kept: browser storage is off';
     }, 400);
-  });
+  }
+  source.addEventListener('input', changed);
   for (const ev of ['click', 'keyup', 'select']) source.addEventListener(ev, updateEditButton);
 
   const ready = (async () => {
     const given = typeof o.text === 'function' ? await o.text() : o.text || '';
-    source.value = base = given;
+    base = given;
+    source.value = load(given);
     restoreUploads(given);
     setLayout(store.get('layout') || o.layout || 'split', true);
     setToolbar(store.get('toolbar') !== '0', true);
-    const kept = readDraft(), choice = recoveryChoice(given, kept);
+    let kept = readDraft();
+    // A body kept before the panel was turned on would replace the front matter with nothing: never offered.
+    if (fields && kept?.text != null && splitFrontMatter(given).frontMatter && !splitFrontMatter(kept.text).frontMatter) kept = null;
+    const choice = recoveryChoice(given, kept);
     if (choice === 'same') forgetDraft();
     if (choice === 'offer' || choice === 'offer-changed') offerDraft(kept, choice === 'offer-changed');
     render(); updateEditButton();
@@ -474,8 +516,8 @@ export function mountEditor(root, options = {}) {
 
   return {
     ready,
-    get text() { return source.value; },
-    set text(v) { source.value = base = v; render(); updateEditButton(); },
+    get text() { return whole(); },
+    set text(v) { base = v; source.value = load(v); render(); updateEditButton(); },
     focus() { source.focus(); },
     setLayout
   };
