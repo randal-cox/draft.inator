@@ -176,3 +176,13 @@
 .di-recover[hidden] { display: none; }
 .di-recover-actions { display: flex; gap: .4rem; }
 .di-recover.di-recover-changed { border-left: 4px solid #b3261e; }
+
+/* citation.inator's compiled citations and endnotes in the preview (a site's own styles win through previewClass). */
+.di-article .citation-cite { text-decoration: none; color: var(--di-accent); }
+.di-article .citation-cite:hover { text-decoration: underline; }
+.di-article .citation-endnotes { margin-top: 2rem; border-top: 1px solid var(--di-line); padding-top: .5rem; font-size: .92em; }
+.di-article .citation-endnotes h2 { font-size: 1.05rem; }
+.di-article .citation-endnotes li { margin: .3rem 0; }
+.di-article .citation-note-actions { display: inline; margin-left: .35rem; }
+.di-article .citation-icon { font-size: .75em; vertical-align: super; text-decoration: none; margin-right: .2rem; }
+.di-article .citation-note-status { font-weight: 600; font-size: .85em; color: var(--di-muted); }

@@ -79,6 +79,7 @@ export function renderArticle(text, options = {}) {
   const { cite, figure } = enabledBlocks(options.blocks);
   const WORKS = Object.fromEntries((window.DRAFT_WORKS || []).map(w => [w.id, w]));
   const imageURL = options.imageURL || (p => p);
+  const compiler = options.citations?.compileHTML && options.citations.cache ? options.citations : null;
   const found = findBlocks(text, cite, figure), cited = [], parts = [];
   const hold = html => `DRAFTPH${parts.push(html) - 1}X`;
   let out = '', last = 0;
@@ -96,23 +97,36 @@ export function renderArticle(text, options = {}) {
     } else {
       const data = cite.fromBlock(b.match);
       data.items.forEach(it => { if (it.work && !cited.includes(it.work)) cited.push(it.work); });
-      out += hold(`<a class="cite" href="#di-ref-${esc(data.items[0]?.work)}">${esc(cite.toPreview(data))}</a>`);
+      // With citation.inator's compiler, the marker itself is kept (safe from Markdown) for the compiler to format.
+      out += hold(compiler ? esc(b.match[0]) : `<a class="cite" href="#di-ref-${esc(data.items[0]?.work)}">${esc(cite.toPreview(data))}</a>`);
     }
     last = b.end;
   }
   out += text.slice(last);
   let placed = false;
-  out = out.replace(/\{citation endnote(?:\s*\|[^}\n]*)?\}/g, (m, at) => (found.inCode(at) ? m : (placed = true, 'DRAFTENDNOTES')));
+  out = out.replace(/\{citation endnote(?:\s*\|[^}\n]*)?\}/g, (m, at) => (found.inCode(at) ? m : (placed = true, compiler ? hold(esc(m)) : 'DRAFTENDNOTES')));
   const endnotes = cited.length ? `<section class="endnotes"><h2>Works cited</h2><ol>${cited.map(id => { const w = WORKS[id];
     return `<li id="di-ref-${esc(id)}">${esc(w?.note || id)}${w?.title ? `. <cite>${esc(w.title)}</cite>.` : ' <span class="unresolved">(not yet found)</span>'}</li>`; }).join('')}</ol></section>` : '';
   const md = options.render || (m => m.split(/\n{2,}/).map(p => `<p>${esc(p)}</p>`).join(''));
-  const html = md(out + (placed || !cited.length ? '' : '\n\nDRAFTENDNOTES'))
+  if (compiler && !placed && cited.length) out += '\n\n' + hold('{citation endnote}');
+  let html = md(out + (compiler || placed || !cited.length ? '' : '\n\nDRAFTENDNOTES'))
     .replace(/<p>DRAFTENDNOTES<\/p>|DRAFTENDNOTES/g, endnotes)
     .replace(/<p>DRAFTPH(\d+)X<\/p>/g, (m, n) => parts[n]).replace(/DRAFTPH(\d+)X/g, (m, n) => parts[n]);
+  let formatted = false, diagnostics = [];
+  if (compiler) {
+    try {
+      const r = compiler.compileHTML(html, compiler.cache, { citationStyle: compiler.citationStyle || 'chicago-author-date', namespace: 'di-preview' });
+      html = r.html; formatted = true; diagnostics = r.diagnostics || [];
+    } catch (e) {
+      // The compiler stopped: show the notes instead, and say why, rather than a blank preview.
+      return { ...renderArticle(text, { ...options, citations: null }), compileError: e.message };
+    }
+  }
   const h1 = text.match(/^#\s+(.+)$/m);
   const prose = found.reduceRight((t, b) => t.slice(0, b.start) + t.slice(b.end), text).replace(/[#>*_`[\]()-]/g, ' ');
   return { html, title: h1 ? h1[1] : '', words: (prose.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length,
-    citations: found.filter(b => b.kind === 'citation').length, figures: found.filter(b => b.kind === 'figure').length };
+    citations: found.filter(b => b.kind === 'citation').length, figures: found.filter(b => b.kind === 'figure').length,
+    formatted, diagnostics };
 }
 
 /**
@@ -146,6 +160,9 @@ export function recoveryChoice(given, kept) {
  * @param {string} [options.previewClass]  The site's own class for article text, so the preview looks like the site.
  * @param {boolean} [options.fullWindow]  Fill the window instead of a box.
  * @param {string[]} [options.blocks]  Only these blocks (such as ['citation']); default: every block the page loaded.
+ * @param {{ compileHTML: Function, cache: object, citationStyle?: string }} [options.citations]  Formatted citations
+ *   and endnotes in the preview: citation.inator's browser compiler (citation-compiler.mjs) and the site's citation
+ *   cache. Without it the preview shows each work's note.
  * @param {boolean} [options.showImport]  Show the Import citations button even without an importer (disabled).
  * @param {object} [options.importer]  Turns on Import citations: { process, describe?, siteCache?, recordId?,
  *   onRecords? } (see src/editor/importer.js). `process` is citation.inator's processImportRequest.
@@ -202,7 +219,8 @@ export function mountEditor(root, options = {}) {
   const source = el('textarea', { class: 'di-source', spellcheck: 'true', 'aria-label': 'The article, in Markdown' });
   const preview = el('article', { class: ['di-article', o.previewClass].filter(Boolean).join(' '), 'aria-label': 'Preview' });
   const readPane = el('div', { class: 'di-pane di-read' }, [preview]);
-  if (!o.citationsFormatted) readPane.append(el('p', { class: 'di-note', text: 'Citations here show each work\'s note. Formatted citations and endnotes arrive with citation.inator\'s browser compiler.' }));
+  const note = el('p', { class: 'di-note', text: 'Citations here show each work\'s note. Give the editor the site\'s citation records (the citations option) to see them formatted, with endnotes.' });
+  readPane.append(note);
   const panes = el('div', { class: 'di-panes' }, [el('div', { class: 'di-pane di-write' }, [source]), readPane]);
   const counts = el('span'), saved = el('span'), live = el('span', { class: 'di-sr', role: 'status', 'aria-live': 'polite' });
   const status = el('div', { class: 'di-status' }, [counts, saved, live]);
@@ -228,8 +246,10 @@ export function mountEditor(root, options = {}) {
   // An upload lives only in the browser it was made in; elsewhere renderArticle says so instead of a broken image.
   const imageURL = p => F.assets[p] || (SAMPLES.has(p) || !p.startsWith(o.publicFolder + '/') || !o.storageKey ? p : null);
   function render() {
-    const r = renderArticle(source.value, { render: o.render, imageURL, blocks: o.blocks });
+    const r = renderArticle(source.value, { render: o.render, imageURL, blocks: o.blocks, citations: o.citations });
     preview.innerHTML = r.html;
+    note.hidden = r.formatted;
+    if (r.compileError) { note.hidden = false; note.textContent = 'Citations show each work\'s note: the citation compiler stopped (' + r.compileError + ').'; }
     title.textContent = r.title;
     counts.textContent = `${r.words} words · ${r.citations} citations · ${r.figures} figures`;
   }
@@ -274,7 +294,15 @@ export function mountEditor(root, options = {}) {
     import: async () => {
       const { openImport } = await import('./importer.js');
       openImport({ el, root, getText: () => source.value, replace, announce, focus: () => source.focus(),
-        addWorks: works => { window.DRAFT_CITATION?.addWorks(works); render(); } }, o.importer);
+        addWorks: (works, records) => {
+          window.DRAFT_CITATION?.addWorks(works);
+          // New works join the records the preview compiles with, so their citations are formatted at once.
+          if (o.citations?.cache && records?.length) {
+            const have = new Set(o.citations.cache.records.map(r => r.id));
+            o.citations.cache = { ...o.citations.cache, records: [...o.citations.cache.records, ...records.filter(r => !have.has(r.id))] };
+          }
+          render();
+        } }, o.importer);
     }
   };
   toolbar.addEventListener('click', e => { const b = e.target.closest('button[data-cmd]'); if (b && !b.disabled && COMMANDS[b.dataset.cmd]) COMMANDS[b.dataset.cmd](); });

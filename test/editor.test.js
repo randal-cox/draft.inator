@@ -88,3 +88,23 @@ test('a kept draft is offered, never loaded unasked', async () => {
   assert.equal(recoveryChoice('page v2', { text: 'my edit', base: 'page v1' }), 'offer-changed', 'someone saved since: warn');
   assert.equal(recoveryChoice('page', { text: 'old plain draft' }), 'offer', 'drafts kept by 0.3.0 (no base) are offered');
 });
+
+test('with citation.inator\'s compiler and a cache, the preview has formatted citations and endnotes', async () => {
+  const { compileHTML } = await import('../vendor/citation-inator/preview/citation-compiler.mjs');
+  const cache = JSON.parse(fs.readFileSync(root + 'examples/sample-site/citations.json', 'utf8'));
+  const text = 'Practice *first* {citation bell-1992-ritual | note:"Bell 1992" | locator:12}.\n\n{figure /uploads/a.png | alt:"A"}\n\nCode: `{citation bell-1992-ritual}`';
+  const withCode = m => md(m).replace(/`([^`]+)`/g, '<code>$1</code>');   // as marked does
+  const r = renderArticle(text, { render: withCode, citations: { compileHTML, cache } });
+  assert.equal(r.formatted, true);
+  assert.match(r.html, /class="citation-cite"[^>]*>Bell 1992, 12<\/a>/, 'formatted, Chicago author-date');
+  assert.match(r.html, /citation-endnotes[\s\S]*Ritual Theory, Ritual Practice/, 'endnotes added though the text has no endnote marker');
+  assert.match(r.html, /<figure class="fig"><img src="\/uploads\/a.png" alt="A">/, 'figures as before');
+  assert.equal((r.html.match(/citation-cite/g) || []).length, 1, 'the marker in code is not a citation');
+});
+
+test('if the compiler stops, the preview shows notes and says why', () => {
+  const r = renderArticle('A {citation bell-1992-ritual}.', { render: md, citations: { compileHTML: () => { throw new Error('boom'); }, cache: { records: [] } } });
+  assert.equal(r.formatted, false);
+  assert.equal(r.compileError, 'boom');
+  assert.match(r.html, /<a class="cite"/);
+});

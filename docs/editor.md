@@ -50,6 +50,7 @@ const editor = mountEditor(document.querySelector('#edit-here'), {
 | `fullWindow` | Fill the window instead of a box |
 | `blocks` | Only these blocks, such as `['citation']`. Default: every block the page loaded. Others get no button, and their tags stay as text |
 | `importer` | Turns on Import citations: `{ process, describe?, onRecords?, siteCache?, recordId? }` (see Importing citations) |
+| `citations` | Formatted citations in the preview: `{ compileHTML, cache, citationStyle? }` (see Formatted citations in the preview) |
 | `showImport` | Show the Import citations button even without an importer (disabled) |
 
 `mountEditor` returns `{ ready, text, focus(), setLayout(id) }`. `text` reads and replaces the Markdown.
@@ -75,13 +76,29 @@ import { describeCitation } from '/admin/draft-inator/citation-tools.mjs';
 mountEditor(el, { ..., importer: {
   process: processImportRequest,
   describe: (id, cache) => describeCitation(id, cache, { citationStyle: 'chicago-author-date' }).text,
+  siteCache,                                             // the site's citation cache
   onRecords: (records, cache) => keepNewWorks(records)   // e.g. reference files in the page's pull request
 } });
 ```
 
-New works join the editor's works list at once (with notes) and are handed to `onRecords` for the site to keep.
-Coming with citation.inator 0.4.0: matching against the works the site already has (`siteCache`) and site-chosen ids
-for new works (`recordId`); the options are already passed through.
+- **The site's own works.** With `siteCache`, a reference that looks like a work the site already has is offered as
+  that work ("Use the site's *Ritual Theory, Ritual Practice*", with what matches), or as a new work. One proposal
+  with nothing in conflict is selected, visibly; the writer confirms by converting. Nothing is merged unseen.
+- **Ids for new works.** `siteStyleId` (exported from `importer.js`) gives `bell-1992-ritual`: first author's family
+  name, year, and the title's first word, made unique. A site with another scheme passes `recordId(record, { taken })`.
+- **What the site keeps.** Only new works that a converted citation cites join the works list (with notes) and go to
+  `onRecords`. The site's own works, reused, are already there; references nobody cites are not kept.
+
+## Formatted citations in the preview
+
+```js
+import { compileHTML } from '/admin/draft-inator/citation-compiler.mjs';   // citation.inator 0.4.0
+mountEditor(el, { ..., citations: { compileHTML, cache: siteCache, citationStyle: 'chicago-author-date' } });
+```
+
+The preview then shows citations and endnotes as the published page will (and adds endnotes if the text has no
+`{citation endnote}`). Without `citations`, or if the compiler stops, the preview shows each work's note and says so.
+Use the same style as the site's build. Works added by an import are added to this cache, so they format at once.
 
 ## Bodies written in HTML
 

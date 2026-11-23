@@ -256,7 +256,7 @@ export function openImport(editor, options) {
     // New works the converted citations point to join the works list, with notes, and go to the site to keep.
     // The site's own works, reused, are already there.
     const records = worksToKeep(p, decisions);
-    editor.addWorks(records.map(rec => ({ id: rec.id, note: options.describe?.(rec.id, p.cache) || fallbackNote(rec), title: rec.title || '' })));
+    editor.addWorks(records.map(rec => ({ id: rec.id, note: options.describe?.(rec.id, p.cache) || fallbackNote(rec), title: rec.title || '' })), records);
     options.onRecords?.(records, p.cache);
     const left = matches.length - decisions.length, reused = (p.reusedRecordIds || []).length;
     editor.announce(`Converted ${decisions.length} citation${decisions.length === 1 ? '' : 's'}${left ? `; ${left} left as written` : ''}` +

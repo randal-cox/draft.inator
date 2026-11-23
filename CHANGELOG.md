@@ -6,6 +6,13 @@
   list, shows each citation in its sentence with its matched work and the evidence, and converts the accepted ones to
   `{citation …}` markers in one undoable step, optionally replacing the reference list with `{citation endnote}`.
   Unmatched citations stay as written. Try it: `demo/editor/?sample=import`.
+- **The site's own works.** With the site's citation cache (`importer.siteCache`), a reference that looks like a work
+  the site already has is offered as that work, for the writer to confirm, so it isn't added twice. New works get
+  site-style ids (`bell-1992-ritual`; a site can give its own `recordId`), and only new works the converted citations
+  cite are added and handed to the site.
+- **Formatted citations in the preview.** With citation.inator's browser compiler and the site's cache (the
+  `citations` option), the preview shows citations and endnotes as the published page will. Without them, or if the
+  compiler stops, it shows each work's note, as before. Works added by an import are formatted at once.
 - The Cite block takes works added while editing (`DRAFT_CITATION.addWorks`), so imported works get notes at once.
 - Toolbar buttons are named by their visible text for screen readers (a tooltip no longer replaces it).
 - **`local:` ids are read as the work they name.** `{citation local:bell-1992-ritual}` (as citation.inator's importer
