@@ -65,3 +65,21 @@ test('the preview reads like the page', () => {
   assert.equal(cite.toPreview(cite.fromBlock(['', 'bell-1992-ritual; turner-1969-ritual | prefix:"see also"'])),
     '(Bell 1992; see also Turner 1969)');
 });
+
+test('local: ids are the same work: chosen in the picker, noted, and written back as they were', () => {
+  const { parse, build } = window.DRAFT_CITATION;
+  const [item] = parse('local:bell-1992-ritual | locator:"p. 94"');
+  assert.equal(item.work, 'bell-1992-ritual', 'the picker sees the work');
+  assert.equal(build([item]), '{citation local:bell-1992-ritual | note:"Bell 1992" | locator:"p. 94"}', 'the note is the work\'s; the form stays');
+  const [bare] = parse('bell-1992-ritual');
+  assert.equal(build([bare]), '{citation bell-1992-ritual | note:"Bell 1992"}', 'bare stays bare');
+});
+
+test('a changed or new work is written bare, unless that would read as a directive', () => {
+  const { parse, build } = window.DRAFT_CITATION;
+  const [item] = parse('local:bell-1992-ritual');
+  item.work = 'turner-1969-ritual';
+  assert.match(build([item]), /^\{citation turner-1969-ritual \|/);
+  assert.match(build([{ work: 'list' }]), /^\{citation local:list \|/);
+  assert.match(build([{ work: 'list-2001' }]), /^\{citation list-2001 \|/);
+});
