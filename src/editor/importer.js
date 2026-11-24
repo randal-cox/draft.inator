@@ -50,18 +50,19 @@ export function worksToKeep(preview, decisions) {
   return (preview.cache?.records || []).filter(rec => cited.has(rec.id) && fresh.has(rec.id));
 }
 
-// What a proposed site work has in common with the imported reference, in words.
+// What a proposed site work has in common with the imported reference, and how it's written differently, in words.
 function siteEvidence(candidate) {
-  const out = [];
-  for (const e of [].concat(candidate.evidence || [])) {   // one evidence object (preview.3), or a list
-    const a = e.assessment || {};
-    const same = Object.entries(a.comparisons || {}).filter(([, v]) => v).map(([k]) => k);
-    if (e.sharedIdentifierCount) out.push(`${e.sharedIdentifierCount} shared identifier${e.sharedIdentifierCount === 1 ? '' : 's'}`);
-    if (same.length) out.push(same.join(', ') + ' match');
-    const differ = [...(a.differences || []), ...(a.conflicts || [])].map(d => (typeof d === 'string' ? d : d.field || d.code)).filter(Boolean);
-    if (differ.length) out.push('differs: ' + differ.join(', '));
+  const same = [], other = new Set();
+  for (const e of [].concat(candidate.evidence || [])) {   // one evidence object (preview.3 on), or a list
+    const c = e.assessment?.comparisons || {};
+    if (e.sharedIdentifierCount) same.push(`${e.sharedIdentifierCount} shared identifier${e.sharedIdentifierCount === 1 ? '' : 's'}`);
+    if (e.mainTitleMatch || c.title) same.push(e.mainTitleMatch && !c.title ? 'main title' : 'title');
+    if (c.authors) same.push('authors');
+    if (c.year) same.push('year');
+    for (const d of e.differences || []) other.add(typeof d === 'string' ? d : d.field || d.code);
   }
-  return out.join('; ');
+  const list = a => (a.length > 2 ? a.slice(0, -1).join(', ') + ', and ' + a[a.length - 1] : a.join(' and '));
+  return [same.length && `${list([...new Set(same)])} match`, other.size && `written differently: ${[...other].join(', ')}`].filter(Boolean).join('; ');
 }
 
 /**
@@ -141,12 +142,14 @@ export function openImport(editor, options) {
     matches = a.review.matches;
     // A unique match is proposed (selected, visibly, and changeable); anything else waits for the writer.
     chosen = matches.map(m => m.items.map(it => (it.state === 'unique' && it.candidates?.length === 1 ? it.candidates[0].recordId : null)));
-    // A site work is proposed the same way: one candidate with nothing in conflict is selected, visibly; the writer
-    // confirms it by converting, or chooses to add the reference as a new work.
+    // A site work is proposed the same way: one candidate with nothing in conflict is selected, visibly, for the
+    // writer to confirm by converting. Anything else (a conflict, several candidates) waits for a choice, and
+    // Convert waits with it: adding a work the site may already have is as much a guess as merging it.
     siteChoice = {};
     for (const s of a.siteMatches || []) {
-      const only = s.candidates?.length === 1 ? s.candidates[0] : null;
-      siteChoice[s.recordId] = only && ![].concat(only.evidence || []).some(e => e.assessment?.conflicts?.length) ? only.recordId : null;
+      if (!s.candidates?.length) continue;
+      const only = s.candidates.length === 1 ? s.candidates[0] : null;
+      siteChoice[s.recordId] = only && ![].concat(only.evidence || []).some(e => e.assessment?.conflicts?.length) ? only.recordId : undefined;
     }
     draw();
   }
@@ -196,13 +199,13 @@ export function openImport(editor, options) {
       for (const c of s.candidates) {
         const id = `di-site-${s.recordId}-${c.recordId}`, why = siteEvidence(c);
         const radio = el('input', { type: 'radio', name: `di-site-${s.recordId}`, id, checked: siteChoice[s.recordId] === c.recordId });
-        radio.addEventListener('change', () => { siteChoice[s.recordId] = c.recordId; });
+        radio.addEventListener('change', () => { siteChoice[s.recordId] = c.recordId; tally(); });
         set.append(el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id }, [
           el('span', { text: `Use the site's “${c.title || c.recordId}”` }), el('small', { text: ` · ${c.recordId}${why ? ' · ' + why : ''}` })])]));
       }
       const nid = `di-site-${s.recordId}-new`;
-      const fresh = el('input', { type: 'radio', name: `di-site-${s.recordId}`, id: nid, checked: !siteChoice[s.recordId] });
-      fresh.addEventListener('change', () => { siteChoice[s.recordId] = null; });
+      const fresh = el('input', { type: 'radio', name: `di-site-${s.recordId}`, id: nid, checked: siteChoice[s.recordId] === null });
+      fresh.addEventListener('change', () => { siteChoice[s.recordId] = null; tally(); });
       set.append(el('div', { class: 'di-import-choice' }, [fresh, el('label', { for: nid, text: 'Add it as a new work' })]));
       siteList.append(set);
     }
@@ -230,7 +233,11 @@ export function openImport(editor, options) {
     summary.textContent = matches.length
       ? `${matches.length} citation${matches.length === 1 ? '' : 's'} found, ${refs} reference${refs === 1 ? '' : 's'} read. ${n} will be converted; ${matches.length - n} will stay as written.`
       : `No citations found${refs ? `, though ${refs} reference${refs === 1 ? ' was' : 's were'} read` : ''}. Is the style right?`;
-    apply.disabled = !n;
+    // References the converted citations use whose site match hasn't been decided.
+    const usedNow = new Set(matches.flatMap((m, i) => (r[i] ? chosen[i] : [])));
+    const undecided = Object.entries(siteChoice).filter(([id, v]) => v === undefined && usedNow.has(id)).length;
+    if (undecided) summary.textContent += ` Choose for ${undecided} work${undecided === 1 ? '' : 's'} this site may already have (below).`;
+    apply.disabled = !n || undecided > 0;
     apply.textContent = n ? `Convert ${n} citation${n === 1 ? '' : 's'}` : 'Apply';
   }
 

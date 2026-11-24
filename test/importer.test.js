@@ -67,3 +67,18 @@ test('with the site\'s works: a proposed site work is reused, new ones are named
   assert.deepEqual(kept, ['cox-1995-masks', 'cox-1995-rites', 'turner-1969-ritual-2'], 'new and cited only: not Bell (the site has it), not Ainsworth (not cited)');
   for (const id of kept) assert.ok(sp.source.includes(id), `${id} is in the text`);
 });
+
+test('a site work with a shorter title is still proposed, and reusing it adds no duplicate (#16)', () => {
+  const siteCache = JSON.parse(fs.readFileSync(root + 'examples/sample-site/citations.json', 'utf8'));
+  const sctx = { ...ctx, siteCache };
+  const sa = processImportRequest(sctx);
+  const turner = sa.referenceRecords.find(r => r.title.startsWith('The ritual process')).id;
+  const proposal = sa.siteMatches.find(m => m.recordId === turner);
+  assert.deepEqual(proposal.candidates.map(c => c.recordId), ['turner-1969-ritual'], 'site: "The Ritual Process"; source adds a subtitle');
+  assert.ok(proposal.candidates[0].requiresReview);
+  const sp = processImportRequest({ ...sctx, action: 'preview', review: sa.review, reviewId: sa.review.reviewId, decisions,
+    recordDecisions: [{ recordId: turner, siteRecordId: 'turner-1969-ritual' }], recordId: siteStyleId });
+  assert.ok(sp.reusedRecordIds.includes('turner-1969-ritual'));
+  assert.ok(!worksToKeep(sp, decisions).some(r => r.id.startsWith('turner-')), 'no turner-1969-ritual-2');
+  assert.match(sp.source, /\{citation turner-1969-ritual[;|}]/, 'written bare, as the site writes it (#26)');
+});
