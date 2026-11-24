@@ -54,12 +54,9 @@ can grow into the editor real sites use (PRD principle 3).
 - [x] Inside a site's own page: a marked, rounded box in the site's colours (`demo/site/`; `docs/editor.md`).
 - [ ] In korazonresearch.org: Edit this page, saving as a pull request (built in KR from 0.3.0's editor; awaiting
       Randal's go-ahead there).
-- [ ] Real citations and endnotes in the preview, from citation.inator's browser compiler (#14).
-- [ ] citation.inator's import widget, in the editor's look and feel (with Theandra, #16). 🟡 Built against
-      0.4.0-preview.2 (`src/editor/importer.js`); waiting on `siteCache` and `recordId` (#16) and the 0.4.0 release.
-- [ ] `draft-inator figures`: collect each image's provenance from the tags, for hosts that keep records, and check
-      for missing alt text or conflicting credits.
-- [ ] Sized copies of figure images in the reference renderer.
+- [x] Real citations and endnotes in the preview, from citation.inator's browser compiler (#14).
+- [x] Import citations, in the editor's look and feel, on citation.inator 0.4.0 (#16, #22, #26): reviewed matches,
+      the site's own works reused, site-style ids for new ones (`src/editor/importer.js`).
 - [x] The editor in `src/editor/` (`mountEditor`, `renderArticle`, the blocks' forms), with tests.
 - [x] Front matter kept byte for byte; saving as a Sveltia-compatible draft pull request (`github.js`).
 
@@ -89,6 +86,9 @@ From `docs/plan-full-editor.md` (decided 21 Nov 2026).
 
 - [ ] Browse and search the site's images; details with a sidecar record (alt, credit, licence, source, focal point).
 - [ ] Where each image is used; unused images; crop and rotate; upload limits; GPS data stripped.
+- [ ] `draft-inator figures`: collect each image's provenance from the tags, for hosts that keep records, and check
+      for missing alt text or conflicting credits. (Moved from 0.4, Randal, 24 Nov 2026.)
+- [ ] Sized copies of figure images in the reference renderer. (Moved from 0.4.)
 - Video and audio deferred.
 
 ## 0.8: Access checks and more blocks
