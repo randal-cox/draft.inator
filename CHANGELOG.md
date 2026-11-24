@@ -2,6 +2,9 @@
 
 ## Unreleased (0.4)
 
+- **citation.inator 0.4.0** (tag `v0.4.0`), vendored from its release tarball: the tools bundle (now with
+  `formatRecordId`), and new, the import bundle and the browser compiler. `vendor/citation-inator/README.md` has the
+  checksums.
 - **Import citations** in the editor, with citation.inator's importer: finds author–date citations and the reference
   list, shows each citation in its sentence with its matched work and the evidence, and converts the accepted ones to
   `{citation …}` markers in one undoable step, optionally replacing the reference list with `{citation endnote}`.

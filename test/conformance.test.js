@@ -39,7 +39,7 @@ test('every id the block writes for a newly chosen work is read by citation.inat
 // Issue #26: one rule for writing a work's id. The block can't import citation.inator inside Sveltia (blocks are
 // classic scripts), so it keeps its own copy; this holds that copy to citation.inator's formatRecordId.
 test('the block writes ids exactly as citation.inator\'s formatRecordId does', async () => {
-  const { formatRecordId } = await import('../vendor/citation-inator/preview/citation-import.mjs');
+  const { formatRecordId } = await import('../vendor/citation-inator/citation-tools.mjs');
   const { writeId } = window.DRAFT_CITATION;
   const ids = ['bell-1992-ritual', 'list-2001', 'listing', 'endnote-1', 'credit-report', 'nocite-2020', 'evidence-base',
     'list', 'endnote', 'nocite', 'evidence', 'credit', 'a', '10.1177-x', 'cox-1995-masks', 'ref-a3160b437c6a2485c029'];

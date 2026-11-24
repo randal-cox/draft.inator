@@ -1,11 +1,11 @@
 // The demo's whole-window editor: draft.inator's editor (src/editor/editor.js) with the sample article and images,
-// marked (vendored) as the preview's Markdown renderer, and citation.inator's importer (a 0.4.0 preview, vendored).
+// marked (vendored) as the preview's Markdown renderer, and citation.inator's importer and compiler (0.4.0, vendored).
 // ?sample=import opens an essay with citations written out by hand, to try Import citations.
 import { mountEditor } from '../../src/editor/editor.js';
 import { render, SAMPLE_IMAGES, sample } from './setup.mjs';
-import { processImportRequest } from '../../vendor/citation-inator/preview/citation-import.mjs';
+import { processImportRequest } from '../../vendor/citation-inator/citation-import.mjs';
 import { describeCitation } from '../../vendor/citation-inator/citation-tools.mjs';
-import { compileHTML } from '../../vendor/citation-inator/preview/citation-compiler.mjs';
+import { compileHTML } from '../../vendor/citation-inator/citation-compiler.mjs';
 
 // The sample site's own citation records: for the formatted preview, and so the importer can offer works it has.
 const siteCache = await (await fetch(new URL('../../examples/sample-site/citations.json', import.meta.url))).json();

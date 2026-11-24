@@ -1,8 +1,8 @@
-// The importer's one edit, against citation.inator's importer (0.4.0 preview, vendored).
+// The importer's one edit, against citation.inator's importer (0.4.0, vendored).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { processImportRequest } from '../vendor/citation-inator/preview/citation-import.mjs';
+import { processImportRequest } from '../vendor/citation-inator/citation-import.mjs';
 import { planReplacement, siteStyleId, worksToKeep } from '../src/editor/importer.js';
 
 const root = new URL('..', import.meta.url).pathname;

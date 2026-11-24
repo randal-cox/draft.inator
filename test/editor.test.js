@@ -90,7 +90,7 @@ test('a kept draft is offered, never loaded unasked', async () => {
 });
 
 test('with citation.inator\'s compiler and a cache, the preview has formatted citations and endnotes', async () => {
-  const { compileHTML } = await import('../vendor/citation-inator/preview/citation-compiler.mjs');
+  const { compileHTML } = await import('../vendor/citation-inator/citation-compiler.mjs');
   const cache = JSON.parse(fs.readFileSync(root + 'examples/sample-site/citations.json', 'utf8'));
   const text = 'Practice *first* {citation bell-1992-ritual | note:"Bell 1992" | locator:12}.\n\n{figure /uploads/a.png | alt:"A"}\n\nCode: `{citation bell-1992-ritual}`';
   const withCode = m => md(m).replace(/`([^`]+)`/g, '<code>$1</code>');   // as marked does

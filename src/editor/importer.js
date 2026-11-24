@@ -53,7 +53,7 @@ export function worksToKeep(preview, decisions) {
 // What a proposed site work has in common with the imported reference, and how it's written differently, in words.
 function siteEvidence(candidate) {
   const same = [], other = new Set();
-  for (const e of [].concat(candidate.evidence || [])) {   // one evidence object (preview.3 on), or a list
+  for (const e of [].concat(candidate.evidence || [])) {   // one evidence object (0.4.0), or a list
     const c = e.assessment?.comparisons || {};
     if (e.sharedIdentifierCount) same.push(`${e.sharedIdentifierCount} shared identifier${e.sharedIdentifierCount === 1 ? '' : 's'}`);
     if (e.mainTitleMatch || c.title) same.push(e.mainTitleMatch && !c.title ? 'main title' : 'title');
