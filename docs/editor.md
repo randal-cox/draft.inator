@@ -130,6 +130,24 @@ mountEditor(el, { ..., importer: {
 - **What the site keeps.** Only new works that a converted citation cites join the works list (with notes) and go to
   `onRecords`. The site's own works, reused, are already there; references nobody cites are not kept.
 
+## Equations and cross-references
+
+Pass KaTeX (vendored in `vendor/katex/`) and the preview draws LaTeX maths as MathML, numbers labelled equations and
+figures, and resolves `{ref …}`. MathML needs no fonts, no stylesheet, and no inline styles, and screen readers read it.
+
+```js
+import katex from '/admin/draft-inator/vendor/katex/katex.mjs';
+mountEditor(el, { …, math: { katex, macros: { '\\R': '\\mathbb{R}' }, refNames: { eq: n => `(${n})` } } });
+```
+
+- `$…$` inline, `$$…$$` displayed, `{#eq:name}` after a displayed equation to number it, `label:fig:name` on a figure,
+  and `{ref eq:name}` anywhere. The grammar is in the data contract. Move an equation or a figure and every number and
+  every reference follows: the file never holds a number.
+- Maths with a mistake shows its source, marked, with KaTeX's message; a reference to a missing label is marked too.
+  The status line counts both ("2 to fix"), and lists them on hover.
+- `renderArticle` returns `equations` and `crossref` (the problems) alongside its other counts.
+- Try it: `demo/editor/?sample=equations`.
+
 ## Formatted citations in the preview
 
 ```js

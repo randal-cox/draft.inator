@@ -8,12 +8,16 @@ import { render, SAMPLE_IMAGES, sampleArticle } from './setup.mjs';
 import { processImportRequest } from '../../vendor/citation-inator/citation-import.mjs';
 import { describeCitation } from '../../vendor/citation-inator/citation-tools.mjs';
 import { compileHTML } from '../../vendor/citation-inator/citation-compiler.mjs';
+import katex from '../../vendor/katex/katex.mjs';
 
 // The sample site's own citation records: for the formatted preview, and so the importer can offer works it has.
 const siteCache = await (await fetch(new URL('../../examples/sample-site/citations.json', import.meta.url))).json();
 
-const importSample = new URLSearchParams(location.search).get('sample') === 'import';
-const load = importSample ? async () => (await fetch(new URL('sample-import.md', import.meta.url))).text() : sampleArticle;
+const sample = new URLSearchParams(location.search).get('sample');
+const importSample = sample === 'import';
+// ?sample=equations: numbered equations and figures with {ref …}; move one and every number follows.
+const bodyOnly = importSample || sample === 'equations';
+const load = bodyOnly ? async () => (await fetch(new URL(importSample ? 'sample-import.md' : 'sample-equations.md', import.meta.url))).text() : sampleArticle;
 
 // Save here sends nothing: it says how much of the file a real save would change, against the sample.
 const original = await load();
@@ -35,14 +39,15 @@ function demoSave(text) {
 mountEditor(document.getElementById('editor'), {
   fullWindow: true,
   label: 'draft.inator',
-  ...(importSample ? {} : { collection: 'essays', slug: 'masks-in-ritual' }),   // the Details panel (collections.js)
+  ...(bodyOnly ? {} : { collection: 'essays', slug: 'masks-in-ritual' }),   // the Details panel (collections.js)
   text: load,
   reset: load,
   save: async text => demoSave(text),
   render,
   images: SAMPLE_IMAGES,
-  storageKey: importSample ? 'draft-inator-editor-import' : 'draft-inator-editor-file',   // whole files: a body-only draft from 0.4 isn't offered
-  citations: { compileHTML, cache: structuredClone(siteCache), citationStyle: 'chicago-author-date' },   // formatted, with endnotes
+  storageKey: importSample ? 'draft-inator-editor-import' : sample === 'equations' ? 'draft-inator-editor-equations' : 'draft-inator-editor-file',   // whole files: a body-only draft from 0.4 isn't offered
+  citations: { compileHTML, cache: structuredClone(siteCache), citationStyle: 'chicago-author-date' },
+  math: { katex },   // LaTeX maths as MathML; numbered equations and figures, and {ref …}   // formatted, with endnotes
   importer: {
     process: processImportRequest,
     siteCache,   // a reference the site already has is offered as that work, not a new one

@@ -67,3 +67,14 @@ test('the image field never offers stock photo services', () => {
   const image = figure.fields.find(f => f.name === 'src');
   assert.equal(JSON.stringify(image.media_libraries), '{"stock_assets":false}');
 });
+
+test('a label is read, written back as it was, and a bad one is kept as another option', () => {
+  const pattern = new RegExp(figure.pattern.source);
+  const again = t => figure.toBlock(figure.fromBlock(t.match(pattern)));
+  const t = '{figure /a.png | alt:"A" | label:fig:depth | width:half}';
+  assert.equal(again(t), t);
+  assert.equal(figure.fromBlock(t.match(pattern)).label, 'fig:depth');
+  const odd = '{figure /a.png | alt:"A" | label:Not A Label}';
+  assert.equal(again(odd), odd);
+  assert.equal(figure.fromBlock(odd.match(pattern)).label, undefined);
+});

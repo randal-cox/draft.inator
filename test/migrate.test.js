@@ -51,3 +51,13 @@ test('the command: exits 1 while markers are left, rewrites with --write, then p
   assert.equal(main(['migrate', dir], { out, err }), 0);
   assert.match(lines.at(-1), /Every marker uses \{cite …\}/);
 });
+
+test('the command names each line to check by file, line, and column', async () => {
+  const { main } = await import('../tools/cli.js');
+  const fs = await import('node:fs'), os = await import('node:os'), path = await import('node:path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'di-migrate-')), file = path.join(dir, 'a.md');
+  fs.writeFileSync(file, '{citation x}\n\n{cite endnote}\n');
+  const errs = [];
+  main(['migrate', file], { out: () => {}, err: s => errs.push(s) });
+  assert.match(errs[0], /a\.md:3:1: check: /);
+});

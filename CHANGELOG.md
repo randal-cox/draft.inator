@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Equations and cross-references** (Randal, 25 Nov 2026). LaTeX maths between `$…$` and `$$…$$`, drawn by KaTeX
+  0.16.11 (vendored, MIT) as MathML: no fonts, styles, or scripts, so it suits a strict security policy, and screen
+  readers read it. Label a displayed equation with `{#eq:name}` and a figure with `label:fig:name`; `{ref …}` reads
+  "Eq. 3" or "Figure 2". Files hold labels, never numbers, so moving things renumbers them and every reference.
+  Mistakes and missing labels are marked in the preview and counted in the status line. `draft-inator check` fails a
+  pull request on them. Demo: `demo/editor/?sample=equations`.
+- **`draft-inator migrate` names each line to check** (`file:line:column`); 0.4.0 printed `undefined:undefined`.
 - **Replacing a work doesn't carry the old work's options** (Theandra's point on #40; a bug in 0.4.0). When a
   writer changes the work a citation points to, the old work's page and other options are set aside and shown, with
   **Keep them**; nothing moves by default, and going back restores them. Finishing a placeholder drops its

@@ -4,6 +4,7 @@
 //   draft-inator tags  [--out tags.json] [--curation curation.json] [--topics topics.json] [...]
 //   draft-inator works [--out works.js | --check] [--topics topics.json] [...]
 //   draft-inator migrate [--from citation] [--to cite] [--write] [content…]
+//   draft-inator check [content…]
 // With no --write, notes only checks: it exits 1 if any note is stale or missing. works --check exits 1 if the
 // works file on disk differs from what the cache gives.
 import fs from 'node:fs';
@@ -15,8 +16,10 @@ import { totalTags, recordTags } from './tags.js';
 import { buildWorks, worksJs, topicsFrom } from './works.js';
 import { migrateText } from './migrate.js';
 import { lineCol } from './core.js';
+import { checkText } from './check.js';
+import katex from '../vendor/katex/katex.mjs';
 
-const USAGE = `Usage: draft-inator <notes|tags|works|migrate> [options] [content folders or files]
+const USAGE = `Usage: draft-inator <notes|tags|works|migrate|check> [options] [content folders or files]
 
   notes            Check every marker's note: against the citation cache (exit 1 if any is stale)
     --write        Refresh stale notes in place instead
@@ -31,6 +34,9 @@ const USAGE = `Usage: draft-inator <notes|tags|works|migrate> [options] [content
     --from WORD    The old keyword (default: citation)
     --to WORD      The site's keyword (default: settings.keyword, else cite)
     --write        Rewrite the files instead (only the keyword changes)
+
+  check            Equations and cross-references: maths that doesn't parse, {ref …} to a missing label, and labels
+                   used twice (exit 1 if any)
 
   --config FILE    Site settings (JSON); flags override it. See docs/tools.md.
   --cache FILE     cite.inator cache (citations.json)
@@ -89,7 +95,7 @@ export function main(argv, { out = s => process.stdout.write(s + '\n'), err = s 
         const text = fs.readFileSync(file, 'utf8');
         const { text: next, changes } = migrateText(text, { from, to });
         const rewrites = changes.filter(c => !c.review);
-        for (const c of changes.filter(c => c.review)) { const { line, column } = lineCol(text, c.at); err(`${file}:${line}:${column}: check: ${c.review}`); reviews++; }
+        for (const c of changes.filter(c => c.review)) { err(`${file}:${lineCol(text, c.at)}: check: ${c.review}`); reviews++; }
         if (!rewrites.length) continue;
         files++; pending += rewrites.length;
         if (v.write) fs.writeFileSync(file, next);
@@ -98,6 +104,19 @@ export function main(argv, { out = s => process.stdout.write(s + '\n'), err = s 
       if (!pending) out(`Every marker uses {${to} …}.${reviews ? ` ${reviews} to check by hand (above).` : ''}`);
       else if (!v.write) out(`${pending} marker${pending === 1 ? '' : 's'} in ${files} file${files === 1 ? '' : 's'} still use another keyword. Run with --write to move them.`);
       return !v.write && pending ? 1 : 0;
+    }
+    if (command === 'check') {
+      if ((!settings.content || !settings.content.length)) throw new Error('Name the content folders (or set "content" in the settings).');
+      let problems = 0, files = 0;
+      for (const file of contentFiles(settings.content)) {
+        const text = fs.readFileSync(file, 'utf8');
+        files++;
+        for (const d of checkText(text, { katex, macros: settings.mathMacros })) {
+          err(`${file}:${lineCol(text, d.at)}: ${d.message}`); problems++;
+        }
+      }
+      out(problems ? `${problems} problem${problems === 1 ? '' : 's'} in equations and cross-references (above).` : `${files} file${files === 1 ? '' : 's'}: equations and cross-references are fine.`);
+      return problems ? 1 : 0;
     }
     err(`Unknown command "${command}".\n\n${USAGE}`); return 2;
   } catch (error) { err(error.message); return 2; }

@@ -8,6 +8,7 @@ The Cite block runs in the writer's browser. Three jobs need the whole site inst
 | `draft-inator notes` | Checks that every marker's `note:` is cite.inator's current description of the work | In every pull request (fails on a stale note); `--write` to fix |
 | `draft-inator tags` | Totals the topics writers gave each work while citing it, plus a curator's additions and blocks | When you rebuild the citation records |
 | `draft-inator works` | Writes `works.js`, the list of works the Cite block offers (`docs/data-contract.md`) | Whenever the citation cache changes; `--check` in pull requests |
+| `draft-inator check` | Checks equations and cross-references: maths that parses, `{ref …}` to labels that exist, no label twice | In every pull request |
 
 All three need Node 22 and nothing else: cite.inator's tools are vendored in `vendor/citation-inator/`.
 
@@ -46,6 +47,7 @@ editor writes. Put the settings in one file, `draft-inator.json`, next to your c
 | `topics` | Optional: the topics a citation can be tagged with, `[{ "id": "…", "label": "…" }]` |
 | `curation` | Optional: per-work tag additions and blocks (below) |
 | `works` | Where `works.js` goes |
+| `mathMacros` | Optional: the site's LaTeX macros for `check`, as `{ "\\R": "\\mathbb{R}" }`; use the same ones as the editor |
 
 Paths are relative to the settings file. Any setting can be given as a flag instead (`--cache`, `--style`, …), and
 content folders as plain arguments; flags win over the file. The name and format of the site file are still open
@@ -133,11 +135,21 @@ HTML) is left alone. Two cases change more than the word, and both are reported:
 
 `--from` and `--to` name other keywords; `--to` defaults to the `keyword` setting. A second run changes nothing.
 
+## Equations and cross-references: `draft-inator check`
+
+```sh
+npx draft-inator check --config draft-inator.json
+```
+
+Fails (exit 1) on maths that doesn't parse, a `{ref …}` to a label that doesn't exist, or a label used twice, naming
+the file, line, and column of each. Site macros can go in the settings as `mathMacros`.
+
 ## In a pull-request check
 
 ```yaml
 - run: npx draft-inator works --config draft-inator.json --check
 - run: npx draft-inator notes --config draft-inator.json
+- run: npx draft-inator check --config draft-inator.json
 ```
 
 ## From JavaScript

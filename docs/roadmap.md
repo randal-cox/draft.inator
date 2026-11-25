@@ -130,6 +130,19 @@ editor. Not started; nothing here is agreed beyond the split of work, and nothin
   the new record with the page. Direct connectors to other reference managers are deferred; file import and export
   stay in cite.inator's 0.6.
 
+## Equations and cross-references (Randal, 25 Nov 2026)
+
+- [x] LaTeX maths, `$…$` and `$$…$$`, drawn by KaTeX as MathML in the preview; mistakes marked with KaTeX's message.
+- [x] Labels, never numbers: `{#eq:name}` on equations, `label:fig:name` on figures, `{ref …}` anywhere; numbered
+      automatically, by kind, in order, and renumbered when things move.
+- [x] `draft-inator check` for maths that doesn't parse, missing labels, and labels used twice.
+- [ ] Rendering the same way in a site's build (`crossref.js` with KaTeX in Node), starting with korazonresearch.org.
+- [ ] The Equation dialog: source and live render side by side, a palette (fractions, sums, integrals, Greek,
+      matrices), the site's macros, a label field; completion for `\commands` in the text.
+- [ ] Paste maths from Word, Google Docs (via .docx), Mathematica, and LibreOffice: MathML on the clipboard, and Word's
+      maths in a .docx, converted to LaTeX.
+- [ ] Numbered tables (`label:tab:name`).
+
 ## Republish elsewhere: Substack first (Randal, 25 Nov 2026; planned, not started)
 
 Write once on the site, with real citations, and republish anywhere without redoing them. Christopher publishes on
