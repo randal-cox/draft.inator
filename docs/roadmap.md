@@ -107,8 +107,9 @@ editor. Not started; nothing here is agreed beyond the split of work, and nothin
   browsers); no implicit failover and no automatic two-way sync.
 - **A quote with a citation** (`quote:`, proposed by cite.inator for 0.6): the writer's excerpt for that citation,
   next to its locator; draft.inator captures it from the selection. Not written by either project until the contract
-  and its tests are agreed. **Randal to decide:** shown to readers, or private drafting material (which must then
-  never reach anything published or exported).
+  and its tests are agreed. **Who sees it is a site setting** (Randal, 25 Nov 2026), defaulting to readers seeing it
+  on hover over the citation; a site can keep quotes private, and then they must never reach anything published or
+  exported (tested, not just stated).
 - **Smallest prototype:** search one Zotero library read-only through the web API, choose a work, reconcile it
   against the site's works (a match goes to the writer to confirm, never merged silently), insert the marker, and save
   the new record with the page. Direct connectors to other reference managers are deferred; file import and export
