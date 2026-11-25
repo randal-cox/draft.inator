@@ -1,4 +1,4 @@
-// The browser-safe heart of the build tools: no file system, only citation.inator's tools. The Node commands
+// The browser-safe heart of the build tools: no file system, only cite.inator's tools. The Node commands
 // (notes.js, tags.js, works.js) and the live demos (demo/) both run this, so the demos show the real behaviour.
 import { describeCitation, annotateMarkers, collectMarkerTags, markerKind } from '../vendor/citation-inator/citation-tools.mjs';
 export { describeCitation, annotateMarkers, collectMarkerTags, markerKind };
@@ -18,7 +18,7 @@ export function lineCol(source, offset) {
   return `${before.length}:${before[before.length - 1].length + 1}`;
 }
 
-// One file's notes: what is stale or missing, what citation.inator wants a person to see, and the refreshed text.
+// One file's notes: what is stale or missing, what cite.inator wants a person to see, and the refreshed text.
 // Notes describe the work alone ("Cox 1995"), as works.js and so the Cite block do, not the work in this article
 // ("Cox 1995a"); otherwise saving in the editor and the check would undo each other. A site that doesn't use the
 // block can set noteContext: "article".
@@ -64,18 +64,18 @@ export function tagTotals(sources, cache, { curation = {}, topics, minimum = 1, 
   return { works, notes };
 }
 
-// Just the part citation.inator takes: { "<work id>": ["tag", ...] }.
+// Just the part cite.inator takes: { "<work id>": ["tag", ...] }.
 export function recordTags({ works }) {
   return Object.fromEntries(Object.entries(works).map(([id, w]) => [id, w.tags]));
 }
 
-// citation.inator dates are [year, month?, day?].
+// cite.inator dates are [year, month?, day?].
 const year = record => (Array.isArray(record.issued) && Number.isInteger(record.issued[0]) ? record.issued[0] : undefined);
 
 /**
- * The data contract's works list, from a citation.inator cache.
+ * The data contract's works list, from a cite.inator cache.
  * @returns {{ works: Array<{id, note, title, year?}>, unresolved: Array<{id, note, from}> }}
- *   Works citation.inator can't describe yet get their in-text wording as their note (the record's citationText,
+ *   Works cite.inator can't describe yet get their in-text wording as their note (the record's citationText,
  *   then its original text, then its id). `unresolved` lists each one and where its note came from, so a person
  *   can see it rather than finding a guess in the picker.
  */

@@ -2,7 +2,7 @@
   "name": "draft-inator",
   "version": "0.3.0",
   "private": true,
-  "description": "Writing tools for static-site editors: blocks for Sveltia CMS (citations first), built around citation.inator.",
+  "description": "Writing tools for static-site editors: blocks for Sveltia CMS (citations first), built around cite.inator.",
   "type": "module",
   "license": "MIT",
   "author": "Randal Cox",
