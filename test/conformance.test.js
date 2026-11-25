@@ -10,13 +10,17 @@ const { components, window } = loadBlock(new URL('../src/blocks/citation.js', im
 const pattern = new RegExp('^' + components.citation.pattern.source + '$');
 
 const markers = [
-  '{citation bell-1992-ritual}', '{citation a; b | locator:3}', '{citation list-2001}', '{citation listing}',
-  '{citation endnote-1}', '{citation endnotes-2}', '{citation credit-report}', '{citation evidence-base | locator:2}',
-  '{citation nocite-2020}', '{citation endnote}', '{citation endnote | heading:"Notes"}', '{citation endnote }',
-  '{citation list a; b}', '{citation list a | sort:year}', '{citation nocite a}', '{citation evidence}', '{citation credit}',
-  '{citation bell-1992-ritual | note:"Bell 1992" | tags:a,b}', '{citation 10.1177/1363460704040142 | prefix:"see"}',
-  '{citation local:bell-1992-ritual}', '{citation local:list}', '{citation local:endnote}', '{citation local:evidence}',
-  '{citation local:credit | locator:2}', '{citation local:nocite; bell-1992-ritual}'
+  '{cite bell-1992-ritual}', '{cite a; b | locator:3}', '{cite list-2001}', '{cite listing}',
+  '{cite endnote-1}', '{cite endnotes-2}', '{cite credit-report}', '{cite evidence-base | locator:2}',
+  '{cite nocite-2020}', '{cite endnote}', '{cite endnote | heading:"Notes"}', '{cite endnote }',
+  '{cite list a; b}', '{cite list a | sort:year}', '{cite nocite a}', '{cite evidence}', '{cite credit}',
+  '{cite bell-1992-ritual | note:"Bell 1992" | tags:a,b}', '{cite 10.1177/1363460704040142 | prefix:"see"}',
+  '{cite local:bell-1992-ritual}', '{cite local:list}', '{cite local:endnote}', '{cite local:evidence}',
+  '{cite local:credit | locator:2}', '{cite local:nocite; bell-1992-ritual}',
+  // cite.inator 0.5.1: fields separated by spaces, the tags directive, directives with space-separated options.
+  '{cite bell-1992-ritual locator:12}', '{cite bell-1992-ritual note:"Bell 1992" locator:12 prefix:"see"}',
+  '{cite a; b locator:3}', '{cite tags bell-1992-ritual methods:"Methods"}', '{cite endnote heading:"Notes"}',
+  '{cite local:tags}', '{cite tagsy-2001}'
 ];
 
 for (const marker of markers) {
@@ -30,7 +34,7 @@ for (const marker of markers) {
 test('every id the block writes for a newly chosen work is read by citation.inator as a citation of that work', () => {
   const { writeId } = window.DRAFT_CITATION;
   for (const work of ['bell-1992-ritual', 'list-2001', 'list', 'endnote', 'nocite', 'evidence', 'credit']) {
-    const marker = `{citation ${writeId({ work })}}`;
+    const marker = `{cite ${writeId({ work })}}`;
     assert.equal(markerKind(marker), 'citation', marker);
     assert.ok(pattern.test(marker), `the block opens ${marker}`);
   }
@@ -44,4 +48,16 @@ test('the block writes ids exactly as citation.inator\'s formatRecordId does', a
   const ids = ['bell-1992-ritual', 'list-2001', 'listing', 'endnote-1', 'credit-report', 'nocite-2020', 'evidence-base',
     'list', 'endnote', 'nocite', 'evidence', 'credit', 'a', '10.1177-x', 'cox-1995-masks', 'ref-a3160b437c6a2485c029'];
   for (const id of ids) assert.equal(writeId({ work: id }), formatRecordId(id), id);
+});
+
+// A site configured with another keyword (cite.inator 0.5.1 allows one, and only one): the block follows it exactly.
+test('a site that keeps the citation keyword: the block reads only {citation …}, as cite.inator does', async () => {
+  const fs = await import('node:fs'), vm = await import('node:vm');
+  const captured = {}, win = { DRAFT_WORKS: [], DRAFT_CITATION_KEYWORD: 'citation' };
+  win.CMS = { registerEditorComponent: c => { captured[c.id] = c; } };
+  vm.runInNewContext(fs.readFileSync(new URL('../src/blocks/citation.js', import.meta.url), 'utf8'), { window: win, CMS: win.CMS });
+  const p = new RegExp('^' + captured.citation.pattern.source + '$');
+  for (const m of ['{citation bell-1992-ritual}', '{citation endnote}', '{citation bell-1992-ritual locator:3}', '{cite bell-1992-ritual}', '{citation tags x m:"M"}'])
+    assert.equal(p.test(m), markerKind(m, { citationKeyword: 'citation' }) === 'citation', m);
+  assert.equal(captured.citation.toBlock({ items: [{ work: 'x' }] }), '{citation x | note:"x"}');
 });

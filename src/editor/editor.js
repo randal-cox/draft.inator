@@ -71,7 +71,7 @@ export function bodyKind(body) {
 
 /**
  * The article as readers see it: Markdown through the site's renderer, with figures laid out as their tags say and
- * citations shown by their notes, plus a list of the works cited (at {citation endnote}, or at the end).
+ * citations shown by their notes, plus a list of the works cited (at {cite endnote}, or at the end).
  * @param {string} text  Markdown with draft.inator blocks.
  * @param {object} [options]
  * @param {(markdown: string) => string} [options.render]  The site's Markdown renderer (it must escape raw HTML).
@@ -109,18 +109,19 @@ export function renderArticle(text, options = {}) {
   }
   out += text.slice(last);
   let placed = false;
-  out = out.replace(/\{citation endnote(?:\s*\|[^}\n]*)?\}/g, (m, at) => (found.inCode(at) ? m : (placed = true, compiler ? hold(esc(m)) : 'DRAFTENDNOTES')));
+  const kw = window.DRAFT_CITATION?.keyword || window.DRAFT_CITATION_KEYWORD || 'cite';
+  out = out.replace(new RegExp(`\\{${kw} endnote(?:[\\s|][^}\\n]*)?\\}`, 'g'), (m, at) => (found.inCode(at) ? m : (placed = true, compiler ? hold(esc(m)) : 'DRAFTENDNOTES')));
   const endnotes = cited.length ? `<section class="endnotes"><h2>Works cited</h2><ol>${cited.map(id => { const w = WORKS[id];
     return `<li id="di-ref-${esc(id)}">${esc(w?.note || id)}${w?.title ? `. <cite>${esc(w.title)}</cite>.` : ' <span class="unresolved">(not yet found)</span>'}</li>`; }).join('')}</ol></section>` : '';
   const md = options.render || (m => m.split(/\n{2,}/).map(p => `<p>${esc(p)}</p>`).join(''));
-  if (compiler && !placed && cited.length) out += '\n\n' + hold('{citation endnote}');
+  if (compiler && !placed && cited.length) out += '\n\n' + hold(`{${kw} endnote}`);
   let html = md(out + (compiler || placed || !cited.length ? '' : '\n\nDRAFTENDNOTES'))
     .replace(/<p>DRAFTENDNOTES<\/p>|DRAFTENDNOTES/g, endnotes)
     .replace(/<p>DRAFTPH(\d+)X<\/p>/g, (m, n) => parts[n]).replace(/DRAFTPH(\d+)X/g, (m, n) => parts[n]);
   let formatted = false, diagnostics = [];
   if (compiler) {
     try {
-      const r = compiler.compileHTML(html, compiler.cache, { citationStyle: compiler.citationStyle || 'chicago-author-date', namespace: 'di-preview' });
+      const r = compiler.compileHTML(html, compiler.cache, { citationStyle: compiler.citationStyle || 'chicago-author-date', citationKeyword: kw, namespace: 'di-preview' });
       html = r.html; formatted = true; diagnostics = r.diagnostics || [];
     } catch (e) {
       // The compiler stopped: show the notes instead, and say why, rather than a blank preview.

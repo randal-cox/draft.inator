@@ -1,9 +1,11 @@
 /* draft.inator: import citations. Finds author–date citations (APA, Chicago, …) and the reference list in the article
    being edited, using citation.inator's importer, lets the writer review every match, and turns the accepted ones into
-   {citation …} markers in one undoable step. citation.inator does the finding and matching; this file is the review
+   {cite …} markers (the site's keyword) in one undoable step. citation.inator does the finding and matching; this file is the review
    and the editing. Nothing is applied that the writer hasn't seen: unique matches are proposed (and can be changed),
    others need a choice, and anything left alone stays exactly as written. */
 
+// The site's one citation keyword (cite.inator 0.5.1, default cite): the Cite block's, else the data contract's.
+export const citationKeyword = () => (typeof window !== 'undefined' && (window.DRAFT_CITATION?.keyword || window.DRAFT_CITATION_KEYWORD)) || 'cite';
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const STYLES = [
   { id: 'auto', label: 'Work it out' }, { id: 'apa', label: 'APA' },
@@ -46,9 +48,20 @@ export function siteStyleId(record, { taken = [] } = {}) {
  * @returns {object[]} records, with the ids the site gave them
  */
 export function worksToKeep(preview, decisions) {
-  const cited = new Set(decisions.flatMap(d => d.targets.map(t => preview.recordMap?.[t.recordId] ?? t.recordId)));
+  const cited = new Set(decisions.flatMap(d => (d.targets || []).filter(t => t.recordId).map(t => preview.recordMap?.[t.recordId] ?? t.recordId)));
+  // Placeholders for citations with no reference (cite.inator 0.5.1) are kept too: they're what a person completes later.
+  for (const o of preview.outcomes || []) for (const id of o.placeholderRecordIds || []) cited.add(id);
+  for (const id of preview.placeholderRecordIds || []) cited.add(id);
   const fresh = new Set(preview.newRecordIds ?? [...cited]);
   return (preview.cache?.records || []).filter(rec => cited.has(rec.id) && fresh.has(rec.id));
+}
+
+// A work kept as an unresolved placeholder: a flagged marker with the original wording, completed later.
+export const PLACEHOLDER = '\u0000placeholder';
+/** The decision cite.inator takes for one citation, from the writer's choice for each of its works. */
+export function decisionFor(citationIndex, choices) {
+  if (choices.every(c => c === PLACEHOLDER)) return { citationIndex, action: 'placeholder' };
+  return { citationIndex, action: 'accept', targets: choices.map(c => (c === PLACEHOLDER ? { placeholder: true } : { recordId: c })) };
 }
 
 /**
@@ -58,11 +71,11 @@ export function worksToKeep(preview, decisions) {
  * @param {Function} process  cite.inator's processImportRequest.
  * @returns {{ count: number, examples: string[] }}
  */
-export function findHandTyped(text, process, { citationKeyword = 'citation' } = {}) {
+export function findHandTyped(text, process, { keyword = citationKeyword() } = {}) {
   if (!process || !text || !/\(|\d{4}/.test(text)) return { count: 0, examples: [] };
   const found = style => {
     try {
-      const a = process({ mode: 'document', source: text, style, citationKeyword, namespace: 'draft-check', limits: { references: 300 } });
+      const a = process({ mode: 'document', source: text, style, citationKeyword: keyword, namespace: 'draft-check', limits: { references: 300 } });
       return a.review?.matches || [];
     } catch { return []; }
   };
@@ -118,18 +131,18 @@ export function citationContext(text, start, end) {
 
 /**
  * The one edit that applies an import: the smallest stretch of the original text covering every accepted edit (and,
- * if asked, the reference list, replaced by {citation endnote}), and what replaces it. Pure, so it can be tested.
+ * if asked, the reference list, replaced by the endnote directive), and what replaces it. Pure, so it can be tested.
  * @param {string} analysed  The text the import was analysed from.
  * @param {{ source: string, edits: Array<{start, end}> }} preview  citation.inator's preview result.
  * @param {{ start: number, end: number } | null} [bibliography]  The reference list to replace, if any.
  * @returns {{ start: number, end: number, text: string }}
  */
-export function planReplacement(analysed, preview, bibliography = null) {
+export function planReplacement(analysed, preview, bibliography = null, keyword = citationKeyword()) {
   const start = Math.min(...preview.edits.map(e => e.start));
   if (bibliography) {
     const shift = preview.source.length - analysed.length;
     return { start, end: bibliography.end,
-      text: preview.source.slice(start, bibliography.start + shift) + '{citation endnote}\n' + analysed.slice(bibliography.end).replace(/^\n+/, '\n') };
+      text: preview.source.slice(start, bibliography.start + shift) + `{${keyword} endnote}\n` + analysed.slice(bibliography.end).replace(/^\n+/, '\n') };
   }
   const end = Math.max(...preview.edits.map(e => e.end));
   return { start, end, text: preview.source.slice(start, preview.source.length - (analysed.length - end)) };
@@ -195,7 +208,7 @@ export function openImport(editor, options) {
     error.textContent = ''; for (const sec of [secAttention, secSite, secProbable, secRefs]) { sec.body.textContent = ''; sec.box.hidden = true; }
     find.textContent = 'Find again';
     analysed = editor.getText();
-    context = { mode: 'document', source: analysed, style, citationKeyword: 'citation', namespace: 'draft-import',
+    context = { mode: 'document', source: analysed, style, citationKeyword: citationKeyword(), namespace: 'draft-import',
       limits: { references: 300 }, ...(options.siteCache && { siteCache: options.siteCache }) };
     let a;
     try { a = options.process(context); } catch (e) { error.textContent = 'The importer stopped: ' + e.message; return; }
@@ -251,11 +264,18 @@ export function openImport(editor, options) {
           radio.addEventListener('change', () => { chosen[i][j] = c.recordId; tally(); });
           set.append(el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id }, [el('span', { text: c.title }), evidence ? el('small', { text: ' · ' + evidence }) : null])]));
         }
+        if (!it.candidates?.length || it.state === 'unmatched') {
+          const id = `di-imp-${i}-${j}-pending`;
+          const radio = el('input', { type: 'radio', name: `di-imp-${i}-${j}`, id, value: 'pending', checked: chosen[i][j] === PLACEHOLDER });
+          radio.addEventListener('change', () => { chosen[i][j] = PLACEHOLDER; tally(); });
+          set.append(el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id }, [el('span', { text: 'Keep as unresolved (recommended)' }),
+            el('small', { text: ' · a marked citation that keeps this wording; the site flags it until the work is found' })])]));
+        }
         {
           const id = `di-imp-${i}-${j}-leave`;
           const radio = el('input', { type: 'radio', name: `di-imp-${i}-${j}`, id, value: '', checked: chosen[i][j] === null });
           radio.addEventListener('change', () => { chosen[i][j] = null; tally(); });
-          set.append(el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id, text: it.candidates?.length ? 'Leave as written' : 'Leave as written (the banner will keep reminding you)' })]));
+          set.append(el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id, text: it.candidates?.length ? 'Leave as written' : 'Leave as typed text (the banner will keep reminding you)' })]));
         }
         row.append(set);
       });
@@ -310,11 +330,11 @@ export function openImport(editor, options) {
       return el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id, text })]);
     };
     secRefs.body.replaceChildren(list,
-      choice('replace', 'Replace the typed list with the list of works cited ({citation endnote})'),
+      choice('replace', `Replace the typed list with the list of works cited ({${citationKeyword()} endnote})`),
       choice('keep', 'Keep the typed list as it is'));
   }
   function markUnused() {
-    const r = ready(), used = new Set(matches.flatMap((m, i) => (r[i] ? chosen[i] : [])));
+    const r = ready(), used = new Set(matches.flatMap((m, i) => (r[i] ? chosen[i].filter(c => c !== PLACEHOLDER) : [])));
     for (const li of secRefs.body.querySelectorAll('li[data-id]')) {
       const off = !used.has(li.dataset.id);
       li.classList.toggle('di-import-unused', off);
@@ -327,7 +347,7 @@ export function openImport(editor, options) {
   // ids and the site's own works are visible before converting.
   function showWrites() {
     const r = ready();
-    const decisions = matches.map((m, i) => r[i] && { citationIndex: i, action: 'accept', targets: chosen[i].map(recordId => ({ recordId })) }).filter(Boolean);
+    const decisions = matches.map((m, i) => r[i] && decisionFor(i, chosen[i])).filter(Boolean);
     let edits = [];
     if (decisions.length) {
       try {
@@ -377,7 +397,7 @@ export function openImport(editor, options) {
     error.textContent = '';
     if (editor.getText() !== analysed) { error.textContent = 'The article changed while this was open. Find citations again.'; return; }
     const r = ready();
-    const decisions = matches.map((m, i) => r[i] && { citationIndex: i, action: 'accept', targets: chosen[i].map(recordId => ({ recordId })) }).filter(Boolean);
+    const decisions = matches.map((m, i) => r[i] && decisionFor(i, chosen[i])).filter(Boolean);
     let p;
     const recordDecisions = Object.entries(siteChoice).filter(([, site]) => site).map(([recordId, siteRecordId]) => ({ recordId, siteRecordId }));
     try {
