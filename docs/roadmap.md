@@ -140,8 +140,9 @@ editor. Not started; nothing here is agreed beyond the split of work, and nothin
 - [x] The Equation dialog: source and live render side by side, a palette (fractions, sums, integrals, Greek,
       matrices), the site's macros, a label field.
 - [ ] Completion for `\commands` in the text.
-- [ ] Paste maths from Word, Google Docs (via .docx), Mathematica, and LibreOffice: MathML on the clipboard, and Word's
-      maths in a .docx, converted to LaTeX.
+- [x] Word's maths in a .docx (Word, Google Docs, LibreOffice) converted to LaTeX, with Open a file.
+- [ ] Paste maths: MathML on the clipboard (Word, Mathematica, LibreOffice) converted to LaTeX.
+- [ ] Footnotes and tables from a .docx; PDF through cite.inator's file reader.
 - [ ] Numbered tables (`label:tab:name`).
 
 ## Republish elsewhere: Substack first (Randal, 25 Nov 2026; planned, not started)

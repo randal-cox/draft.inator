@@ -11,6 +11,8 @@
 - **The Equation dialog** (Ctrl+M): LaTeX beside how it reads, a palette of structures, relations, and Greek
   letters, inline or displayed, and a label checked against the article's others; Ctrl+E edits the maths the cursor
   is in. It writes plain Markdown maths.
+- **Open a Word file** (from Word or Google Docs, `.docx`): paragraphs, headings, emphasis, lists, and Word's equations
+  as LaTeX; footnotes, tables, and images are named, not dropped silently. No dependencies: the browser unzips.
 - **`draft-inator migrate` names each line to check** (`file:line:column`); 0.4.0 printed `undefined:undefined`.
 - **Replacing a work doesn't carry the old work's options** (Theandra's point on #40; a bug in 0.4.0). When a
   writer changes the work a citation points to, the old work's page and other options are set aside and shown, with

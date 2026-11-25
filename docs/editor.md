@@ -152,6 +152,16 @@ mountEditor(el, { …, math: { katex, macros: { '\\R': '\\mathbb{R}' }, refNames
   sentence; and a label, checked against the article's others. It writes plain Markdown maths and nothing else.
 - Try it: `demo/editor/?sample=equations`.
 
+## Opening a Word file
+
+**Open a file** in the toolbar brings in a Word file (`.docx`, as Word, Google Docs, and LibreOffice save it), or a
+Markdown or text file, at the cursor (or in place of an empty article), as one undoable step. From Word it keeps
+paragraphs, headings, italics and bold, lists, and links' text, and turns **Word's equations into LaTeX** (`$…$`
+inline, `$$…$$` displayed; Google Docs exports its equations the same way). What it can't carry (footnotes, tables,
+images, and any maths it doesn't recognise) is named in the result line, never dropped silently. Citations typed in
+the file then show in the banner, ready for Import citations. Unzipping uses the browser's own `DecompressionStream`;
+nothing is sent anywhere. Turn the button off with `openFiles: false`.
+
 ## Formatted citations in the preview
 
 ```js

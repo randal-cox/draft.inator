@@ -254,7 +254,8 @@ export function mountEditor(root, options = {}) {
     el('div', { class: 'di-group' }, [tb('ul', '• List', 'Bulleted list'), tb('ol', '1. List', 'Numbered list'), tb('quote', 'Quote', 'Quotation')]),
     el('div', { class: 'di-group di-blocks' }, [cite && tb('citation', 'Citation', 'Insert a citation'), figure && tb('figure', 'Figure', 'Insert a figure'),
       o.math?.katex && tb('equation', 'Equation', 'Insert an equation, or edit the one the cursor is in (Ctrl+M)'),
-      (cite || figure) && editButton, (o.importer || o.showImport) && tb('import', 'Import citations',
+      (cite || figure) && editButton, o.openFiles !== false && tb('open', 'Open a file', 'Bring in a Word file (.docx, from Word or Google Docs), with its equations, or a Markdown or text file'),
+      (o.importer || o.showImport) && tb('import', 'Import citations',
         o.importer ? 'Find citations such as (Bell, 1992) and convert them' : 'Coming with citation.inator\'s importer', { disabled: !o.importer })])
   ]);
   const source = el('textarea', { class: 'di-source', spellcheck: 'true', 'aria-label': 'The article, in Markdown' });
@@ -387,6 +388,35 @@ export function mountEditor(root, options = {}) {
       const { openEquation } = await import('./equation.js');
       openEquation({ el, root, getText: () => source.value, getSelection: () => [source.selectionStart, source.selectionEnd],
         replace, announce, focus: () => source.focus() }, o.math);
+    },
+    // A Word file (or Markdown, or text) comes in at the cursor, as one undoable step; an empty article is replaced.
+    // Its typed citations then show in the banner, ready for Import citations.
+    open: () => {
+      const pick = el('input', { type: 'file', accept: '.docx,.md,.markdown,.txt,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain', hidden: true });
+      pick.addEventListener('change', async () => {
+        const file = pick.files[0]; pick.remove();
+        if (!file) return;
+        let markdown, notes = [], equations = 0;
+        try {
+          if (/\.docx$/i.test(file.name)) {
+            const { docxToMarkdown } = await import('./docx.js');
+            ({ markdown, notes, equations } = await docxToMarkdown(await file.arrayBuffer()));
+          } else if (/\.(md|markdown|txt)$/i.test(file.name) || /^text\//.test(file.type)) markdown = await file.text();
+          else throw new Error('The editor opens Word (.docx), Markdown, and text files.');
+        } catch (e) { doneText.textContent = `${file.name} couldn't be opened: ${e.message}`; doneBar.hidden = false; announce(doneText.textContent); return; }
+        const empty = !source.value.trim();
+        const at = empty ? 0 : source.selectionStart, end = empty ? source.value.length : source.selectionEnd;
+        // Its own paragraphs: a blank line before and after, unless the article already has one there.
+        const before = source.value.slice(0, at), after = source.value.slice(end);
+        markdown = markdown.replace(/\n+$/, '');
+        if (before && !/\n\n$/.test(before)) markdown = (/\n$/.test(before) ? '\n' : '\n\n') + markdown;
+        markdown += after ? (/^\n\n/.test(after) ? '' : /^\n/.test(after) ? '\n' : '\n\n') : '\n';
+        replace(at, end, markdown, [0, 0]);
+        doneText.textContent = `${file.name} brought in${equations ? `, with ${equations} equation${equations === 1 ? '' : 's'}` : ''}.` +
+          (notes.length ? ` Not carried over: ${notes.join('; ')}.` : '') + ' Undo takes it out again.';
+        doneBar.hidden = false; announce(doneText.textContent); checkTyped();
+      });
+      root.append(pick); pick.click();
     },
     edit: () => { const b = blockAt(source.value, source.selectionStart); if (b) openBlock(b.kind, b); else if (mathAt()) COMMANDS.equation(); },
     import: async () => {
