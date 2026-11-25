@@ -86,6 +86,28 @@ From `docs/plan-full-editor.md` (decided 21 Nov 2026).
 - [x] Recover an unsaved draft: offered, never loaded silently.
 - [ ] Unpublish, trash, and restore; scheduled publishing with a scheduled build.
 
+## 0.6 planning: citing from Zotero (issue #40; planning only, after 0.5.1)
+
+Randal keeps his library in Zotero and wants to insert works from it as `{cite …}` markers without leaving the
+editor. Not started; nothing here is agreed beyond the split of work, and nothing reads a private library yet.
+
+- **What Randal wants** (25 Nov 2026): a fast library search in the Cite dialog; **Already cited** shown for works
+  this page cites; Zotero's curation respected, with any merge reviewed by a person; **Open in Zotero**; a quote and
+  a page captured with the citation; a review of relevant updates when a Zotero record changes; and a bibliography file
+  for one manuscript.
+- **cite.inator owns** reading Zotero's data into records, identity and edition reconciliation, provenance, reviewed
+  merges, and the CSL-JSON, BibTeX, and RIS writers (only `toCSL(record)` exists today).
+- **draft.inator owns** the picker and its keyboard flow, choosing a library or collection, connection settings and
+  credentials, saving the page and its new records together, and the download button that calls cite.inator's
+  writers.
+- **To decide:** who talks to Zotero (a cite.inator adapter with draft.inator supplying the network access and
+  credentials is the leading option); web first, with local access later only if tested (a hosted page reaching
+  `localhost` is restricted by browsers); no automatic two-way sync.
+- **Smallest prototype:** search one Zotero library read-only through the web API, choose a work, reconcile it
+  against the site's works (a match goes to the writer to confirm, never merged silently), insert the marker, and save
+  the new record with the page. Direct connectors to other reference managers are deferred; file import and export
+  stay in cite.inator's 0.6.
+
 ## 0.7: The media library (images)
 
 - [ ] Browse and search the site's images; details with a sidecar record (alt, credit, licence, source, focal point).
