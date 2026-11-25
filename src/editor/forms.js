@@ -99,10 +99,40 @@
       var list = el('div', { role: 'group', 'aria-label': spec.label });
       items.forEach(function (item, i) {
         var set = el('fieldset', {}, [el('legend', { text: (spec.label_singular || 'Item') + ' ' + (i + 1) })]);
+        var bound = component.bound;
         spec.fields.forEach(function (sub) {
-          var f = field(sub, item[sub.name], function (v) { item[sub.name] = v; onChange(data); });
+          var f = field(sub, item[sub.name], function (v) {
+            // Changing the work an item cites: what belonged to the old work (its page, its other options) doesn't
+            // silently move to the new one. It's set aside and shown, and comes back only if the writer asks.
+            if (bound && sub.name === bound.key && v !== item[sub.name]) {
+              var was = item[sub.name], held = {};
+              if (item.held && item.held.from === v) {   // back to the work they were written for: they come back
+                Object.keys(item.held.values).forEach(function (k) { item[k] = item.held.values[k]; });
+                item[sub.name] = v; item.held = null; redraw('Back to ' + bound.describe(v) + ', with its page and options.');
+                return;
+              }
+              bound.fields.forEach(function (k) { if (item[k]) { held[k] = item[k]; item[k] = ''; } });
+              item[sub.name] = v;
+              item.held = Object.keys(held).length ? { from: was, values: held } : null;
+              redraw(item.held ? 'The page and options written for ' + bound.describe(was) + ' were set aside.' : '');
+              return;
+            }
+            item[sub.name] = v; onChange(data);
+          });
           if (f) set.appendChild(f);
         });
+        if (bound && item.held) {
+          var h = item.held, what = Object.keys(h.values).map(function (k) {
+            return (bound.labels[k] || k) + ' ' + h.values[k]; }).join('; ');
+          var keep = el('button', { type: 'button', class: 'quiet', text: 'Keep them for ' + bound.describe(item[bound.key]) });
+          keep.addEventListener('click', function () {
+            Object.keys(h.values).forEach(function (k) { item[k] = h.values[k]; });
+            item.held = null; redraw('Kept for ' + bound.describe(item[bound.key]) + '.');
+          });
+          set.insertBefore(el('div', { class: 'hint di-held', role: 'note' }, [
+            el('span', { text: 'Set aside, because they were written for ' + bound.describe(h.from) + ': ' + what + '. ' }), keep]),
+            set.querySelector('.actions'));
+        }
         var actions = el('div', { class: 'actions' });
         if (i > 0) {
           var up = el('button', { type: 'button', class: 'quiet', text: 'Move ' + noun + ' ' + (i + 1) + ' up' });

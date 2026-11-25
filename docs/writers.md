@@ -38,6 +38,9 @@ Open the citation block in the editor. Everything it holds appears in the form; 
   note is brought up to date.
 - **Other options (kept as written)** holds anything the form doesn't have a field for, such as a custom label. Leave
   it alone unless someone has asked you to change it.
+- **Choosing a different work** for a citation sets aside the old work's page and other options, because they were
+  written for that work. The form says what it set aside; choose **Keep them** if they still apply. Finishing an
+  unresolved citation (one the import kept as a placeholder) is the same: pick its work, and it stops being flagged.
 
 ## Place an image
 
