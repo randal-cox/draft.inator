@@ -16,7 +16,10 @@ const markers = [
   '{citation list a; b}', '{citation list a | sort:year}', '{citation nocite a}', '{citation evidence}', '{citation credit}',
   '{citation bell-1992-ritual | note:"Bell 1992" | tags:a,b}', '{citation 10.1177/1363460704040142 | prefix:"see"}',
   '{citation local:bell-1992-ritual}', '{citation local:list}', '{citation local:endnote}', '{citation local:evidence}',
-  '{citation local:credit | locator:2}', '{citation local:nocite; bell-1992-ritual}'
+  '{citation local:credit | locator:2}', '{citation local:nocite; bell-1992-ritual}',
+  // The short keyword (#37). Directive words under {cite …} differ between cite.inator 0.4.0 (a work) and 0.5.1 (a
+  // directive); they're checked when 0.5.1 is vendored.
+  '{cite bell-1992-ritual}', '{cite a; b | locator:3}', '{cite list-2001}', '{cite local:bell-1992-ritual}', '{cite local:list}'
 ];
 
 for (const marker of markers) {

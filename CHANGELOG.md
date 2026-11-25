@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **`{cite …}`, the one keyword** (Randal, 25 Nov 2026). The Cite block opens `{cite …}` markers as well as
+  `{citation …}` ones, writes each back with the keyword it had, and writes new citations as `{cite …}`, which
+  cite.inator 0.4.0 already compiles and 0.5.1 makes its default. Existing pages are untouched. The importer and the
+  reference-list replacement keep writing `{citation …}` until cite.inator 0.5.1, where `{cite endnote}` becomes the
+  endnote directive (#37).
 - **citation.inator 0.4.0** (tag `v0.4.0`), vendored from its release tarball: the tools bundle (now with
   `formatRecordId`), and new, the import bundle and the browser compiler. `vendor/citation-inator/README.md` has the
   checksums.

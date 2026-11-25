@@ -94,3 +94,14 @@ test('a changed or new work is written bare, unless that would read as a directi
   assert.match(build([{ work: 'list' }]), /^\{citation local:list \|/);
   assert.match(build([{ work: 'list-2001' }]), /^\{citation list-2001 \|/);
 });
+
+test('{cite …} and {citation …} are the same block; each keeps its keyword, and a new citation is {cite …} (#37)', () => {
+  const pattern = new RegExp(cite.pattern.source);
+  const read = m => cite.fromBlock(m.match(pattern));
+  assert.equal(cite.toBlock(read('{cite bell-1992-ritual | locator:3}')), '{cite bell-1992-ritual | note:"Bell 1992" | locator:3}');
+  assert.equal(cite.toBlock(read('{citation bell-1992-ritual | locator:3}')), '{citation bell-1992-ritual | note:"Bell 1992" | locator:3}');
+  assert.equal(cite.toBlock({ items: [{ work: 'bell-1992-ritual' }] }), '{cite bell-1992-ritual | note:"Bell 1992"}', 'a new citation');
+  assert.ok(!pattern.test('{cite endnote}') && !pattern.test('{cite list a; b}') && !pattern.test('{cite evidence}'), 'directives under cite are left alone');
+  assert.ok(pattern.test('{cite list-2001}'), 'a work whose id starts with a directive word still opens');
+  assert.equal(cite.toPreview(read('{cite bell-1992-ritual | locator:3}')), '(Bell 1992, 3)');
+});

@@ -108,3 +108,9 @@ test('if the compiler stops, the preview shows notes and says why', () => {
   assert.equal(r.compileError, 'boom');
   assert.match(r.html, /<a class="cite"/);
 });
+
+test('{cite …} markers render like {citation …}', () => {
+  const r = renderArticle('A {cite bell-1992-ritual | locator:12}.', { render: md });
+  assert.match(r.html, /<a class="cite"[^>]*>\(Bell 1992, 12\)<\/a>/);
+  assert.equal(r.citations, 1);
+});

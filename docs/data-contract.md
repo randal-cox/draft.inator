@@ -82,6 +82,10 @@ citation.inator's marker grammar (0.2.0):
 {citation <id> | note:"Bell 1992" | locator:12 | prefix:"see also" | form:narrative | tags:a,b; <id2> | ...}
 ```
 
+- **The keyword (0.4).** The block opens `{cite …}` and `{citation …}` alike, and writes each marker back with the
+  keyword it had. A new citation is written `{cite …}`, the one keyword cite.inator 0.5.1 is moving to (#37). Under
+  cite.inator 0.4.0 `{cite <id>}` is already a citation of a work, so new markers compile on both. Directive words
+  under `{cite …}` (`{cite endnote}` and the rest) are left alone, as cite.inator 0.5.1 reads them.
 - Several works are separated by `;`, options by `|`. Values with `;|"{}\:` or edge spaces are quoted; `\` escapes.
 - `note:` is always written and always quoted; it is refreshed from `DRAFT_WORKS` on every save.
 - A work's id may be written bare (`bell-1992-ritual`) or explicitly local (`local:bell-1992-ritual`); both are the
@@ -148,6 +152,7 @@ and one change touches only that key's lines.
 - 0.2 (additive): `draft-inator works` produces `works.js`; the skipped directives now match citation.inator exactly.
 - 0.3 (additive): the Figure block's `{figure …}` tag.
 - 0.4 (additive): `local:` ids are read as the bare work id and kept as written.
+- 0.4: `{cite …}` is read like `{citation …}`; each marker keeps its keyword; new citations are written `{cite …}`.
 - 0.5 (additive): `DRAFT_COLLECTIONS` and `DRAFT_ENTRIES`, for the Details panel. What the editor writes in front
   matter is below.
 

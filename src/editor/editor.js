@@ -109,7 +109,7 @@ export function renderArticle(text, options = {}) {
   }
   out += text.slice(last);
   let placed = false;
-  out = out.replace(/\{citation endnote(?:\s*\|[^}\n]*)?\}/g, (m, at) => (found.inCode(at) ? m : (placed = true, compiler ? hold(esc(m)) : 'DRAFTENDNOTES')));
+  out = out.replace(/\{(?:citation|cite) endnote(?:\s*\|[^}\n]*)?\}/g, (m, at) => (found.inCode(at) ? m : (placed = true, compiler ? hold(esc(m)) : 'DRAFTENDNOTES')));
   const endnotes = cited.length ? `<section class="endnotes"><h2>Works cited</h2><ol>${cited.map(id => { const w = WORKS[id];
     return `<li id="di-ref-${esc(id)}">${esc(w?.note || id)}${w?.title ? `. <cite>${esc(w.title)}</cite>.` : ' <span class="unresolved">(not yet found)</span>'}</li>`; }).join('')}</ol></section>` : '';
   const md = options.render || (m => m.split(/\n{2,}/).map(p => `<p>${esc(p)}</p>`).join(''));

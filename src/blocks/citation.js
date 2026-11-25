@@ -69,8 +69,8 @@
     });
   }
 
-  function build(items) {
-    return '{citation ' + (items || []).filter(function (it) { return it && it.work; }).map(function (it) {
+  function build(items, keyword) {
+    return '{' + (keyword || 'citation') + ' ' + (items || []).filter(function (it) { return it && it.work; }).map(function (it) {
       var was = (it.order || '').split(',').filter(Boolean);
       function q(k, v) { return was.indexOf(k + '"') >= 0 ? quoteAlways(v) : quote(v); }
       var tags = it.tags || [], parts = {
@@ -132,13 +132,16 @@
         { name: 'order', label: 'Option order', widget: 'hidden', required: false },
         { name: 'written', label: 'The work as written', widget: 'hidden', required: false }
       ]
-    }],
+    }, { name: 'keyword', label: 'Keyword as written', widget: 'hidden', required: false }],
     // Directives are not citations of a work; leave them alone. Matches citation.inator 0.2.0's own test exactly
     // ({citation endnote}, {citation endnote | …}, {citation list …}, {citation nocite …}, {citation evidence},
-    // {citation credit}), so a work whose id merely starts with one of those words (list-2001) still opens.
-    pattern: /\{citation (?!\s*(?:endnote\s*[|}]|(?:list|nocite)[ \t]|(?:evidence|credit)\s*\}))((?:[^{}\\]|\\.)*)\}/,
-    fromBlock: function (match) { return { items: parse(match[1]) }; },
-    toBlock: function (data) { return build(data.items); },
+    // {citation credit}), so a work whose id merely starts with one of those words (list-2001) still opens. The same
+    // directives under {cite …} are left alone too, as cite.inator 0.5.1 reads them.
+    pattern: /\{(?:citation|cite) (?!\s*(?:endnote\s*[|}]|(?:list|nocite)[ \t]|(?:evidence|credit)\s*\}))((?:[^{}\\]|\\.)*)\}/,
+    // {cite …} and {citation …} name the same thing (cite.inator 0.5.1 makes cite the one keyword; #37). A marker keeps
+    // the keyword it was written with; a new citation is written {cite …}.
+    fromBlock: function (match) { return { keyword: /^\{cite /.test(match[0] || '') ? 'cite' : match[0] ? 'citation' : 'cite', items: parse(match[1]) }; },
+    toBlock: function (data) { return build(data.items, data.keyword || 'cite'); },
     toPreview: function (data) {
       return '(' + (data.items || []).map(function (it) {
         return (it.prefix ? it.prefix + ' ' : '') + (NOTE[it.work] || it.work) + (it.locator ? ', ' + it.locator : '');
