@@ -1,12 +1,12 @@
-Plain: {citation bell-1992-ritual}.
-Located: {citation bell-1992-ritual | locator:12}.
-Spaced locator: {citation turner-1969-ritual | locator:"pp. 4–6"}.
-Several: {citation bell-1992-ritual; turner-1969-ritual | prefix:"see also"}.
-Form first: {citation ainsworth-1978-patterns | form:narrative | locator:7}.
-Tags: {citation 10.1177/1363460704040142 | tags:ritual-theory,consent}.
-Unknown option kept: {citation bell-1992-ritual | label:"chapter" | locator:3}.
-Escaped quote: {citation turner-1969-ritual | prefix:"as \"liminal\" in"}.
-Old note refreshed: {citation bell-1992-ritual | note:"Bell 1991" | locator:2}.
-Not a cite: {citation endnote} {citation list | tags:consent} {citation nocite bell-1992-ritual}.
-Unknown options apart: {citation bell-1992-ritual | note:"Bell 1992" | label:"chapter" | locator:3 | suppress-year-letter:yes}.
-Explicitly local: {citation local:bell-1992-ritual | locator:"p. 94"; local:list | note:"x"}.
+Plain: {cite bell-1992-ritual}.
+Located: {cite bell-1992-ritual | locator:12}.
+Spaced locator: {cite turner-1969-ritual | locator:"pp. 4–6"}.
+Several: {cite bell-1992-ritual; turner-1969-ritual | prefix:"see also"}.
+Form first: {cite ainsworth-1978-patterns | form:narrative | locator:7}.
+Tags: {cite 10.1177/1363460704040142 | tags:ritual-theory,consent}.
+Unknown option kept: {cite bell-1992-ritual | label:"chapter" | locator:3}.
+Escaped quote: {cite turner-1969-ritual | prefix:"as \"liminal\" in"}.
+Old note refreshed: {cite bell-1992-ritual | note:"Bell 1991" | locator:2}.
+Not a cite: {cite endnote} {cite list | tags:consent} {cite nocite bell-1992-ritual}.
+Unknown options apart: {cite bell-1992-ritual | note:"Bell 1992" | label:"chapter" | locator:3 | suppress-year-letter:yes}.
+Explicitly local: {cite local:bell-1992-ritual | locator:"p. 94"; local:list | note:"x"}.

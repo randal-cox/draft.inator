@@ -31,7 +31,7 @@ A set of **blocks** for Sveltia CMS's text editor, plus the **build-side rendere
 
 - Each block is a Sveltia editor component (`registerEditorComponent`): a form, a pattern that finds the block in
   the text, a writer, and a preview.
-- Each block saves as a short, readable tag in the Markdown (`{citation …}`, `{figure …}`, `{video …}`), never as
+- Each block saves as a short, readable tag in the Markdown (`{cite …}`, `{figure …}`, `{video …}`), never as
   HTML soup, so files stay readable and diffs reviewable.
 - The host's build turns tags into HTML. draft.inator ships a reference renderer for each tag; a site can use it or
   its own.
@@ -61,7 +61,7 @@ A set of **blocks** for Sveltia CMS's text editor, plus the **build-side rendere
 
 | # | Block | Must | Saves as |
 |---|---|---|---|
-| 1 | **Cite** (done, 0.1) | Search works by author, title, or year; several works per citation; page, prefix, form, topics; the note from citation.inator; existing markers open in the form; round-trip safe | `{citation id \| note:"…" \| …}` |
+| 1 | **Cite** (done, 0.1) | Search works by author, title, or year; several works per citation; page, prefix, form, topics; the note from citation.inator; existing markers open in the form; round-trip safe | `{cite id \| note:"…" \| …}` |
 | 2 | **Figure** | Upload or choose an image; alt text (required), caption, credit, licence; alignment (left, right, centre, wide, full); width (third, half, two thirds, full); wrap or not; writes a provenance record | `{figure …}` |
 | 3 | **Table** | Header row, caption; simple tables in the editor, raw HTML as an escape hatch | Markdown table in `{table …}` |
 | 4 | **Embed** | YouTube or Vimeo by address; privacy player (no third-party load until play) | `{video youtube:ID}` |

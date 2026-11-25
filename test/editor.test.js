@@ -20,23 +20,23 @@ test('figures are laid out as their tags say, escaped', () => {
   assert.equal(r.figures, 1);
 });
 
-test('citations show their notes and are listed at {citation endnote}', () => {
-  const r = renderArticle('First {citation bell-1992-ritual | locator:12}.\n\n{citation endnote}\n\nAfter.', { render: md });
+test('citations show their notes and are listed at {cite endnote}', () => {
+  const r = renderArticle('First {cite bell-1992-ritual | locator:12}.\n\n{cite endnote}\n\nAfter.', { render: md });
   assert.match(r.html, /<a class="cite" href="#di-ref-bell-1992-ritual">\(Bell 1992, 12\)<\/a>/);
-  assert.ok(r.html.indexOf('Works cited') < r.html.indexOf('After.'), 'the list goes where {citation endnote} is');
+  assert.ok(r.html.indexOf('Works cited') < r.html.indexOf('After.'), 'the list goes where {cite endnote} is');
   assert.match(r.html, /<li id="di-ref-bell-1992-ritual">Bell 1992\. <cite>Ritual Theory, Ritual Practice<\/cite>\.<\/li>/);
 });
 
-test('without {citation endnote} the list goes at the end; unknown works are marked', () => {
-  const r = renderArticle('A {citation someone-2001-unknown}.', { render: md });
+test('without {cite endnote} the list goes at the end; unknown works are marked', () => {
+  const r = renderArticle('A {cite someone-2001-unknown}.', { render: md });
   assert.ok(r.html.trimEnd().endsWith('</section>'));
   assert.match(r.html, /someone-2001-unknown <span class="unresolved">\(not yet found\)<\/span>/);
 });
 
 test('markers in code are left as text', () => {
-  const r = renderArticle('Code: `{citation bell-1992-ritual}` and `{figure /a.png | alt:x}`', { render: md });
+  const r = renderArticle('Code: `{cite bell-1992-ritual}` and `{figure /a.png | alt:x}`', { render: md });
   assert.equal(r.citations, 0);
-  assert.ok(r.html.includes('`{citation bell-1992-ritual}`'));
+  assert.ok(r.html.includes('`{cite bell-1992-ritual}`'));
 });
 
 test('an image that is not available says so instead of breaking', () => {
@@ -45,14 +45,14 @@ test('an image that is not available says so instead of breaking', () => {
 });
 
 test('title and counts', () => {
-  const r = renderArticle('# A title\n\nTwo words {citation bell-1992-ritual}.', { render: md });
+  const r = renderArticle('# A title\n\nTwo words {cite bell-1992-ritual}.', { render: md });
   assert.equal(r.title, 'A title');
   assert.equal(r.words, 4);
   assert.equal(r.citations, 1);
 });
 
 test('a block that is not enabled is skipped: its tags stay as text', async () => {
-  const r = renderArticle('A {citation bell-1992-ritual}.\n\n{figure /a.png | alt:"x"}', { render: md, blocks: ['citation'] });
+  const r = renderArticle('A {cite bell-1992-ritual}.\n\n{figure /a.png | alt:"x"}', { render: md, blocks: ['citation'] });
   assert.equal(r.citations, 1);
   assert.equal(r.figures, 0);
   assert.ok(r.html.includes('{figure /a.png | alt:"x"}'));
@@ -62,7 +62,7 @@ test('with a block not loaded at all, rendering still works', async () => {
   const saved = globalThis.window.DraftForms.components.figure;
   delete globalThis.window.DraftForms.components.figure;
   try {
-    const r = renderArticle('A {citation bell-1992-ritual}. {figure /a.png | alt:"x"}', { render: md });
+    const r = renderArticle('A {cite bell-1992-ritual}. {figure /a.png | alt:"x"}', { render: md });
     assert.equal(r.citations, 1);
   } finally { globalThis.window.DraftForms.components.figure = saved; }
 });
@@ -92,7 +92,7 @@ test('a kept draft is offered, never loaded unasked', async () => {
 test('with citation.inator\'s compiler and a cache, the preview has formatted citations and endnotes', async () => {
   const { compileHTML } = await import('../vendor/citation-inator/citation-compiler.mjs');
   const cache = JSON.parse(fs.readFileSync(root + 'examples/sample-site/citations.json', 'utf8'));
-  const text = 'Practice *first* {citation bell-1992-ritual | note:"Bell 1992" | locator:12}.\n\n{figure /uploads/a.png | alt:"A"}\n\nCode: `{citation bell-1992-ritual}`';
+  const text = 'Practice *first* {cite bell-1992-ritual | note:"Bell 1992" | locator:12}.\n\n{figure /uploads/a.png | alt:"A"}\n\nCode: `{cite bell-1992-ritual}`';
   const withCode = m => md(m).replace(/`([^`]+)`/g, '<code>$1</code>');   // as marked does
   const r = renderArticle(text, { render: withCode, citations: { compileHTML, cache } });
   assert.equal(r.formatted, true);
@@ -103,7 +103,7 @@ test('with citation.inator\'s compiler and a cache, the preview has formatted ci
 });
 
 test('if the compiler stops, the preview shows notes and says why', () => {
-  const r = renderArticle('A {citation bell-1992-ritual}.', { render: md, citations: { compileHTML: () => { throw new Error('boom'); }, cache: { records: [] } } });
+  const r = renderArticle('A {cite bell-1992-ritual}.', { render: md, citations: { compileHTML: () => { throw new Error('boom'); }, cache: { records: [] } } });
   assert.equal(r.formatted, false);
   assert.equal(r.compileError, 'boom');
   assert.match(r.html, /<a class="cite"/);

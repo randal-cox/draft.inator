@@ -37,9 +37,9 @@ test('notes: writing changes nothing but notes, and a second pass changes nothin
   checkNotes(settings, { write: true });
   const after = read('ritual.md');
   assert.equal(withoutNotes(after), withoutNotes(before));
-  assert.ok(after.includes('`{citation bell-1992-ritual}`'), 'code is left alone');
-  assert.ok(after.includes('{citation smith-2003-rites | note:"Smith 2003"}'), 'an unresolved work keeps its note');
-  assert.ok(after.includes('{citation endnote}'));
+  assert.ok(after.includes('`{citation bell-1992-ritual}`'), 'code is left alone (the migration left it too)');
+  assert.ok(after.includes('{cite smith-2003-rites | note:"Smith 2003"}'), 'an unresolved work keeps its note');
+  assert.ok(after.includes('{cite endnote}'));
   const again = checkNotes(settings, { write: true });
   assert.equal(again.stale, 0);
   assert.deepEqual(again.written, []);
@@ -62,7 +62,8 @@ test('tags: totals from markers, with curator additions and blocks, all reported
   assert.deepEqual(result.works['bell-1992-ritual'].counts, { attachment: 1, 'ritual-theory': 3 });
   assert.deepEqual(result.works['bell-1992-ritual'].added, ['consent']);
   assert.deepEqual(result.works['bell-1992-ritual'].blocked, ['attachment']);
-  assert.deepEqual(result.notes, []);
+  // cite.inator 0.5.1's tools also report the sample's deliberately unresolved work, which is right.
+  assert.deepEqual(result.notes.map(n => n.replace(/^.*: /, '')), ['citation-unresolved local:smith-2003-rites']);
 });
 
 test('tags: unknown topics and stray curation are noted, never dropped silently', () => {
@@ -126,11 +127,11 @@ test('year letters: the notes check, works.js, and the Cite block all say "Cox 1
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'draft-inator-'));
   const rec = (id, given) => ({ id, type: 'book', state: 'resolved', title: 'On ' + given, authors: [{ family: 'Cox', given }], issued: [1995] });
   const cache = { schema: 'citation-inator.cache.v1', records: [rec('cox-1995-rites', 'Ann'), rec('cox-1995-masks', 'Ann')] };
-  fs.writeFileSync(path.join(dir, 'page.md'), 'Rites {citation cox-1995-rites} and masks {citation cox-1995-masks | locator:4}.\n');
+  fs.writeFileSync(path.join(dir, 'page.md'), 'Rites {cite cox-1995-rites} and masks {cite cox-1995-masks | locator:4}.\n');
   const settings = { cache, style: 'chicago-author-date', content: [dir] };
   checkNotes(settings, { write: true });
   const written = fs.readFileSync(path.join(dir, 'page.md'), 'utf8');
-  assert.equal(written, 'Rites {citation cox-1995-rites | note:"Cox 1995"} and masks {citation cox-1995-masks | locator:4 | note:"Cox 1995"}.\n');
+  assert.equal(written, 'Rites {cite cox-1995-rites | note:"Cox 1995"} and masks {cite cox-1995-masks | locator:4 | note:"Cox 1995"}.\n');
   const { components } = loadBlock(path.join(here, '../src/blocks/citation.js'), buildWorks(settings).works);
   fs.writeFileSync(path.join(dir, 'page.md'), roundtrip(components.citation, written));
   assert.equal(checkNotes(settings).stale, 0, 'saving in the editor leaves nothing stale');

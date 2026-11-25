@@ -30,7 +30,7 @@ and the host taking it.
 - [x] Live demos viewable from GitHub (GitHub Pages, `demo/`): the Cite block's form without installing Sveltia, a
       round trip, and the build tools' output on a sample site.
 - [x] GitHub Pages turned on (Randal, 21 Nov 2026: `main`, `/ (root)`).
-- Moved to 1.0: the reference renderer for `{citation …}` (a thin, documented call into citation.inator's compiler),
+- Moved to 1.0: the reference renderer for `{cite …}` (a thin, documented call into citation.inator's compiler),
   with the other JS reference renderers.
 
 ## 0.3: Figure (released, v0.3.0, with the first of 0.4's editor)
@@ -134,7 +134,7 @@ editor. Not started; nothing here is agreed beyond the split of work, and nothin
 ## 1.0: A plug-in other sites use
 
 - [ ] One site file; nothing host-specific left in the blocks (see `origin.md`).
-- [ ] JS reference renderers, starting with `{citation …}` as a thin, documented call into citation.inator's
+- [ ] JS reference renderers, starting with `{cite …}` as a thin, documented call into citation.inator's
       compiler; packaging decided; docs for a new site.
 - [ ] A second site adopts it.
 
@@ -157,6 +157,11 @@ assembled as a preset, revisited after a small experiment (labelled figures, cro
 [the exploration](explore-scholarly-writing.md).
 
 ## Later, when someone needs them
+
+- **Editing together** (Randal, 25 Nov 2026: level 2). Saving merges the writer's changes into the latest version,
+  the way git does: untouched paragraphs go straight through, a paragraph both people changed is shown side by side
+  to choose, and front matter merges field by field. A notice says when someone else is editing the page, and since
+  when. No live server; live editing (shared cursors) stays out unless real users ask for it.
 
 - Gallery, columns, reusable snippets, a site-wide link picker for external sources.
 - Glossary auto-linking by use (Randal's note, 20 Nov 2026: link a term's uses, possibly found by embeddings).

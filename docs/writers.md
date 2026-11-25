@@ -25,7 +25,7 @@ real editor, with both blocks, where nothing you do is published.
 The editor shows the citation as it will read, "(Bell 1992, 12)". The page's file holds a short marker instead:
 
 ```
-{citation bell-1992-ritual | note:"Bell 1992" | locator:12}
+{cite bell-1992-ritual | note:"Bell 1992" | locator:12}
 ```
 
 You never need to type one, but you can read it. `note:` is there so anyone reading the file can tell what it cites.
@@ -66,4 +66,4 @@ The preview shows the image as soon as it's uploaded, before it's published. The
 | A work shows its in-text wording instead of a title | The site hasn't found the full reference yet | Nothing; cite it as usual. It will fill in when the reference is found |
 | A pull request check says a note is stale | A work's details changed after you cited it | A maintainer runs the notes tool to refresh it; your text is unaffected |
 | Sveltia won't save: "This field is required" | A figure has no image or no alt text | Fill them in; the message can stay on screen until you save again |
-| `{citation endnote}` or `{citation list …}` in a page | These place the endnotes or a reading list | Leave them; they aren't citations and can't be opened in the form |
+| `{cite endnote}` or `{cite list …}` in a page | These place the endnotes or a reading list | Leave them; they aren't citations and can't be opened in the form |

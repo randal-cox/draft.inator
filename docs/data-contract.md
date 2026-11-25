@@ -72,30 +72,43 @@ window.DRAFT_ENTRIES = {
 Optional. Entries by collection name, each `{ slug, ...fields }` (whatever `value_field` and `display_fields` name).
 A relation whose collection has no entries offers nothing, and values already in a page are kept and shown.
 
+### `window.DRAFT_CITATION_KEYWORD`: the site's citation keyword (0.5.1)
+
+```js
+window.DRAFT_CITATION_KEYWORD = 'cite';   // the default; set it before src/blocks/citation.js loads
+```
+
+One word, lowercase letters and hyphens. The Cite block reads and writes markers with it, the importer and the
+hand-typed check look for it, and every call into citation.inator passes it as `citationKeyword`. A site has one
+keyword, with no alias (cite.inator 0.5.1; issue #33). `draft-inator migrate` moves a site's pages from an old
+keyword. The block reports the keyword it uses as `window.DRAFT_CITATION.keyword`.
+
 ## What the blocks write
 
 ### Cite
 
-citation.inator's marker grammar (0.2.0):
+cite.inator's marker grammar (0.5.1), shown with the default keyword:
 
 ```
-{citation <id> | note:"Bell 1992" | locator:12 | prefix:"see also" | form:narrative | tags:a,b; <id2> | ...}
+{cite <id> | note:"Bell 1992" | locator:12 | prefix:"see also" | form:narrative | tags:a,b; <id2> | ...}
 ```
 
-- Several works are separated by `;`, options by `|`. Values with `;|"{}\:` or edge spaces are quoted; `\` escapes.
+- Several works are separated by `;`, options by `|`; cite.inator 0.5.1 also reads options separated by whitespace
+  alone (`{cite bell-1992-ritual locator:12}`). The block keeps the separators a marker was written with, and writes
+  pipes in a new marker. Values with `;|"{}\:` or edge spaces are quoted; `\` escapes.
 - `note:` is always written and always quoted; it is refreshed from `DRAFT_WORKS` on every save.
 - A work's id may be written bare (`bell-1992-ritual`) or explicitly local (`local:bell-1992-ritual`); both are the
   same work, looked up in `DRAFT_WORKS` by the bare id. An unchanged work is written back in the form it had. A newly
   chosen work is written bare, unless the bare id is a directive word (`endnote`, `list`, `nocite`, `evidence`,
-  `credit`), which is written `local:list`. (Issue #26 may replace this rule with one shared with citation.inator.)
+  `credit`, `tags`), which is written `local:list`.
 - Options the form doesn't show (`label:`, fallback words, anything newer) are kept as written, in place.
 - The marker's own option order is kept, and an option written quoted stays quoted.
-- `{citation endnote}` (and `{citation endnote | …}`), `{citation list …}`, `{citation nocite …}`, `{citation evidence}`,
-  and `{citation credit}` are not citations of a work, and the block leaves them alone. A work whose id only starts
+- `{cite endnote}` (and `{cite endnote | …}`), `{cite list …}`, `{cite nocite …}`, `{cite tags …}`,
+  `{cite evidence}`, and `{cite credit}` are not citations of a work, and the block leaves them alone. A work whose id only starts
   with one of those words (`list-2001`) is a citation. This follows citation.inator exactly and is tested against its
   `markerKind` (`test/conformance.test.js`).
-- `{cite …}` (citation.inator's short form) and a site's own `citationKeyword` are not opened by the block yet; they
-  are left as written.
+- A placeholder from an import, `{cite pending-… | unresolved:"(Rivera, 2020)"}`, is a citation of a staged work
+  and opens in the form like any other; its `unresolved:` option is kept as written.
 
 Guarantee (tested): reading a marker and writing it back changes nothing but its `note:`, and a second pass changes
 nothing.
@@ -150,6 +163,9 @@ and one change touches only that key's lines.
 - 0.4 (additive): `local:` ids are read as the bare work id and kept as written.
 - 0.5 (additive): `DRAFT_COLLECTIONS` and `DRAFT_ENTRIES`, for the Details panel. What the editor writes in front
   matter is below.
+- 0.5.1 (**breaking**, Randal's decision on #33): one configured keyword, `DRAFT_CITATION_KEYWORD`, default `cite`.
+  Markers written `{citation …}` are no longer read under the default; run `draft-inator migrate` (or set the keyword
+  to `citation`). Also: whitespace-separated options, the `tags` directive, and import placeholders.
 
 
 Additive only within 0.x where possible. A breaking change bumps the minor version and is listed in the roadmap.

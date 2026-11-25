@@ -69,8 +69,8 @@ With citation.inator's importer, the toolbar's **Import citations** finds author
 matches and why ("authors match, year matches").
 - **Proposed, not applied:** unique matches start selected and can be changed; others need a choice; "Leave as
   written" is always there.
-- **One undoable step:** accepted citations become `{citation …}` markers, keeping locators, prefixes, and the
-  narrative form, and the typed reference list can be replaced by `{citation endnote}`.
+- **One undoable step:** accepted citations become `{cite …}` markers, keeping locators, prefixes, and the
+  narrative form, and the typed reference list can be replaced by `{cite endnote}`.
 - **Unmatched citations stay exactly as written.**
 
 ```js
@@ -90,6 +90,43 @@ mountEditor(el, { ..., importer: {
   with nothing in conflict is selected, visibly; the writer confirms by converting. Nothing is merged unseen.
 - **Ids for new works.** `siteStyleId` (exported from `importer.js`) gives `bell-1992-ritual`: first author's family
   name, year, and the title's first word, made unique. A site with another scheme passes `recordId(record, { taken })`.
+- **Citations typed by hand.** While the article has author–date citations that aren't markers yet (pasted in from
+  a word processor, say), a banner says so, with examples and an **Import citations** button, and checks again after
+  every change and at once on paste. `importer.handTyped` sets how firm it is: `'require'` (Save refuses until they're imported, and there's no way
+  round it: a site that forbids citations typed by hand), `'block'` (the default: Save refuses
+  until they're imported, or until the writer chooses **Save without importing**, which lasts until more
+  are added; citations left as typed in an import count as allowed), `'warn'` (the banner only), or `'off'`. `editor.handTyped` gives `{ count, examples }`.
+- **Save without importing** (cite.inator 0.5.1; Randal, 25 Nov 2026) doesn't just let plain text through. Each typed
+  citation with no entry in the reference list becomes an unresolved placeholder, `{cite pending-rivera-2020 |
+  unresolved:"(Rivera, 2020)"}`: a real citation that keeps the words typed, flagged by the build, with its placeholder
+  record saved with the page. The status line counts unresolved citations ("1 unresolved") until each is opened and
+  given its work. Citations whose work is in the typed reference list can't be placeholders in cite.inator 0.5.1; they
+  stay as plain text, and the result line says so and points to Import citations. One undoable step, with Undo.
+- **The review's sections.** Three disclosures, each with a live count in its heading: **Needs your attention**
+  (several candidates, or no reference; nothing is chosen for you), **Works this site already has**, and **Probably
+  right** (one clear match each, selected and changeable; closed to start). Close one and its heading still says
+  what's left ("1 to decide", "all decided ✓", "2 changed"). Convert waits, and says "Decide 1 more", until every
+  citation in Needs your attention and every site work has a decision, "Leave as written" included. Cancel and
+  Convert stay in view at the bottom.
+- **What it becomes.** Each citation says in words which works it will cite, new or the site's own (two works by the
+  same people in the same year are told apart by title), with **Show code** for the exact marker from cite.inator's
+  own preview of the current choices, in the sentence it sits in. A citation is converted whole: leaving one of its
+  works leaves all of them, and it says so. The review runs as soon as it opens, and again when the style changes.
+- **Choices are remembered** while the page is open: reopening the review, or opening it after Undo, brings back what
+  was decided for each citation and the reference list.
+- **The typed reference list** is a decision of its own. Converted citations get an automatic list of works cited, so
+  keeping the typed one means readers see two lists. One list (replace) is chosen to start; two lists is a choice.
+  Its entries are shown, and any no converted citation uses are flagged, since replacing the list removes them.
+- **Evidence in plain words.** "Same title, authors, and year." Capitals, punctuation, and initials against full
+  names don't count as differences; a site title without the source's subtitle says "the site's copy has no
+  subtitle". Internal ids aren't shown. Adding a work the site already has warns that the site would have two copies.
+- **After converting**, a line above the text says what happened ("Converted 6 citations; 1 left as typed; 2 new works
+  will be saved with the page …") with **Undo**, which reverses the whole import in one step. The caret goes to the
+  start of the change, with nothing selected, so the next keystroke can't replace it. Closing the review, by Cancel
+  or Escape, returns focus to where it was opened from.
+- **The site's own works, by policy.** `importer.siteWorks`: `'offer'` (the default: one clear match is selected;
+  anything written differently waits for a choice), `'prefer'` (one match is selected even when written a little
+  differently), or `'require'` (no "Add it as a new work" where the site has a match).
 - **What the site keeps.** Only new works that a converted citation cites join the works list (with notes) and go to
   `onRecords`. The site's own works, reused, are already there; references nobody cites are not kept.
 
@@ -101,7 +138,7 @@ mountEditor(el, { ..., citations: { compileHTML, cache: siteCache, citationStyle
 ```
 
 The preview then shows citations and endnotes as the published page will (and adds endnotes if the text has no
-`{citation endnote}`). Without `citations`, or if the compiler stops, the preview shows each work's note and says so.
+`{cite endnote}`). Without `citations`, or if the compiler stops, the preview shows each work's note and says so.
 Use the same style as the site's build. Works added by an import are added to this cache, so they format at once.
 
 ## Bodies written in HTML

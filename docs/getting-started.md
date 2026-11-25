@@ -41,6 +41,11 @@ Create `draft-inator.json` at the top of the site:
 Use the **same citation style** your build gives cite.inator. Every setting is explained in [the tools guide](tools.md#settings).
 `topics` is optional; leave it out and the block's topic field offers nothing.
 
+Citations are written `{cite …}`. If your pages use another word, such as `{citation …}` from before cite.inator
+0.5.1, move them with `npx draft-inator migrate --config draft-inator.json --write` ([how](tools.md#moving-to-one-keyword-draft-inator-migrate)).
+To keep another word instead, set `"keyword"` here and the same word as `window.DRAFT_CITATION_KEYWORD` in a small
+script file loaded before `citation.js` (a file, not an inline script, so a strict Content Security Policy allows it).
+
 ## 3. Make the works list
 
 ```sh

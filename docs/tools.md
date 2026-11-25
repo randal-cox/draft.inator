@@ -40,7 +40,7 @@ editor writes. Put the settings in one file, `draft-inator.json`, next to your c
 |---|---|
 | `cache` | The cite.inator cache |
 | `style` | cite.inator's `citationStyle` (`default`, `apa`, `chicago-author-date`, `mla`, …). Use your build's |
-| `keyword` | cite.inator's `citationKeyword`, if your site changed it from `citation` |
+| `keyword` | The site's citation keyword (cite.inator's `citationKeyword`), if it isn't `cite`. Set the same word as `DRAFT_CITATION_KEYWORD` in the editor |
 | `noteContext` | `work` (the default): notes describe the work alone, as the editor does. `article`: notes include year letters ("Cox 1995a"); only for sites that don't use the Cite block |
 | `content` | Folders (or files) to read |
 | `topics` | Optional: the topics a citation can be tagged with, `[{ "id": "…", "label": "…" }]` |
@@ -80,7 +80,7 @@ A second `--write` changes nothing.
 
 ## Tag totals: `draft-inator tags`
 
-When a writer tags a citation (`{citation bell-1992-ritual | tags:ritual-theory}`), that's one vote that the work is
+When a writer tags a citation (`{cite bell-1992-ritual | tags:ritual-theory}`), that's one vote that the work is
 about ritual theory. `tags` counts the votes per work and lets a curator overrule them:
 
 ```json
@@ -111,6 +111,27 @@ Works cite.inator can't describe yet still need a note, so an existing marker ne
 the record's `citationText`, else its `original` text, else its id, and each is printed as a `note:`.
 
 `--check` compares instead of writing, and exits with 1 if the file is out of date.
+
+## Moving to one keyword: `draft-inator migrate`
+
+cite.inator 0.5.1 reads one keyword per site, `cite` unless you choose another. Pages written with `{citation …}`
+move with:
+
+```sh
+npx draft-inator migrate --config draft-inator.json            # lists what would change; exits 1 while any are left
+npx draft-inator migrate --config draft-inator.json --write    # rewrites them
+```
+
+Only the keyword changes, byte for byte. Code (fenced and inline in Markdown; `code`, `pre`, `script`, and `style` in
+HTML) is left alone. Two cases change more than the word, and both are reported:
+
+- `{citation tags …}` was a citation of a work with the id `tags`; `tags` is a directive now, so it becomes
+  `{cite local:tags …}`. The legacy `{endnotes}` becomes `{cite endnote}`.
+- An old `{cite endnote}` (or `list`, `nocite`, `evidence`, `credit`, `tags`) in a page that still has old markers
+  was the short form for a work with that id, and reads as the directive now. It can't be told apart, so it's never
+  rewritten: each is printed as `check:` with its line and column, for a person to look at.
+
+`--from` and `--to` name other keywords; `--to` defaults to the `keyword` setting. A second run changes nothing.
 
 ## In a pull-request check
 

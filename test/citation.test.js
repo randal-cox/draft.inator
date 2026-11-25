@@ -27,10 +27,10 @@ test('a second pass changes nothing', () => {
 
 test('every citing marker gets its current note; list, endnote, and nocite are left alone', () => {
   const out = roundtrip(cite, src);
-  assert.match(out, /\{citation bell-1992-ritual \| note:"Bell 1992" \| locator:2\}/, 'a stale note is refreshed');
-  assert.match(out, /\{citation ainsworth-1978-patterns \| note:"Ainsworth et al\. 1978" \| form:narrative \| locator:7\}/,
+  assert.match(out, /\{cite bell-1992-ritual \| note:"Bell 1992" \| locator:2\}/, 'a stale note is refreshed');
+  assert.match(out, /\{cite ainsworth-1978-patterns \| note:"Ainsworth et al\. 1978" \| form:narrative \| locator:7\}/,
     'the marker keeps its own option order');
-  assert.ok(out.includes('{citation endnote} {citation list | tags:consent} {citation nocite bell-1992-ritual}'));
+  assert.ok(out.includes('{cite endnote} {cite list | tags:consent} {cite nocite bell-1992-ritual}'));
 });
 
 test('options the form does not show are kept', () => {
@@ -39,11 +39,11 @@ test('options the form does not show are kept', () => {
 });
 
 test('unknown options separated by known ones each stay where they were', () => {
-  const marker = '{citation bell-1992-ritual | note:"Bell 1992" | label:"chapter" | locator:3 | suppress-year-letter:yes}';
+  const marker = '{cite bell-1992-ritual | note:"Bell 1992" | label:"chapter" | locator:3 | suppress-year-letter:yes}';
   assert.equal(roundtrip(cite, marker), marker);
   const [item] = window.DRAFT_CITATION.parse('bell-1992-ritual | label:"a" | locator:3 | x:1');
   item.extra = 'label:"b"';   // the writer edited "Other options": what's left goes where the first one was
-  assert.equal(window.DRAFT_CITATION.build([item]), '{citation bell-1992-ritual | note:"Bell 1992" | label:"b" | locator:3}');
+  assert.equal(window.DRAFT_CITATION.build([item]), '{cite bell-1992-ritual | note:"Bell 1992" | label:"b" | locator:3}');
 });
 
 test('parse and build agree', () => {
@@ -52,12 +52,12 @@ test('parse and build agree', () => {
   assert.deepEqual(JSON.parse(JSON.stringify(items.map(i => [i.work, i.locator, i.prefix, i.tags]))),
     [['bell-1992-ritual', '12', '', ['a', 'b']], ['turner-1969-ritual', '', 'see also', []]]);
   assert.equal(build(items),
-    '{citation bell-1992-ritual | note:"Bell 1992" | locator:12 | tags:a,b; turner-1969-ritual | note:"Turner 1969" | prefix:"see also"}');
+    '{cite bell-1992-ritual | note:"Bell 1992" | locator:12 | tags:a,b; turner-1969-ritual | note:"Turner 1969" | prefix:"see also"}');
 });
 
 test('an unknown work keeps its id as its note', () => {
   assert.equal(window.DRAFT_CITATION.build([{ work: 'someone-2001-unknown' }]),
-    '{citation someone-2001-unknown | note:"someone-2001-unknown"}');
+    '{cite someone-2001-unknown | note:"someone-2001-unknown"}');
 });
 
 test('the preview reads like the page', () => {
@@ -68,10 +68,10 @@ test('the preview reads like the page', () => {
 
 test('works added later (by an import) get their notes and appear in the form', () => {
   const { addWorks, build } = window.DRAFT_CITATION;
-  assert.equal(build([{ work: 'ref-new' }]), '{citation ref-new | note:"ref-new"}');
+  assert.equal(build([{ work: 'ref-new' }]), '{cite ref-new | note:"ref-new"}');
   addWorks([{ id: 'ref-new', note: 'Cox 1995', title: 'Masks and makers' }]);
-  assert.equal(build([{ work: 'ref-new' }]), '{citation ref-new | note:"Cox 1995"}');
-  assert.equal(build(window.DRAFT_CITATION.parse('local:ref-new')), '{citation local:ref-new | note:"Cox 1995"}', 'written local:, found all the same');
+  assert.equal(build([{ work: 'ref-new' }]), '{cite ref-new | note:"Cox 1995"}');
+  assert.equal(build(window.DRAFT_CITATION.parse('local:ref-new')), '{cite local:ref-new | note:"Cox 1995"}', 'written local:, found all the same');
   const options = cite.fields[0].fields.find(f => f.name === 'work').options;
   assert.ok(options.some(o => o.value === 'ref-new' && o.label === 'Cox 1995 · Masks and makers'));
   assert.equal(cite.toPreview(cite.fromBlock(['', 'local:ref-new | locator:3'])), '(Cox 1995, 3)');
@@ -81,16 +81,39 @@ test('local: ids are the same work: chosen in the picker, noted, and written bac
   const { parse, build } = window.DRAFT_CITATION;
   const [item] = parse('local:bell-1992-ritual | locator:"p. 94"');
   assert.equal(item.work, 'bell-1992-ritual', 'the picker sees the work');
-  assert.equal(build([item]), '{citation local:bell-1992-ritual | note:"Bell 1992" | locator:"p. 94"}', 'the note is the work\'s; the form stays');
+  assert.equal(build([item]), '{cite local:bell-1992-ritual | note:"Bell 1992" | locator:"p. 94"}', 'the note is the work\'s; the form stays');
   const [bare] = parse('bell-1992-ritual');
-  assert.equal(build([bare]), '{citation bell-1992-ritual | note:"Bell 1992"}', 'bare stays bare');
+  assert.equal(build([bare]), '{cite bell-1992-ritual | note:"Bell 1992"}', 'bare stays bare');
 });
 
 test('a changed or new work is written bare, unless that would read as a directive', () => {
   const { parse, build } = window.DRAFT_CITATION;
   const [item] = parse('local:bell-1992-ritual');
   item.work = 'turner-1969-ritual';
-  assert.match(build([item]), /^\{citation turner-1969-ritual \|/);
-  assert.match(build([{ work: 'list' }]), /^\{citation local:list \|/);
-  assert.match(build([{ work: 'list-2001' }]), /^\{citation list-2001 \|/);
+  assert.match(build([item]), /^\{cite turner-1969-ritual \|/);
+  assert.match(build([{ work: 'list' }]), /^\{cite local:list \|/);
+  assert.match(build([{ work: 'list-2001' }]), /^\{cite list-2001 \|/);
+});
+
+test('fields separated by spaces (cite.inator 0.5.1) are read, and written back in the style they had', () => {
+  const pattern = new RegExp(cite.pattern.source);
+  const again = m => cite.toBlock(cite.fromBlock(m.match(pattern)));
+  assert.equal(again('{cite bell-1992-ritual note:"Bell 1992" locator:12}'), '{cite bell-1992-ritual note:"Bell 1992" locator:12}', 'spaces stay spaces');
+  assert.equal(again('{cite bell-1992-ritual note:"Bell 1991" locator:12}'), '{cite bell-1992-ritual note:"Bell 1992" locator:12}', 'a refreshed note keeps them');
+  assert.equal(again('{cite bell-1992-ritual locator:12}'), '{cite bell-1992-ritual note:"Bell 1992" locator:12}', 'a new note follows the style');
+  assert.equal(again('{cite bell-1992-ritual | locator:12}'), '{cite bell-1992-ritual | note:"Bell 1992" | locator:12}', 'pipes stay pipes');
+  assert.equal(again('{cite bell-1992-ritual  |  note:"Bell 1992"  |  locator:12}'), '{cite bell-1992-ritual  |  note:"Bell 1992"  |  locator:12}', 'exact separators kept');
+  const [item] = window.DRAFT_CITATION.parse('bell-1992-ritual prefix:see also locator:"p. 4" label:"a | b"');
+  assert.deepEqual([item.prefix, item.locator, item.extra], ['see also', 'p. 4', 'label:"a | b"'], 'quoted pipes and spaced values');
+  assert.ok(!pattern.test('{cite tags bell-1992-ritual methods:"Methods"}'), 'the tags directive is left alone');
+  assert.ok(!pattern.test('{cite endnote heading:"Notes"}'), 'a directive with space-separated options is left alone');
+});
+
+test('an import placeholder opens as a citation and keeps its unresolved: option (cite.inator 0.5.1)', () => {
+  const pattern = new RegExp(cite.pattern.source);
+  const raw = '{cite pending-rivera-2020 | note:"(Rivera, 2020)" | unresolved:"(Rivera, 2020)"}';
+  assert.ok(pattern.test(raw), 'a placeholder is a citation');
+  const once = cite.toBlock(cite.fromBlock(raw.match(pattern)));
+  assert.match(once, /^\{cite pending-rivera-2020 \| note:"[^"]*" \| unresolved:"\(Rivera, 2020\)"\}$/);
+  assert.equal(cite.toBlock(cite.fromBlock(once.match(pattern))), once, 'a second pass changes nothing');
 });

@@ -1,4 +1,4 @@
-# citation.inator tools (vendored)
+# cite.inator tools (vendored)
 
 Three of citation.inator's self-contained browser bundles, copied unchanged so draft.inator's editor, build tools, and
 tests need nothing installed:
@@ -9,10 +9,10 @@ tests need nothing installed:
 
 | | |
 |---|---|
-| Version | **0.4.0** (tag `v0.4.0`, commit `b4b396c753ff4605b9e99cceb9244a69525c6108`) |
-| Source | The release tarball `citation-inator-0.4.0.tgz`, `package/dist/` |
-| Tarball SHA-256 | `45b06bf5808410a14ccbab68b3b0e2737253199a31eac52d989b3b092513c604` (matches the release's `SHA256SUMS`) |
-| Bundle SHA-256 | `citation-tools.mjs` `b2b7b98ab15d90015840c95edd0c9c086a8f49f92098f18d3a118d959d5b305a`; `citation-import.mjs` `9c0595930a0e9a0b62bb1338ee5bccd8f9a05f8edffe50f67da61e9c4e516bea`; `citation-compiler.mjs` `631800613f37aeaa0c7df0d313e9a2d9c2de7429d22f3d76e298a9618c7abc7a` |
+| Version | **0.5.1** (tag `v0.5.1`, commit `1bbee6573fc0fdf10deca9fccd6e59ea175a7f6a`) |
+| Source | The release tarball `cite-inator-0.5.1.tgz`, `package/dist/` (bundle file names unchanged from 0.4.0) |
+| Tarball SHA-256 | `31d726ee52e54e5d6226900c8caae03a12abdb7db363a8328e3921bdd142edcf` (matches the release's `SHA256SUMS`) |
+| Bundle SHA-256 | `citation-tools.mjs` `810e40a50ad1033d697abb3adfde2e6754caf1017a20c77636be3a6b57dbb256`; `citation-import.mjs` `e76f4891fa7641c0d2d9d24d1c380fe3dbc715f8e03179f8f99ec2417adf7716`; `citation-compiler.mjs` `f07ed16d3ad7cbfd8765340a3fb333ac84f6a898e0b8b2f2b73e322c3c4dcaab` |
 | Licence | MIT (`LICENSE`); bundled parse5, marked, and entities notices in `THIRD_PARTY_LICENSES.txt` and the file headers |
 | Tools exports | `describeCitation`, `annotateMarkers` (with `noteContext`), `collectMarkerTags`, `createSiteOccurrenceIndex`, `markerKind`, `formatRecordId` |
 
