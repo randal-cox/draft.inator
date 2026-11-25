@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { processImportRequest } from '../vendor/citation-inator/citation-import.mjs';
-import { planReplacement, siteStyleId, worksToKeep, findHandTyped, isProbablyRight } from '../src/editor/importer.js';
+import { planReplacement, siteStyleId, worksToKeep, findHandTyped, isProbablyRight, siteEvidence, citationContext } from '../src/editor/importer.js';
 
 const root = new URL('..', import.meta.url).pathname;
 const source = fs.readFileSync(root + 'demo/editor/sample-import.md', 'utf8');
@@ -97,4 +97,25 @@ test('the review sorts citations into probably right and needs attention', () =>
   const probable = a.review.matches.filter(isProbablyRight).length;
   assert.equal(probable, 6);
   assert.equal(a.review.matches.length - probable, 1, 'Rivera, with no reference, needs attention');
+});
+
+test('site evidence ignores capitals and initials, and names a missing subtitle', () => {
+  const ev = { evidence: { assessment: { comparisons: { title: true, authors: true, year: true } }, differences: ['title', 'authors', 'type'] } };
+  const bellSrc = { title: 'Ritual theory, ritual practice', authors: [{ family: 'Bell', given: 'C.' }], issued: [1992] };
+  const bellSite = { title: 'Ritual Theory, Ritual Practice', authors: [{ family: 'Bell', given: 'Catherine' }], issued: [1992] };
+  assert.equal(siteEvidence(ev, bellSrc, bellSite), 'title, authors, and year match');
+  const turnerSrc = { title: 'The ritual process: Structure and anti-structure', authors: [{ family: 'Turner', given: 'V.' }], issued: [1969] };
+  const turnerSite = { title: 'The Ritual Process', authors: [{ family: 'Turner', given: 'Victor' }], issued: [1969] };
+  assert.equal(siteEvidence({ evidence: { mainTitleMatch: true, assessment: { comparisons: { authors: true, year: true } } } }, turnerSrc, turnerSite),
+    'main title, authors, and year match; differs: subtitle');
+  assert.equal(siteEvidence(ev, bellSrc, { ...bellSite, authors: [{ family: 'Bel' }] }), 'title and year match; differs: authors');
+});
+
+test('a citation is shown in its own sentence', () => {
+  const text = 'First sentence ends here. Practice comes before theory (Bell, 1992, p. 94). In the threshold it rests.';
+  const at = text.indexOf('(Bell'), end = text.indexOf(').') + 1;
+  assert.deepEqual(citationContext(text, at, end), { before: 'Practice comes before theory ', after: '.' });
+  const para = 'Heading\n\nMasks recur (Cox, 1995a), and so do river rites (Cox, 1995b). Next.';
+  const a2 = para.indexOf('(Cox, 1995b)');
+  assert.deepEqual(citationContext(para, a2, a2 + 12), { before: 'Masks recur (Cox, 1995a), and so do river rites ', after: '.' });
 });

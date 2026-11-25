@@ -101,6 +101,14 @@ mountEditor(el, { ..., importer: {
   what's left ("1 to decide", "all decided ✓", "2 changed"). Convert waits, and says "Decide 1 more", until every
   citation in Needs your attention and every site work has a decision, "Leave as written" included. Cancel and
   Convert stay in view at the bottom.
+- **What it becomes.** Each citation shows the exact marker it will be written as (from cite.inator's own preview of
+  the current choices), so new works' ids and the site's own works are visible before converting, in the sentence it
+  sits in. The review runs as soon as it opens.
+- **The reference list** is a decision of its own: replace the typed list with the list of works cited, or keep it.
+  Its entries are shown, and any no converted citation uses are flagged, since replacing the list removes them.
+- **Evidence in plain words.** Capitals, punctuation, and initials against full names don't count as differences; a
+  site title without the source's subtitle says "differs: subtitle".
+- **After converting**, the changed stretch of text is selected, so the writer sees what changed. Undo reverses it.
 - **The site's own works, by policy.** `importer.siteWorks`: `'offer'` (the default: one clear match is selected;
   anything written differently waits for a choice), `'prefer'` (one match is selected even when written a little
   differently), or `'require'` (no "Add it as a new work" where the site has a match).

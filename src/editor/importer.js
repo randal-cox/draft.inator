@@ -9,7 +9,8 @@ const STYLES = [
   { id: 'auto', label: 'Work it out' }, { id: 'apa', label: 'APA' },
   { id: 'chicago-author-date', label: 'Chicago author-date' }, { id: 'vancouver', label: 'Vancouver (numbered)' }
 ];
-const EVIDENCE = { 'exact-normalized': 'authors match', issued: 'year matches', 'not-specified': '' };
+// cite.inator's evidence codes, in words. Codes not listed are internal and aren't shown.
+const EVIDENCE = { 'exact-normalized': 'authors match', issued: 'year matches', 'exact-source-suffix': 'same year letter', 'not-specified': '' };
 
 // A short note for a new work, as citation.inator would give it, when the site gives no describe().
 function fallbackNote(r) {
@@ -77,19 +78,42 @@ export function isProbablyRight(match) {
   return match.items.length > 0 && match.items.every(it => it.state === 'unique' && it.candidates?.length === 1);
 }
 
-// What a proposed site work has in common with the imported reference, and how it's written differently, in words.
-function siteEvidence(candidate) {
-  const same = [], other = new Set();
-  for (const e of [].concat(candidate.evidence || [])) {   // one evidence object (0.4.0), or a list
-    const c = e.assessment?.comparisons || {};
-    if (e.sharedIdentifierCount) same.push(`${e.sharedIdentifierCount} shared identifier${e.sharedIdentifierCount === 1 ? '' : 's'}`);
-    if (e.mainTitleMatch || c.title) same.push(e.mainTitleMatch && !c.title ? 'main title' : 'title');
-    if (c.authors) same.push('authors');
-    if (c.year) same.push('year');
-    for (const d of e.differences || []) other.add(typeof d === 'string' ? d : d.field || d.code);
-  }
-  const list = a => (a.length > 2 ? a.slice(0, -1).join(', ') + ', and ' + a[a.length - 1] : a.join(' and '));
-  return [same.length && `${list([...new Set(same)])} match`, other.size && `written differently: ${[...other].join(', ')}`].filter(Boolean).join('; ');
+const words = list => (list.length > 2 ? list.slice(0, -1).join(', ') + ', and ' + list[list.length - 1] : list.join(' and '));
+const plain = v => String(v ?? '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const families = r => (r?.authors || []).map(a => plain(a.family || a.literal)).join('|');
+
+/**
+ * What a proposed site work has in common with the imported reference, and what really differs, in words. Capitals,
+ * punctuation, and initials against full given names don't count as differences; a missing subtitle is named as one.
+ */
+export function siteEvidence(candidate, source = null, site = null) {
+  const same = [], other = [];
+  const e = [].concat(candidate.evidence || [])[0] || {};   // one evidence object (cite.inator 0.4.0), or a list
+  const c = e.assessment?.comparisons || {};
+  if (e.sharedIdentifierCount) same.push(`${e.sharedIdentifierCount} shared identifier${e.sharedIdentifierCount === 1 ? '' : 's'}`);
+  const st = plain(source?.title), tt = plain(site?.title);
+  const titleSame = st && tt ? st === tt : c.title;
+  const mainOnly = !titleSame && st && tt && (plain(String(source.title).split(':')[0]) === tt || plain(String(site.title).split(':')[0]) === st);
+  if (titleSame) same.push('title'); else if (mainOnly || e.mainTitleMatch) { same.push('main title'); other.push('subtitle'); }
+  else if (st && tt) other.push('title');
+  const authorsSame = source && site ? families(source) === families(site) : c.authors;
+  if (authorsSame) same.push('authors'); else if (source && site) other.push('authors');
+  if (c.year || (source?.issued?.[0] && source.issued[0] === site?.issued?.[0])) same.push('year');
+  return [same.length && `${words(same)} match`, other.length && `differs: ${words(other)}`].filter(Boolean).join('; ');
+}
+
+/**
+ * The sentence a citation sits in, with the citation marked: from the start of its sentence (or paragraph) to the
+ * end, trimmed with an ellipsis only when the sentence is long.
+ */
+export function citationContext(text, start, end) {
+  let a = Math.max(0, start - 240), before = text.slice(a, start);
+  const cut = Math.max(before.lastIndexOf('\n'), ...[...before.matchAll(/[.!?]["”’)]?\s+(?=[A-Z“"(])/g)].map(m => m.index + m[0].length - 1));
+  before = cut >= 0 ? before.slice(cut + 1).trimStart() : (a > 0 ? '…' + before.replace(/^\S*\s/, '') : before);
+  let after = text.slice(end, end + 200);
+  const stop = after.search(/[.!?](\s|$)|\n/);
+  after = stop >= 0 ? after.slice(0, stop + 1).replace(/\n$/, '') : after.replace(/\s\S*$/, '…');
+  return { before, after };
 }
 
 /**
@@ -148,15 +172,15 @@ export function openImport(editor, options) {
   const secAttention = section('di-import-attention', 'Needs your attention', 'More than one work could match, or none in the reference list does. Choose for each, or leave it as written.');
   const secSite = section('di-import-site-section', 'Works this site already has', 'These references look like works already on the site. Use the site\'s work, or add the reference as a new one.');
   const secProbable = section('di-import-probable', 'Probably right', 'One clear match each, already selected. Check them; change any that are wrong.');
+  const secRefs = section('di-import-refs', 'The reference list', 'Converted citations get a list of works cited, made from the site\'s records. Replace the typed list with it, or keep the typed list as it is.');
   const siteList = secSite.body;
-  const replaceBox = el('input', { type: 'checkbox', id: 'di-import-replace' });
-  const replaceLabel = el('label', { for: 'di-import-replace' });
-  const replaceRow = el('div', { class: 'check di-import-replace', hidden: true }, [replaceBox, replaceLabel]);
+  let bibChoice;   // 'replace', 'keep', or undefined (not decided yet)
+  const writes = new Map();   // citation index → the element that says what it becomes
   const error = el('p', { class: 'di-error', role: 'alert' });
   const cancel = el('button', { type: 'button', class: 'di-quiet', text: 'Cancel' });
   const apply = el('button', { type: 'button', class: 'di-primary', text: 'Apply', disabled: true });
   const dialog = el('dialog', { class: 'di-dialog di-import', 'aria-labelledby': 'di-import-h' },
-    [el('div', {}, [title, intro, controls, summary, el('div', { class: 'di-import-body' }, [secAttention.box, secSite.box, secProbable.box, replaceRow]), error, el('div', { class: 'di-actions' }, [cancel, apply])])]);
+    [el('div', {}, [title, intro, controls, summary, el('div', { class: 'di-import-body' }, [secAttention.box, secSite.box, secProbable.box, secRefs.box]), error, el('div', { class: 'di-actions' }, [cancel, apply])])]);
   title.id = 'di-import-h';
   root.append(dialog);
 
@@ -168,7 +192,8 @@ export function openImport(editor, options) {
   apply.addEventListener('click', applyChosen);
 
   function analyse() {
-    error.textContent = ''; for (const sec of [secAttention, secSite, secProbable]) { sec.body.textContent = ''; sec.box.hidden = true; }
+    error.textContent = ''; for (const sec of [secAttention, secSite, secProbable, secRefs]) { sec.body.textContent = ''; sec.box.hidden = true; }
+    find.textContent = 'Find again';
     analysed = editor.getText();
     context = { mode: 'document', source: analysed, style, citationKeyword: 'citation', namespace: 'draft-import',
       limits: { references: 300 }, ...(options.siteCache && { siteCache: options.siteCache }) };
@@ -196,29 +221,32 @@ export function openImport(editor, options) {
       const clear = only && ![].concat(only.evidence || []).some(e => e.assessment?.conflicts?.length);
       siteChoice[s.recordId] = only && (clear || policy !== 'offer') ? only.recordId : undefined;
     }
+    bibChoice = undefined;
     draw();
   }
 
   function draw() {
+    writes.clear();
     const attention = el('ol', { class: 'di-import-list' }), probable = el('ol', { class: 'di-import-list' });
     secAttention.body.replaceChildren(attention); secProbable.body.replaceChildren(probable);
     const nAttention = matches.filter(m => !isProbablyRight(m)).length;
     secAttention.box.hidden = !nAttention; secAttention.box.open = true;
     secProbable.box.hidden = nAttention === matches.length; secProbable.box.open = !nAttention;
     matches.forEach((m, i) => {
-      const at = m.citation.start, text = analysed;
-      const before = text.slice(Math.max(0, at - 50), at).replace(/^\S*\s/, '…'), after = text.slice(m.citation.end, m.citation.end + 40).replace(/\s\S*$/, '…');
+      const { before, after } = citationContext(analysed, m.citation.start, m.citation.end);
       const row = el('li', { class: 'di-import-row' });
       const quote = el('p', { class: 'di-import-context' });
       quote.innerHTML = `${esc(before)}<mark>${esc(m.citation.raw)}</mark>${esc(after)}`;
       row.append(quote);
+      const becomes = el('p', { class: 'di-import-writes' });
+      writes.set(i, becomes);
       m.items.forEach((it, j) => {
         const names = (it.item.authors || []).join(', ') + (it.item.etAl ? ' et al.' : '') + ' ' + (it.item.year ?? '');
         const set = el('fieldset', { class: 'di-import-item' }, [el('legend', { text: m.items.length > 1 ? `Work ${j + 1}: ${names.trim()}` : names.trim() })]);
         if (!it.candidates?.length) set.append(el('p', { class: 'hint', text: 'Not found in the reference list.' }));
         for (const c of it.candidates || []) {
           const id = `di-imp-${i}-${j}-${c.recordId}`;
-          const evidence = Object.values(c.evidence || {}).map(v => EVIDENCE[v] ?? v).filter(Boolean).join(', ');
+          const evidence = Object.values(c.evidence || {}).map(v => EVIDENCE[v] ?? '').filter(Boolean).join(', ');
           const radio = el('input', { type: 'radio', name: `di-imp-${i}-${j}`, id, value: c.recordId, checked: chosen[i][j] === c.recordId });
           radio.addEventListener('change', () => { chosen[i][j] = c.recordId; tally(); });
           set.append(el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id }, [el('span', { text: c.title }), evidence ? el('small', { text: ' · ' + evidence }) : null])]));
@@ -231,9 +259,11 @@ export function openImport(editor, options) {
         }
         row.append(set);
       });
+      row.append(becomes);
       (isProbablyRight(m) ? probable : attention).append(row);
     });
     drawSite();
+    drawRefs();
     tally();
     const first = dialog.querySelector('.di-import-section:not([hidden]) input'); if (first) first.focus();
   }
@@ -244,9 +274,11 @@ export function openImport(editor, options) {
     secSite.box.hidden = !proposals.length; secSite.box.open = true;
     for (const s of proposals) {
       const ref = context.result.referenceRecords.find(r => r.id === s.recordId);
-      const set = el('fieldset', { class: 'di-import-item' }, [el('legend', { text: `${ref ? fallbackNote(ref) : s.recordId}: ${ref?.title || ''}` })]);
+      const uses = matches.filter(m => m.items.some(it => it.candidates?.some(c => c.recordId === s.recordId))).length;
+      const set = el('fieldset', { class: 'di-import-item' }, [el('legend', { text: `${ref ? fallbackNote(ref) : s.recordId}: ${ref?.title || ''}${uses ? ` (cited ${uses === 1 ? 'once' : uses + ' times'})` : ''}` })]);
       for (const c of s.candidates) {
-        const id = `di-site-${s.recordId}-${c.recordId}`, why = siteEvidence(c);
+        const siteRec = options.siteCache?.records?.find(r => r.id === c.recordId);
+        const id = `di-site-${s.recordId}-${c.recordId}`, why = siteEvidence(c, ref, siteRec);
         const radio = el('input', { type: 'radio', name: `di-site-${s.recordId}`, id, checked: siteChoice[s.recordId] === c.recordId });
         radio.addEventListener('change', () => { siteChoice[s.recordId] = c.recordId; tally(); });
         set.append(el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id }, [
@@ -264,25 +296,57 @@ export function openImport(editor, options) {
     }
   }
 
+  // The reference list: its own decision, with each entry shown, and the ones no converted citation uses flagged.
+  function drawRefs() {
+    const bib = context.result.document?.bibliography;
+    secRefs.box.hidden = !bib; secRefs.box.open = true;
+    if (!bib) return;
+    const list = el('ul', { class: 'di-import-refs-list' });
+    for (const rec of context.result.referenceRecords) list.append(el('li', { 'data-id': rec.id }, [el('span', { text: `${fallbackNote(rec)}. ${rec.title || ''}` })]));
+    const choice = (value, text) => {
+      const id = `di-refs-${value}`;
+      const radio = el('input', { type: 'radio', name: 'di-refs', id, checked: bibChoice === value });
+      radio.addEventListener('change', () => { bibChoice = value; tally(); });
+      return el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id, text })]);
+    };
+    secRefs.body.replaceChildren(list,
+      choice('replace', 'Replace the typed list with the list of works cited ({citation endnote})'),
+      choice('keep', 'Keep the typed list as it is'));
+  }
+  function markUnused() {
+    const r = ready(), used = new Set(matches.flatMap((m, i) => (r[i] ? chosen[i] : [])));
+    for (const li of secRefs.body.querySelectorAll('li[data-id]')) {
+      const off = !used.has(li.dataset.id);
+      li.classList.toggle('di-import-unused', off);
+      let note = li.querySelector('.di-import-unused-note');
+      if (off && !note) li.append(note = el('small', { class: 'di-import-unused-note', text: ' · not cited by a converted citation: replacing the list removes it' }));
+      if (!off && note) note.remove();
+    }
+  }
+  // What each citation becomes, from cite.inator's own preview of the current choices: the exact marker, so new works'
+  // ids and the site's own works are visible before converting.
+  function showWrites() {
+    const r = ready();
+    const decisions = matches.map((m, i) => r[i] && { citationIndex: i, action: 'accept', targets: chosen[i].map(recordId => ({ recordId })) }).filter(Boolean);
+    let edits = [];
+    if (decisions.length) {
+      try {
+        const recordDecisions = Object.entries(siteChoice).filter(([, v]) => v).map(([recordId, siteRecordId]) => ({ recordId, siteRecordId }));
+        edits = options.process({ ...context, result: undefined, action: 'preview', review: context.result.review, reviewId: context.result.review.reviewId,
+          decisions, ...(options.siteCache && { recordDecisions }), recordId: options.recordId || siteStyleId }).edits || [];
+      } catch { edits = []; }
+    }
+    writes.forEach((node, i) => {
+      const edit = edits.find(e => e.citationIndex === i);
+      node.replaceChildren(...(edit ? [el('span', { text: 'Becomes ' }), el('code', { text: edit.text })] : [document.createTextNode(decided(i) ? 'Stays as written.' : 'Choose above.')]));
+      node.classList.toggle('di-import-writes-none', !edit);
+    });
+  }
+
   const ready = () => matches.map((m, i) => m.items.length && chosen[i].every(c => typeof c === 'string'));
   const decided = i => chosen[i].every(c => c !== undefined);
-  // The typed reference list can be replaced by {citation endnote}, which lists the cited works. Typed text is only
-  // removed when the writer says so: ticked when every reference is used by a converted citation, else unticked
-  // with the ones that would go named.
-  function offerReplace() {
-    const bib = context.result.document?.bibliography;
-    replaceRow.hidden = !bib;
-    if (!bib) return;
-    const r = ready(), used = new Set(matches.flatMap((m, i) => (r[i] ? chosen[i] : [])));
-    const unused = context.result.referenceRecords.filter(rec => !used.has(rec.id));
-    replaceLabel.textContent = unused.length
-      ? `Replace the reference list with the list of works cited. ${unused.length} reference${unused.length === 1 ? ' isn\'t' : 's aren\'t'} cited by a converted citation and would be removed: ${unused.map(rec => fallbackNote(rec)).join('; ')}.`
-      : 'Replace the reference list with the list of works cited (every reference is used).';
-    if (!replaceBox.dataset.touched) replaceBox.checked = !unused.length && used.size > 0;
-  }
-  replaceBox.addEventListener('change', () => { replaceBox.dataset.touched = '1'; });
   function tally() {
-    offerReplace();
+    markUnused(); showWrites();
     const r = ready(), n = r.filter(Boolean).length, refs = context.result.referenceRecords.length;
     const attentionLeft = matches.filter((m, i) => !isProbablyRight(m) && !decided(i)).length;
     // References the converted citations use whose site match hasn't been decided.
@@ -296,11 +360,14 @@ export function openImport(editor, options) {
     secSite.count.textContent = `${siteTotal} · ${left(siteLeft)}`;
     secProbable.count.textContent = `${nProbable}${changed ? ` · ${changed} changed` : ' · all selected ✓'}`;
     for (const [sec, k] of [[secAttention, attentionLeft], [secSite, siteLeft]]) sec.box.classList.toggle('di-import-todo', k > 0);
-    const todo = attentionLeft + siteLeft;
+    const refsLeft = !secRefs.box.hidden && bibChoice === undefined ? 1 : 0;
+    secRefs.count.textContent = refsLeft ? '1 to decide' : bibChoice === 'replace' ? 'replace ✓' : bibChoice === 'keep' ? 'keep ✓' : '';
+    secRefs.box.classList.toggle('di-import-todo', refsLeft > 0);
+    const todo = attentionLeft + siteLeft + refsLeft;
     summary.textContent = !matches.length
       ? `No citations found${refs ? `, though ${refs} reference${refs === 1 ? ' was' : 's were'} read` : ''}. Is the style right?`
       : `${matches.length} citation${matches.length === 1 ? '' : 's'} found, ${refs} reference${refs === 1 ? '' : 's'} read. ` +
-        (todo ? `Decide ${todo} more before converting: ${[attentionLeft && `${attentionLeft} in Needs your attention`, siteLeft && `${siteLeft} in Works this site already has`].filter(Boolean).join(', ')}.`
+        (todo ? `Decide ${todo} more before converting: ${[attentionLeft && `${attentionLeft} in Needs your attention`, siteLeft && `${siteLeft} in Works this site already has`, refsLeft && 'the reference list'].filter(Boolean).join(', ')}.`
           : `${n} will be converted; ${matches.length - n} will stay as written.`);
     apply.disabled = !n || todo > 0;
     apply.textContent = todo ? `Decide ${todo} more` : n ? `Convert ${n} citation${n === 1 ? '' : 's'}` : 'Apply';
@@ -322,9 +389,10 @@ export function openImport(editor, options) {
     // Close first: the text behind an open dialog can't take focus, and without focus the edit would bypass the
     // browser's undo history. Then one undoable step: replace the smallest stretch covering every accepted edit.
     close();
-    const bib = !replaceRow.hidden && replaceBox.checked ? context.result.document.bibliography : null;
+    const bib = bibChoice === 'replace' ? context.result.document.bibliography : null;
     const plan = planReplacement(analysed, p, bib);
-    editor.replace(plan.start, plan.end, plan.text);
+    // One undoable step, and the converted stretch is left selected so the writer can see what changed.
+    editor.replace(plan.start, plan.end, plan.text, [0, plan.text.length]);
     // New works the converted citations point to join the works list, with notes, and go to the site to keep.
     // The site's own works, reused, are already there.
     const records = worksToKeep(p, decisions);
@@ -336,5 +404,7 @@ export function openImport(editor, options) {
   }
 
   dialog.showModal();
-  styleSelect.focus();
+  // The editor already knows there are citations to import: look at once, rather than wait for a click.
+  analyse();
+  if (!dialog.querySelector('.di-import-section:not([hidden]) input')) styleSelect.focus();
 }
