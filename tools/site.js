@@ -1,10 +1,10 @@
-// Shared by the build tools: the site's settings, its content files, and citation.inator's tools (vendored, so
+// Shared by the build tools: the site's settings, its content files, and cite.inator's tools (vendored, so
 // nothing needs installing). Plain Node, no dependencies.
 import fs from 'node:fs';
 import path from 'node:path';
 export { citationOptions, lineCol } from './core.js';
 
-// Which files hold content, and how citation.inator should read each.
+// Which files hold content, and how cite.inator should read each.
 export const FORMATS = { '.md': 'markdown', '.markdown': 'markdown', '.html': 'html', '.htm': 'html', '.txt': 'text' };
 
 export function readJSON(file) {

@@ -1,5 +1,5 @@
-// Tag totals: what writers tagged each work with while citing it (citation.inator's collectMarkerTags), plus a
-// curator's own additions and blocks per work. The result is each work's record `tags` for citation.inator.
+// Tag totals: what writers tagged each work with while citing it (cite.inator's collectMarkerTags), plus a
+// curator's own additions and blocks per work. The result is each work's record `tags` for cite.inator.
 import fs from 'node:fs';
 import { tagTotals, recordTags } from './core.js';
 import { contentFiles, formatOf, readJSON } from './site.js';

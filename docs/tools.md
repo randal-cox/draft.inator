@@ -5,17 +5,17 @@ The Cite block runs in the writer's browser. Three jobs need the whole site inst
 
 | Command | What it does | When to run it |
 |---|---|---|
-| `draft-inator notes` | Checks that every marker's `note:` is citation.inator's current description of the work | In every pull request (fails on a stale note); `--write` to fix |
+| `draft-inator notes` | Checks that every marker's `note:` is cite.inator's current description of the work | In every pull request (fails on a stale note); `--write` to fix |
 | `draft-inator tags` | Totals the topics writers gave each work while citing it, plus a curator's additions and blocks | When you rebuild the citation records |
 | `draft-inator works` | Writes `works.js`, the list of works the Cite block offers (`docs/data-contract.md`) | Whenever the citation cache changes; `--check` in pull requests |
 
-All three need Node 22 and nothing else: citation.inator's tools are vendored in `vendor/citation-inator/`.
+All three need Node 22 and nothing else: cite.inator's tools are vendored in `vendor/citation-inator/`.
 
 ## Before you start
 
 You need two things from your site:
 
-1. **A citation.inator cache**: the `citations.json` your site's build gives citation.inator (schema
+1. **A cite.inator cache**: the `citations.json` your site's build gives cite.inator (schema
    `citation-inator.cache.v1`). Every work a writer can cite is a record in it.
 2. **Your content folders**: wherever your Markdown or HTML pages live. The tools read `.md`, `.markdown`, `.html`,
    `.htm`, and `.txt` files, skipping hidden folders and `node_modules`.
@@ -38,9 +38,9 @@ editor writes. Put the settings in one file, `draft-inator.json`, next to your c
 
 | Setting | Meaning |
 |---|---|
-| `cache` | The citation.inator cache |
-| `style` | citation.inator's `citationStyle` (`default`, `apa`, `chicago-author-date`, `mla`, …). Use your build's |
-| `keyword` | citation.inator's `citationKeyword`, if your site changed it from `citation` |
+| `cache` | The cite.inator cache |
+| `style` | cite.inator's `citationStyle` (`default`, `apa`, `chicago-author-date`, `mla`, …). Use your build's |
+| `keyword` | cite.inator's `citationKeyword`, if your site changed it from `citation` |
 | `noteContext` | `work` (the default): notes describe the work alone, as the editor does. `article`: notes include year letters ("Cox 1995a"); only for sites that don't use the Cite block |
 | `content` | Folders (or files) to read |
 | `topics` | Optional: the topics a citation can be tagged with, `[{ "id": "…", "label": "…" }]` |
@@ -69,7 +69,7 @@ content/essays/ritual.md  (citation-unresolved local:smith-2003-rites)
 ```
 
 It exits with 1 when a note is stale or missing, so it can fail a pull request. With `--write` it saves the refreshed
-files. It uses citation.inator's `annotateMarkers`, which:
+files. It uses cite.inator's `annotateMarkers`, which:
 
 - changes only `note:` options; every other byte of the file is kept;
 - leaves code, links, and raw HTML in Markdown alone;
@@ -93,7 +93,7 @@ about ritual theory. `tags` counts the votes per work and lets a curator overrul
 npx draft-inator tags --config draft-inator.json --out data/record-tags.json
 ```
 
-`--out` writes `{ "<work id>": ["tag", …] }`, ready to become each record's `tags` in citation.inator. Without
+`--out` writes `{ "<work id>": ["tag", …] }`, ready to become each record's `tags` in cite.inator. Without
 `--out` it prints the full report: counts, what was added, and what was blocked. Anything a person should look at
 (a tag that isn't one of your topics, curation for a work nobody has tagged, a work missing from the cache) is printed
 as a `note:`. Nothing is dropped without one.
@@ -107,7 +107,7 @@ npx draft-inator works --config draft-inator.json
 Writes `works.js` with `window.DRAFT_WORKS` (every record: its id, its note in your style, its title and year) and,
 if you gave topics, `window.DRAFT_TOPICS`. One work per line, sorted by note, so a changed record is a one-line diff.
 
-Works citation.inator can't describe yet still need a note, so an existing marker never opens with a blank. They get
+Works cite.inator can't describe yet still need a note, so an existing marker never opens with a blank. They get
 the record's `citationText`, else its `original` text, else its id, and each is printed as a `note:`.
 
 `--check` compares instead of writing, and exits with 1 if the file is out of date.
@@ -131,7 +131,7 @@ It runs in a browser as well as Node; the live demos use it, so they show exactl
 ## Year letters
 
 When one article cites two works by the same author in the same year, readers see them told apart with letters
-("Cox 1995a", "Cox 1995b"); citation.inator's compiler does that. Notes don't carry the letters: they describe each
+("Cox 1995a", "Cox 1995b"); cite.inator's compiler does that. Notes don't carry the letters: they describe each
 work alone ("Cox 1995"), exactly as `works.js` and the Cite block do, so saving in the editor never makes the check
-fail. (This uses citation.inator's `noteContext: "work"`. Set `"noteContext": "article"` to get lettered notes, but
+fail. (This uses cite.inator's `noteContext: "work"`. Set `"noteContext": "article"` to get lettered notes, but
 only if you don't use the Cite block.)

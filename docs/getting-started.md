@@ -8,8 +8,8 @@ you'd like to see what you're adding.
 
 - A site whose pages live in a git repository, edited with [Sveltia CMS](https://github.com/sveltia/sveltia-cms)
   (its `/admin/` page).
-- citation.inator in the site's build, with a cache of the works writers cite (`citations.json`). See its
-  [integration guide](https://github.com/randal-cox/citation.inator/blob/main/docs/integration.md).
+- cite.inator in the site's build, with a cache of the works writers cite (`citations.json`). See its
+  [integration guide](https://github.com/randal-cox/cite.inator/blob/main/docs/integration.md).
 - Node 22 wherever the build runs, for draft.inator's tools.
 
 ## 1. Get draft.inator
@@ -38,7 +38,7 @@ Create `draft-inator.json` at the top of the site:
 }
 ```
 
-Use the **same citation style** your build gives citation.inator. Every setting is explained in [the tools guide](tools.md#settings).
+Use the **same citation style** your build gives cite.inator. Every setting is explained in [the tools guide](tools.md#settings).
 `topics` is optional; leave it out and the block's topic field offers nothing.
 
 ## 3. Make the works list
@@ -48,7 +48,7 @@ npx draft-inator works --config draft-inator.json
 ```
 
 This writes `admin/draft-inator/works.js`. Re-run it whenever the cache changes; add it to the build so it always is.
-It prints a `note:` for each work citation.inator can't describe yet, with the wording it used instead.
+It prints a `note:` for each work cite.inator can't describe yet, with the wording it used instead.
 
 ## 4. Load the block in the editor
 
@@ -98,7 +98,7 @@ See [the tools guide](tools.md#tag-totals-draft-inator-tags) for curator additio
 
 ## 7. Render citations for readers
 
-The block writes citation.inator markers; your build already compiles those with citation.inator. Nothing else to do.
+The block writes cite.inator markers; your build already compiles those with cite.inator. Nothing else to do.
 
 ## Check it worked
 
@@ -113,4 +113,4 @@ The block writes citation.inator markers; your build already compiles those with
 | No Citation block in the editor | `citation.js` loaded before Sveltia, or not at all; check the browser console |
 | The works list is empty | `works.js` didn't load, or loaded after `citation.js` |
 | Notes keep coming back stale after saving in the editor | `works.js` and `notes` use different styles, or `noteContext` is set to `article` ([year letters](tools.md#year-letters)) |
-| `Unsupported citation cache schema` | `cache` isn't a citation.inator cache (`citation-inator.cache.v1`) |
+| `Unsupported citation cache schema` | `cache` isn't a cite.inator cache (`citation-inator.cache.v1`) |
