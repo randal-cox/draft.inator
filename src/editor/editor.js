@@ -249,7 +249,7 @@ export function mountEditor(root, options = {}) {
   const typedPolicy = o.importer ? (o.importer.handTyped || 'block') : 'off';
   const typedText = el('span', { class: 'di-typed-text' });
   const typedReview = el('button', { type: 'button', class: 'di-primary', text: 'Import citations' });
-  const typedAnyway = el('button', { type: 'button', class: 'di-quiet', text: 'Allow saving with typed citations', hidden: true });
+  const typedAnyway = el('button', { type: 'button', class: 'di-quiet', text: 'Save without importing', hidden: true });
   const typedBar = el('div', { class: 'di-typed', role: 'region', 'aria-label': 'Citations typed by hand', hidden: true },
     [el('span', { class: 'di-typed-icon', 'aria-hidden': 'true', text: '!' }), typedText, el('span', { class: 'di-typed-actions' }, [typedReview, typedAnyway])]);
 
@@ -471,7 +471,7 @@ export function mountEditor(root, options = {}) {
       await checkTyped();
       if (typedPolicy === 'block' && typed.count && !typed.override) {
         typedBar.hidden = false; typedReview.focus();
-        throw new Error(`${typed.count} citation${typed.count === 1 ? ' is' : 's are'} typed by hand. Import ${typed.count === 1 ? 'it' : 'them'}, or allow saving with ${typed.count === 1 ? 'it' : 'them'} as typed.`);
+        throw new Error(`${typed.count} citation${typed.count === 1 ? ' is' : 's are'} typed by hand. Import ${typed.count === 1 ? 'it' : 'them'}, or choose Save without importing.`);
       }
       if (panel) {
         const problems = checkDetails(fields, panel.values());
@@ -567,7 +567,7 @@ export function mountEditor(root, options = {}) {
     const list = ex.length > 2 ? ex.slice(0, -1).join(', ') + ', and ' + ex[ex.length - 1] : ex.join(' and ');
     typedText.textContent = (one ? `1 citation is typed by hand: ${list}. It isn't linked to a work, so readers won't get a real citation or endnote.`
       : `${n} citations are typed by hand, such as ${list}. They aren't linked to works, so readers won't get real citations or endnotes.`) +
-      (typedPolicy !== 'block' ? ` Import ${one ? 'it' : 'them'} to fix this.` : typed.override ? ` You've allowed saving with ${one ? 'it' : 'them'} as typed.` : ` Import ${one ? 'it' : 'them'} before saving.`);
+      (typedPolicy !== 'block' ? ` Import ${one ? 'it' : 'them'} to fix this.` : typed.override ? ` You chose to save without importing ${one ? 'it' : 'them'}.` : ` Import ${one ? 'it' : 'them'} before saving.`);
     typedAnyway.hidden = typedPolicy !== 'block' || typed.override;
     showSaveBlocked();
   }
@@ -583,7 +583,7 @@ export function mountEditor(root, options = {}) {
   }
   const checkTypedSoon = () => { clearTimeout(typedTimer); typedTimer = setTimeout(checkTyped, 600); };
   typedReview.addEventListener('click', () => COMMANDS.import());
-  typedAnyway.addEventListener('click', () => { typed.override = true; checkTyped(); announce(`Saving is allowed with ${typed.count === 1 ? 'this citation' : 'these citations'} as typed, unlinked.`); (saveButton || source).focus(); });
+  typedAnyway.addEventListener('click', () => { typed.override = true; checkTyped(); announce(`Save will keep ${typed.count === 1 ? 'this citation' : 'these citations'} as plain text.`); (saveButton || source).focus(); });
   // Pasting is when hand-typed citations usually arrive: say so at once.
   source.addEventListener('paste', () => setTimeout(async () => { const before = typed.count; await checkTyped();
     if (typed.count > before) announce(`${typed.count - before} citation${typed.count - before === 1 ? '' : 's'} typed by hand pasted in. Review and import them.`); }, 0));

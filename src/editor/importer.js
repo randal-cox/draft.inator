@@ -180,7 +180,7 @@ export function openImport(editor, options) {
   const secAttention = section('di-import-attention', 'Needs your attention', 'More than one work could match, or none in the reference list does. Choose for each, or leave it as written.');
   const secSite = section('di-import-site-section', 'Works this site already has', 'These references look like works already on the site. Use the site\'s work, or add the reference as a new one.');
   const secProbable = section('di-import-probable', 'Probably right', 'One clear match each, already selected. Check them; change any that are wrong.');
-  const secRefs = section('di-import-refs', 'The reference list', 'Converted citations get a list of works cited, made from the site\'s records. Replace the typed list with it, or keep the typed list as it is.');
+  const secRefs = section('di-import-refs', 'Your typed reference list', 'Converted citations get an automatic list of works cited, made from the site\'s records. If you keep your typed list as well, readers see two lists.');
   const siteList = secSite.body;
   let bibChoice;   // 'replace', 'keep', or undefined (not decided yet)
   const writes = new Map();   // citation index → the element that says what it becomes
@@ -234,7 +234,7 @@ export function openImport(editor, options) {
       const clear = only && ![].concat(only.evidence || []).some(e => e.assessment?.conflicts?.length);
       siteChoice[s.recordId] = only && (clear || policy !== 'offer') ? only.recordId : undefined;
     }
-    bibChoice = memory.get('\u0000refs');
+    bibChoice = memory.get('\u0000refs') ?? 'replace';   // one list, unless the writer says otherwise
     draw();
   }
 
@@ -323,9 +323,9 @@ export function openImport(editor, options) {
       radio.addEventListener('change', () => { bibChoice = value; memory.set('\u0000refs', value); tally(); });
       return el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id, text })]);
     };
-    secRefs.body.replaceChildren(list, el('fieldset', { class: 'di-import-item' }, [el('legend', { text: 'What to do with the typed list' }),
-      choice('replace', 'Replace it with the list of works cited, made from the site\'s records'),
-      choice('keep', 'Keep it as typed (readers will also see the generated list of works cited)')]));
+    secRefs.body.replaceChildren(list, el('fieldset', { class: 'di-import-item' }, [el('legend', { text: 'Readers should see' }),
+      choice('replace', 'One list: replace yours with the automatic one (recommended)'),
+      choice('keep', 'Two lists: keep yours, and the automatic one appears after it')]));
   }
   function markUnused() {
     const r = ready(), used = new Set(matches.flatMap((m, i) => (r[i] ? chosen[i] : [])));
@@ -389,7 +389,7 @@ export function openImport(editor, options) {
     matches.forEach((m, i) => memory.set(remember(m), chosen[i].slice()));
     for (const [sec, k] of [[secAttention, attentionLeft], [secSite, siteLeft]]) sec.box.classList.toggle('di-import-todo', k > 0);
     const refsLeft = !secRefs.box.hidden && bibChoice === undefined ? 1 : 0;
-    secRefs.count.textContent = refsLeft ? '1 to decide' : bibChoice === 'replace' ? 'replace ✓' : bibChoice === 'keep' ? 'keep ✓' : '';
+    secRefs.count.textContent = refsLeft ? '1 to decide' : bibChoice === 'replace' ? 'one list ✓' : bibChoice === 'keep' ? 'two lists ✓' : '';
     secRefs.box.classList.toggle('di-import-todo', refsLeft > 0);
     const todo = attentionLeft + siteLeft + refsLeft;
     summary.textContent = !matches.length

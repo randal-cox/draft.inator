@@ -93,7 +93,7 @@ mountEditor(el, { ..., importer: {
 - **Citations typed by hand.** While the article has author–date citations that aren't markers yet (pasted in from
   a word processor, say), a banner says so, with examples and an **Import citations** button, and checks again after
   every change and at once on paste. `importer.handTyped` sets how firm it is: `'block'` (the default: Save refuses
-  until they're imported, or until the writer chooses **Allow saving with typed citations**, which lasts until more
+  until they're imported, or until the writer chooses **Save without importing**, which lasts until more
   are added; citations left as typed in an import count as allowed), `'warn'` (the banner only), or `'off'`. `editor.handTyped` gives `{ count, examples }`.
 - **The review's sections.** Three disclosures, each with a live count in its heading: **Needs your attention**
   (several candidates, or no reference; nothing is chosen for you), **Works this site already has**, and **Probably
@@ -107,7 +107,8 @@ mountEditor(el, { ..., importer: {
   works leaves all of them, and it says so. The review runs as soon as it opens, and again when the style changes.
 - **Choices are remembered** while the page is open: reopening the review, or opening it after Undo, brings back what
   was decided for each citation and the reference list.
-- **The reference list** is a decision of its own: replace the typed list with the list of works cited, or keep it.
+- **The typed reference list** is a decision of its own. Converted citations get an automatic list of works cited, so
+  keeping the typed one means readers see two lists. One list (replace) is chosen to start; two lists is a choice.
   Its entries are shown, and any no converted citation uses are flagged, since replacing the list removes them.
 - **Evidence in plain words.** "Same title, authors, and year." Capitals, punctuation, and initials against full
   names don't count as differences; a site title without the source's subtitle says "the site's copy has no
