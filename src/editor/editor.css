@@ -301,3 +301,7 @@
 /* Radios and checkboxes drawn the same everywhere, in light and dark (Safari otherwise varies them). */
 .di-editor input[type=radio], .di-editor input[type=checkbox] { accent-color: var(--di-accent); width: 1rem; height: 1rem; margin: 0; flex: none; }
 .di-import-choice { align-items: center; }
+
+/* A button that would refuse (Save while citations are typed by hand): looks unavailable, still explains itself. */
+.di-editor button[aria-disabled=true] { opacity: .45; cursor: not-allowed; }
+.di-editor button[aria-disabled=true]:hover { border-color: var(--di-line); }

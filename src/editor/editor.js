@@ -548,13 +548,21 @@ export function mountEditor(root, options = {}) {
     Object.assign(typed, found);
     const n = typed.count;
     typedBar.hidden = !n;
-    if (!n) return;
+    if (!n) { showSaveBlocked(); return; }
     const one = n === 1, ex = typed.examples;
     const list = ex.length > 2 ? ex.slice(0, -1).join(', ') + ', and ' + ex[ex.length - 1] : ex.join(' and ');
     typedText.textContent = (one ? `1 citation is typed by hand: ${list}. It isn't linked to a work, so readers won't get a real citation or endnote.`
       : `${n} citations are typed by hand, such as ${list}. They aren't linked to works, so readers won't get real citations or endnotes.`) +
       (typedPolicy !== 'block' ? ` Import ${one ? 'it' : 'them'} to fix this.` : typed.override ? ' Saving with them as typed.' : ` Import ${one ? 'it' : 'them'} before saving.`);
     typedAnyway.hidden = typedPolicy !== 'block' || !typed.reviewed || typed.override;
+    showSaveBlocked();
+  }
+  // While Save would refuse, it looks unavailable, but stays focusable so pressing it still says why.
+  function showSaveBlocked() {
+    if (!saveButton) return;
+    const blocked = typedPolicy === 'block' && typed.count > 0 && !typed.override;
+    if (blocked) { saveButton.setAttribute('aria-disabled', 'true'); saveButton.title = 'Import the citations typed by hand first'; }
+    else { saveButton.removeAttribute('aria-disabled'); saveButton.removeAttribute('title'); }
   }
   const checkTypedSoon = () => { clearTimeout(typedTimer); typedTimer = setTimeout(checkTyped, 600); };
   typedReview.addEventListener('click', () => COMMANDS.import());
