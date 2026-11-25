@@ -155,6 +155,21 @@
 .di-article .di-missing { display: grid; place-items: center; aspect-ratio: 3 / 2; border: 1px dashed var(--di-line); border-radius: 3px;
   color: var(--di-muted); font: .85rem/1.4 var(--di-sans); padding: 1rem; text-align: center; }
 
+/* Import citations: the review dialog. */
+.di-editor .di-import { width: min(48rem, calc(100vw - 32px)); }
+.di-import-controls { display: flex; flex-wrap: wrap; gap: .5rem .75rem; align-items: end; }
+.di-import-controls label { margin: 0; width: 100%; }
+.di-editor .di-import-controls select { width: auto; flex: 1 1 12rem; }
+.di-import-summary { margin: .75rem 0 .25rem; font-weight: 600; }
+.di-import-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .6rem; }
+.di-import-row { border: 1px solid var(--di-line); border-radius: 8px; padding: .5rem .75rem; background: var(--di-surface); }
+.di-import-context { margin: 0 0 .25rem; font: .95rem/1.5 var(--di-serif); }
+.di-import-context mark { background: var(--di-mark); color: inherit; padding: 0 .1em; border-radius: 2px; }
+.di-editor .di-import-item { margin: .35rem 0 .1rem; padding: .3rem .7rem .5rem; }
+.di-editor .di-import-item legend { font-size: .85rem; }
+.di-import-choice { display: flex; gap: .5rem; align-items: baseline; margin: .2rem 0; }
+.di-editor .di-import-choice label { margin: 0; font-weight: 400; }
+.di-import-choice small { color: var(--di-muted); }
 /* Unsaved changes kept in this browser, offered when the editor opens. */
 .di-recover { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem;
   padding: .5rem .9rem; background: var(--di-mark); border-bottom: 1px solid var(--di-line); font-size: .9rem; }
@@ -245,3 +260,13 @@
 .di-pick-more { margin: .3rem .2rem 0; font-size: .8rem; color: var(--di-muted); }
 .di-pick-more:empty { display: none; }
 .di-plain .di-details { display: none; }
+
+/* citation.inator's compiled citations and endnotes in the preview (a site's own styles win through previewClass). */
+.di-article .citation-cite { text-decoration: none; color: var(--di-accent); }
+.di-article .citation-cite:hover { text-decoration: underline; }
+.di-article .citation-endnotes { margin-top: 2rem; border-top: 1px solid var(--di-line); padding-top: .5rem; font-size: .92em; }
+.di-article .citation-endnotes h2 { font-size: 1.05rem; }
+.di-article .citation-endnotes li { margin: .3rem 0; }
+.di-article .citation-note-actions { display: inline; margin-left: .35rem; }
+.di-article .citation-icon { font-size: .75em; vertical-align: super; text-decoration: none; margin-right: .2rem; }
+.di-article .citation-note-status { font-weight: 600; font-size: .85em; color: var(--di-muted); }

@@ -3,7 +3,7 @@
 Writing tools for sites whose content lives in a git repository and is edited in a browser.
 draft.inator adds the blocks writers expect from WordPress or Joomla (citations, figures, tables, embeds,
 callouts, links) to [Sveltia CMS](https://github.com/sveltia/sveltia-cms), with
-[citation.inator](https://github.com/randal-cox/citation.inator) built in for scholarly citation.
+[cite.inator](https://github.com/randal-cox/cite.inator) (formerly citation.inator) built in for scholarly citation.
 
 > "Behold, my draft.inator! Now the entire Tri-State Area will have to address my reviewer comments!" (Theandra)
 
@@ -20,19 +20,19 @@ Cite block on its own, and the build tools, all running in your browser. To run 
 ![The Cite block demo](docs/images/cite-demo.png)
 
 **[Documentation](docs/README.md)**: [for writers](docs/writers.md), [getting started](docs/getting-started.md),
-[the build tools](docs/tools.md), and [how draft.inator and citation.inator fit together](docs/citation-inator.md).
+[the build tools](docs/tools.md), and [how draft.inator and cite.inator fit together](docs/citation-inator.md).
 
 ## What's here
 
 | Path | What |
 |---|---|
-| `src/blocks/citation.js` | The Cite block: a Sveltia editor component that reads and writes citation.inator markers |
+| `src/blocks/citation.js` | The Cite block: a Sveltia editor component that reads and writes cite.inator markers |
 | `src/blocks/figure.js` | The Figure block: an image with alt text, caption, provenance, and placement (0.3) |
 | `demo/` | Live demos (GitHub Pages): the Cite block in a stand-in editor, and the build tools on a sample site |
 | `examples/sample-site/` | A small site the tests, demos, and docs all use |
 | `tools/` | Build tools: keep notes current, total tags, write `works.js` (`docs/tools.md`) |
-| `vendor/citation-inator/` | citation.inator's tools bundle, vendored so nothing needs installing |
-| `test/` | `npm test` (Node 22, no dependencies): round-trip, quoting, option order, preview, the tools, and agreement with citation.inator |
+| `vendor/citation-inator/` | cite.inator's tools bundle, vendored so nothing needs installing |
+| `test/` | `npm test` (Node 22, no dependencies): round-trip, quoting, option order, preview, the tools, and agreement with cite.inator |
 | `docs/prd.md` | **The product requirements**: who it's for, what it does, what it won't do |
 | `docs/roadmap.md` | Milestones, in order |
 | `docs/tools.md` | The build tools, step by step |
@@ -54,9 +54,9 @@ See `examples/sveltia/index.html`. In short: load Sveltia, then a `works.js` you
 
 ## Licence
 
-MIT (see `LICENSE`), as citation.inator. Changes are listed in `CHANGELOG.md`.
+MIT (see `LICENSE`), as cite.inator. Changes are listed in `CHANGELOG.md`.
 
 ## Related
 
-- citation.inator (Theandra): the citation compiler and query API the Cite block depends on.
+- cite.inator (Theandra): the citation compiler and query API the Cite block depends on.
 - korazonresearch.org: the first host site, and the source of this code.

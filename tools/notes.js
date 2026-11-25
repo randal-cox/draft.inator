@@ -1,4 +1,4 @@
-// Keep every marker's note: current. Runs citation.inator's annotateMarkers over a site's content.
+// Keep every marker's note: current. Runs cite.inator's annotateMarkers over a site's content.
 // Check mode (the default) changes nothing and reports stale notes; write mode saves the refreshed files.
 import fs from 'node:fs';
 import path from 'node:path';

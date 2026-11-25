@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- **citation.inator 0.4.0** (tag `v0.4.0`), vendored from its release tarball: the tools bundle (now with
+  `formatRecordId`), and new, the import bundle and the browser compiler. `vendor/citation-inator/README.md` has the
+  checksums.
+- **Import citations** in the editor, with citation.inator's importer: finds author–date citations and the reference
+  list, shows each citation in its sentence with its matched work and the evidence, and converts the accepted ones to
+  `{citation …}` markers in one undoable step, optionally replacing the reference list with `{citation endnote}`.
+  Unmatched citations stay as written. Try it: `demo/editor/?sample=import`.
+- **The site's own works.** With the site's citation cache (`importer.siteCache`), a reference that looks like a work
+  the site already has is offered as that work, for the writer to confirm, so it isn't added twice. New works get
+  site-style ids (`bell-1992-ritual`; a site can give its own `recordId`), and only new works the converted citations
+  cite are added and handed to the site.
+- **Formatted citations in the preview.** With citation.inator's browser compiler and the site's cache (the
+  `citations` option), the preview shows citations and endnotes as the published page will. Without them, or if the
+  compiler stops, it shows each work's note, as before. Works added by an import are formatted at once.
+- The Cite block takes works added while editing (`DRAFT_CITATION.addWorks`), so imported works get notes at once.
+- Toolbar buttons are named by their visible text for screen readers (a tooltip no longer replaces it).
+- **`local:` ids are read as the work they name.** `{citation local:bell-1992-ritual}` (as citation.inator's importer
+  writes) opens with Bell selected and Bell's note, and is written back in the form it had. A newly chosen work is
+  written bare, or `local:` when its id is a directive word such as `list`. Checked against citation.inator's
+  `markerKind`.
 - **The Details panel (0.5).** With `collection` (or `fields`), the editor takes the whole file: front matter as a
   document's properties above the text, drawn from the site's collection fields in Sveltia's format
   (`DRAFT_COLLECTIONS`): the title large, a summary that opens when wanted, and compact rows whose choosers (authors,

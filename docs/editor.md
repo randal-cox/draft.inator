@@ -49,7 +49,9 @@ const editor = mountEditor(document.querySelector('#edit-here'), {
 | `storageKey` | Keep the draft, small uploads, and the view in this browser under this name. Off by default. The page's own text always loads; a kept draft that differs is offered (Restore or Discard), with a warning if the page has changed since, and is forgotten after a successful save |
 | `fullWindow` | Fill the window instead of a box |
 | `blocks` | Only these blocks, such as `['citation']`. Default: every block the page loaded. Others get no button, and their tags stay as text |
-| `showImport` | Show the Import citations button (it does nothing yet) |
+| `importer` | Turns on Import citations: `{ process, describe?, onRecords?, siteCache?, recordId? }` (see Importing citations) |
+| `citations` | Formatted citations in the preview: `{ compileHTML, cache, citationStyle? }` (see Formatted citations in the preview) |
+| `showImport` | Show the Import citations button even without an importer (disabled) |
 | `collection` | A collection in `window.DRAFT_COLLECTIONS`: adds the Details panel, and `text` becomes the whole file (see below) |
 | `fields` | Or the collection's fields directly |
 | `entries` | Entries by collection: choices for relation fields, keyword suggestions (values the collection's other entries use), and places for an order field. Default: `window.DRAFT_ENTRIES` |
@@ -59,6 +61,48 @@ const editor = mountEditor(document.querySelector('#edit-here'), {
 
 Saving is the site's job. A site might open a pull request, commit to a draft branch, or post to its own server.
 draft.inator never decides where text goes.
+
+## Importing citations
+
+With citation.inator's importer, the toolbar's **Import citations** finds author–date citations such as
+"(Bell, 1992, p. 94)" and the reference list in the article, and shows each citation in its sentence with the work it
+matches and why ("authors match, year matches").
+- **Proposed, not applied:** unique matches start selected and can be changed; others need a choice; "Leave as
+  written" is always there.
+- **One undoable step:** accepted citations become `{citation …}` markers, keeping locators, prefixes, and the
+  narrative form, and the typed reference list can be replaced by `{citation endnote}`.
+- **Unmatched citations stay exactly as written.**
+
+```js
+import { processImportRequest } from '/admin/draft-inator/citation-import.mjs';   // citation.inator 0.4.0
+import { describeCitation } from '/admin/draft-inator/citation-tools.mjs';
+
+mountEditor(el, { ..., importer: {
+  process: processImportRequest,
+  describe: (id, cache) => describeCitation(id, cache, { citationStyle: 'chicago-author-date' }).text,
+  siteCache,                                             // the site's citation cache
+  onRecords: (records, cache) => keepNewWorks(records)   // e.g. reference files in the page's pull request
+} });
+```
+
+- **The site's own works.** With `siteCache`, a reference that looks like a work the site already has is offered as
+  that work ("Use the site's *Ritual Theory, Ritual Practice*", with what matches), or as a new work. One proposal
+  with nothing in conflict is selected, visibly; the writer confirms by converting. Nothing is merged unseen.
+- **Ids for new works.** `siteStyleId` (exported from `importer.js`) gives `bell-1992-ritual`: first author's family
+  name, year, and the title's first word, made unique. A site with another scheme passes `recordId(record, { taken })`.
+- **What the site keeps.** Only new works that a converted citation cites join the works list (with notes) and go to
+  `onRecords`. The site's own works, reused, are already there; references nobody cites are not kept.
+
+## Formatted citations in the preview
+
+```js
+import { compileHTML } from '/admin/draft-inator/citation-compiler.mjs';   // citation.inator 0.4.0
+mountEditor(el, { ..., citations: { compileHTML, cache: siteCache, citationStyle: 'chicago-author-date' } });
+```
+
+The preview then shows citations and endnotes as the published page will (and adds endnotes if the text has no
+`{citation endnote}`). Without `citations`, or if the compiler stops, the preview shows each work's note and says so.
+Use the same style as the site's build. Works added by an import are added to this cache, so they format at once.
 
 ## Bodies written in HTML
 

@@ -25,8 +25,8 @@ const USAGE = `Usage: draft-inator <notes|tags|works> [options] [content folders
     --check        Fail if FILE is out of date instead of writing it
 
   --config FILE    Site settings (JSON); flags override it. See docs/tools.md.
-  --cache FILE     citation.inator cache (citations.json)
-  --style NAME     citation.inator citation style (use the same one as the site's build)
+  --cache FILE     cite.inator cache (citations.json)
+  --style NAME     cite.inator citation style (use the same one as the site's build)
   --curation FILE  Per-work tag additions and blocks
   --topics FILE    Topics as [{ id, label }]
 `;
