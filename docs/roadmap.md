@@ -42,7 +42,7 @@ and the host taking it.
       (below, in 0.4).
 - [x] Sveltia, not the TipTap fallback (Randal, 21 Nov 2026; `docs/decisions/0.3-figure-in-sveltia.md`).
 
-## 0.4: The live article editor
+## 0.4: The live article editor (released, v0.4.0)
 
 draft.inator's own editor, first as an open demo on GitHub Pages (`demo/editor/`), built from the same blocks, so it
 can grow into the editor real sites use (PRD principle 3).
@@ -52,8 +52,8 @@ can grow into the editor real sites use (PRD principle 3).
 - [x] The preview lays out figures (alignment, width, wrap): the first figure renderer (`renderArticle`).
 - [x] A View menu for layouts, the toolbar, and plain.
 - [x] Inside a site's own page: a marked, rounded box in the site's colours (`demo/site/`; `docs/editor.md`).
-- [ ] In korazonresearch.org: Edit this page, saving as a pull request (built in KR from 0.3.0's editor; awaiting
-      Randal's go-ahead there).
+- [x] In korazonresearch.org: Edit this page, saving as a pull request (KR #23, merged 22 Nov 2026, on 0.3.0's
+      editor; KR moves to 0.4.0 next, which offers a kept draft instead of loading it silently).
 - [x] Real citations and endnotes in the preview, from citation.inator's browser compiler (#14).
 - [x] Import citations, in the editor's look and feel, on citation.inator 0.4.0 (#16, #22, #26): reviewed matches,
       the site's own works reused, site-style ids for new ones (`src/editor/importer.js`).
