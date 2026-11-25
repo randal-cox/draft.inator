@@ -5,8 +5,15 @@
    any option the form doesn't show (a label, fallback words) is kept as it was. */
 (function () {
   if (!window.CMS) return;
-  var WORKS = window.DRAFT_WORKS || [], TOPICS = window.DRAFT_TOPICS || [];
-  var NOTE = {}; WORKS.forEach(function (w) { NOTE[w.id] = w.note; });
+  var TOPICS = window.DRAFT_TOPICS || [];
+  // The works a writer can cite, indexed. addWorks() (below) adds to them in place, so works an import brings in
+  // appear in the form and get their notes at once.
+  var NOTE = {}, WORK_OPTIONS = [];
+  function index() {
+    NOTE = {}; WORK_OPTIONS.length = 0;
+    (window.DRAFT_WORKS || []).forEach(function (w) { NOTE[w.id] = w.note; WORK_OPTIONS.push({ label: w.note + ' · ' + w.title, value: w.id }); });
+  }
+  index();
   var FORMS = ['parenthetical', 'narrative', 'author-only', 'suppress-author', 'suppress-year'];
   var SHOWN = ['note', 'locator', 'prefix', 'form', 'tags'];
 
@@ -35,9 +42,19 @@
 
   function quoteAlways(v) { return '"' + String(v).replace(/(["\\])/g, '\\$1') + '"'; }
 
+  // A work's id is written bare (bell-1992-ritual) or explicitly local (local:bell-1992-ritual); citation.inator reads
+  // both as the same record. The block works with the bare id and remembers how it was written, so an unchanged work
+  // goes back exactly as it was. A newly chosen work is written bare, unless the bare id would read as a directive.
+  var DIRECTIVES = ['endnote', 'list', 'nocite', 'evidence', 'credit'];
+  function bareId(written) { return /^local:/.test(written) ? written.slice(6) : written; }
+  function writeId(it) {
+    if (it.written && bareId(it.written) === it.work) return it.written;
+    return DIRECTIVES.indexOf(it.work) >= 0 ? 'local:' + it.work : it.work;
+  }
+
   function parse(body) {
     return split(body, ';').filter(Boolean).map(function (part) {
-      var bits = split(part, '|'), item = { work: bits[0], locator: '', prefix: '', form: '', tags: [], extra: [], order: [] };
+      var bits = split(part, '|'), item = { work: bareId(bits[0]), written: bits[0], locator: '', prefix: '', form: '', tags: [], extra: [], order: [] };
       bits.slice(1).forEach(function (b) {
         var m = /^([a-z-]+):([\s\S]*)$/.exec(b);
         if (m && SHOWN.indexOf(m[1]) >= 0) {
@@ -84,11 +101,17 @@
         var at = out.findIndex ? out.findIndex(function (o) { return o && o.key === 'note'; }) : -1;
         if (at > 0) out.unshift(out.splice(at, 1)[0]);
       }
-      return [it.work].concat(out.map(function (o) { return typeof o === 'string' ? o : o.text; })).join(' | ');
+      return [writeId(it)].concat(out.map(function (o) { return typeof o === 'string' ? o : o.text; })).join(' | ');
     }).join('; ') + '}';
   }
 
-  window.DRAFT_CITATION = { parse: parse, build: build };   // for the tests
+  function addWorks(list) {
+    if (!window.DRAFT_WORKS) window.DRAFT_WORKS = [];
+    (list || []).forEach(function (w) { if (w && w.id && !(w.id in NOTE)) { window.DRAFT_WORKS.push(w); NOTE[w.id] = w.note; } });
+    index();
+  }
+
+  window.DRAFT_CITATION = { parse: parse, build: build, addWorks: addWorks, writeId: writeId };
 
   CMS.registerEditorComponent({
     id: 'citation',
@@ -98,7 +121,7 @@
       name: 'items', label: 'Works cited here', label_singular: 'Work', widget: 'list',
       fields: [
         { name: 'work', label: 'Work (search by author, year, or title)', widget: 'select',
-          options: WORKS.map(function (w) { return { label: w.note + ' · ' + w.title, value: w.id }; }) },
+          options: WORK_OPTIONS },
         { name: 'locator', label: 'Page or section (such as 12, or "pp. 4–6")', widget: 'string', required: false },
         { name: 'prefix', label: 'Words before it (such as "see also")', widget: 'string', required: false },
         { name: 'form', label: 'How it reads', widget: 'select', required: false,
@@ -106,7 +129,8 @@
         { name: 'tags', label: 'Topics this citation is about', widget: 'select', multiple: true, required: false,
           options: TOPICS.map(function (t) { return { label: t.label, value: t.id }; }) },
         { name: 'extra', label: 'Other options (kept as written)', widget: 'string', required: false },
-        { name: 'order', label: 'Option order', widget: 'hidden', required: false }
+        { name: 'order', label: 'Option order', widget: 'hidden', required: false },
+        { name: 'written', label: 'The work as written', widget: 'hidden', required: false }
       ]
     }],
     // Directives are not citations of a work; leave them alone. Matches citation.inator 0.2.0's own test exactly

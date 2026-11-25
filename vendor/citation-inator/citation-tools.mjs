@@ -1,4 +1,4 @@
-/*! citation-inator tools v0.2.0 | MIT | See LICENSE */
+/*! citation-inator tools v0.4.0 | MIT | See LICENSE */
 /* Bundled dependency notices:
 parse5 7.3.0
 Copyright (c) 2013-2019 Ivan Nikulin (ifaaan@gmail.com, https://github.com/inikulin)
@@ -9110,7 +9110,7 @@ function partClassNames(prefix, parts) {
 // package.json
 var package_default = {
   name: "citation-inator",
-  version: "0.2.0",
+  version: "0.4.0",
   description: "Portable citations, endnotes, and source inspection",
   type: "module",
   license: "MIT",
@@ -9123,7 +9123,7 @@ var package_default = {
     url: "git+https://github.com/randal-cox/citation.inator.git"
   },
   engines: {
-    node: ">=22"
+    node: ">=22.13.0"
   },
   exports: {
     ".": "./src/compiler.mjs",
@@ -9137,7 +9137,12 @@ var package_default = {
     "./openlibrary": "./src/openlibrary.mjs",
     "./access": "./src/access.mjs",
     "./tools": "./src/tools.mjs",
-    "./tools-browser": "./dist/citation-tools.mjs"
+    "./tools-browser": "./dist/citation-tools.mjs",
+    "./import": "./src/import-api.mjs",
+    "./import-browser": "./dist/citation-import.mjs",
+    "./import-files": "./src/import-files.mjs",
+    "./import-files-browser": "./dist/citation-import-files.mjs",
+    "./compiler-browser": "./dist/citation-compiler.mjs"
   },
   bin: {
     "citation-inator": "./scripts/compile.mjs"
@@ -9154,7 +9159,12 @@ var package_default = {
     "ROADMAP.md",
     "CHANGELOG.md",
     "CITATION.cff",
-    "docs"
+    "docs",
+    "dist/citation-import.mjs",
+    "dist/citation-import-files.mjs",
+    "dist/citation-pdf.worker.mjs",
+    "scripts/import.mjs",
+    "dist/citation-compiler.mjs"
   ],
   scripts: {
     build: "node scripts/build.mjs",
@@ -9172,8 +9182,12 @@ var package_default = {
     "playwright-core": "1.55.0"
   },
   dependencies: {
+    "@noble/hashes": "2.4.0",
+    "@xmldom/xmldom": "0.9.12",
+    fflate: "0.8.3",
     marked: "16.4.2",
-    parse5: "7.3.0"
+    parse5: "7.3.0",
+    "pdfjs-dist": "6.5.438"
   }
 };
 
@@ -9395,6 +9409,7 @@ function normalizeRecord(input) {
     }] : [];
   });
   const title = cleanText(input.title);
+  const citationParts = normalizeTextParts(input.citationParts);
   const abstract = cleanText(input.abstract?.text);
   const abstractSource = cleanText(input.abstract?.source);
   const optional = ["inlineAuthor", "jurisdiction", "number", "session", "legalCitation"];
@@ -9404,7 +9419,7 @@ function normalizeRecord(input) {
   return {
     id: input.id.trim(),
     type: kinds.has(input.type) ? input.type : "document",
-    state: title ? state : "unresolved",
+    state: title ? state : state === "partial" && citationParts.length ? "partial" : "unresolved",
     ...input.license && cleanText(input.license.name) && {
       license: { name: cleanText(input.license.name), url: httpsURL(input.license.url) }
     },
@@ -9421,7 +9436,7 @@ function normalizeRecord(input) {
     provenance,
     ...Array.isArray(input.tags) && { tags: normalizeTags(input.tags) },
     ...relatedIdentifiers.length && { relatedIdentifiers },
-    citationParts: normalizeTextParts(input.citationParts),
+    citationParts,
     ...input.authorsComplete === false && { authorsComplete: false },
     ...Array.isArray(input.listAnnotationParts) && { listAnnotationParts: normalizeTextParts(input.listAnnotationParts) },
     ...Object.fromEntries(optional.map((field) => [field, cleanText(input[field])]).filter(([, value]) => value)),
@@ -9673,6 +9688,17 @@ function markerKind(raw, options = {}) {
   const token = markers[0].token;
   return token?.type === "endnotes" ? "endnote" : ["citation", "list", "nocite", "annotation"].includes(token?.type) ? token.type : "malformed";
 }
+function formatRecordId(id, { citationKeyword = "citation", identifierForm = "minimal" } = {}) {
+  validateKeyword(citationKeyword);
+  if (!["minimal", "explicit"].includes(identifierForm)) throw new TypeError("Use minimal or explicit identifierForm.");
+  const identifier = typeof id === "string" && normalizeIdentifier("local:" + id);
+  if (identifier?.scheme !== "local" || identifier.value !== id) throw new TypeError("Supply a valid local record ID.");
+  const escaped2 = id.replace(/[\\"{};|]/g, (character) => "\\" + character);
+  const token = scanCitationMarkers(`{${citationKeyword} ${escaped2}}`, { citationKeyword })[0]?.token;
+  const unambiguous = token?.type === "citation" && token.items.length === 1 && token.items[0].identifier.scheme === "local" && token.items[0].identifier.value === id;
+  const reserved = ["endnote", "list", "nocite", ...Object.keys(annotationNames)].includes(id);
+  return identifierForm === "minimal" && unambiguous && !reserved ? escaped2 : "local:" + escaped2;
+}
 function parseDirectives(source, { citationKeyword = "citation" } = {}) {
   const directive = directivePattern(citationKeyword);
   const tokens = [];
@@ -9715,7 +9741,7 @@ function parseDirectives(source, { citationKeyword = "citation" } = {}) {
       tokens.push({ type: "annotation", name: match[2].trim(), raw });
     } else {
       const items = split(match[2], ";").map(parseItem);
-      if (items.every(Boolean) && (items.length === 1 || items.every((item) => parentheticalForms.has(item.form)))) {
+      if (items.every(Boolean) && (items.length === 1 || items.every((item) => parentheticalForms.has(item.form)) || items.every((item) => item.form === "narrative"))) {
         tokens.push({ type: "citation", items, raw });
       } else tokens.push({ type: "text", text: raw, malformed: true });
     }
@@ -10489,7 +10515,7 @@ function compileBlocks(blocks, cache, {
         return separator + trigger(item, label2);
       }).join("");
       const { label, form } = token.items[0];
-      const parenthetical = token.items.length > 1 || !label && (citationStyle === "vancouver" || parentheticalForms.has(form));
+      const parenthetical = token.items.length > 1 && form !== "narrative" || !label && (citationStyle === "vancouver" || parentheticalForms.has(form));
       return parenthetical ? `<span ${part("cluster")}>(${citations})</span>` : citations;
     }).join("");
     return markup || !content.trim() ? content : `<p>${content}</p>`;
@@ -10697,6 +10723,7 @@ function describeCitation(identifierOrMarker, cache, options = {}) {
 function annotateMarkers(source, cache, options = {}) {
   const { noteContext = "article" } = options;
   if (!["article", "work"].includes(noteContext)) throw new TypeError("Use article or work noteContext.");
+  formatRecordId("annotation-validation", options);
   const { markers, descriptions, diagnostics } = analyze(source, cache, options);
   const workDescriptions = /* @__PURE__ */ new Map();
   const edits = [];
@@ -10712,7 +10739,7 @@ function annotateMarkers(source, cache, options = {}) {
       let noteText = description.items[i].text;
       if (noteContext === "work") {
         const recordId = description.items[i].recordId;
-        if (!workDescriptions.has(recordId)) workDescriptions.set(recordId, describeCitation(`{${options.citationKeyword || "citation"} local:${recordId}}`, cache, { ...options, suffixScope: "fragment" }).text);
+        if (!workDescriptions.has(recordId)) workDescriptions.set(recordId, describeCitation(`{${options.citationKeyword || "citation"} ${formatRecordId(recordId, options)}}`, cache, { ...options, suffixScope: "fragment" }).text);
         noteText = workDescriptions.get(recordId);
       }
       noteText = escaped(noteText);
@@ -10766,5 +10793,6 @@ export {
   collectMarkerTags,
   createSiteOccurrenceIndex,
   describeCitation,
+  formatRecordId,
   markerKind
 };

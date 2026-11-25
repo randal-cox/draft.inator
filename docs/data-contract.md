@@ -48,6 +48,10 @@ citation.inator's marker grammar (0.2.0):
 
 - Several works are separated by `;`, options by `|`. Values with `;|"{}\:` or edge spaces are quoted; `\` escapes.
 - `note:` is always written and always quoted; it is refreshed from `DRAFT_WORKS` on every save.
+- A work's id may be written bare (`bell-1992-ritual`) or explicitly local (`local:bell-1992-ritual`); both are the
+  same work, looked up in `DRAFT_WORKS` by the bare id. An unchanged work is written back in the form it had. A newly
+  chosen work is written bare, unless the bare id is a directive word (`endnote`, `list`, `nocite`, `evidence`,
+  `credit`), which is written `local:list`. (Issue #26 may replace this rule with one shared with citation.inator.)
 - Options the form doesn't show (`label:`, fallback words, anything newer) are kept as written, in place.
 - The marker's own option order is kept, and an option written quoted stays quoted.
 - `{citation endnote}` (and `{citation endnote | …}`), `{citation list …}`, `{citation nocite …}`, `{citation evidence}`,
@@ -96,6 +100,7 @@ second pass changes nothing.
 
 - 0.2 (additive): `draft-inator works` produces `works.js`; the skipped directives now match citation.inator exactly.
 - 0.3 (additive): the Figure block's `{figure …}` tag.
+- 0.4 (additive): `local:` ids are read as the bare work id and kept as written.
 
 
 Additive only within 0.x where possible. A breaking change bumps the minor version and is listed in the roadmap.
