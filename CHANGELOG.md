@@ -9,6 +9,10 @@
   Mistakes and missing labels are marked in the preview and counted in the status line. `draft-inator check` fails a
   pull request on them. Demo: `demo/editor/?sample=equations`.
 - **`draft-inator migrate` names each line to check** (`file:line:column`); 0.4.0 printed `undefined:undefined`.
+- **Replacing a work doesn't carry the old work's options** (Theandra's point on #40; a bug in 0.4.0). When a
+  writer changes the work a citation points to, the old work's page and other options are set aside and shown, with
+  **Keep them**; nothing moves by default, and going back restores them. Finishing a placeholder drops its
+  `unresolved:`. Same-work edits keep every option, as before.
 
 ## 0.4.0 · 2026-11-25 · The live editor, citation import, and one keyword
 
