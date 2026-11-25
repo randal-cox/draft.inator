@@ -336,3 +336,19 @@
 .di-article a.di-ref { text-decoration: none; border-bottom: 1px dotted currentColor; }
 .di-article .di-ref-missing, .di-article .di-math-error { background: var(--di-warn-bg); color: var(--di-warn-ink); outline: 1px solid var(--di-warn-line); border-radius: 2px; }
 .di-article .di-math-message { font: .85rem/1.4 var(--di-sans); color: var(--di-warn-ink); margin: -.5rem 0 1rem; }
+
+/* The Equation dialog: LaTeX beside how it reads, then the palette. */
+.di-equation-dialog { width: min(52rem, calc(100vw - 2rem)); }
+.di-eq-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: stretch; }
+@media (max-width: 40rem) { .di-eq-sides { grid-template-columns: 1fr; } }
+.di-eq-sides label, .di-eq-caption { display: block; font-weight: 600; margin-bottom: .3rem; }
+.di-eq-tex { width: 100%; box-sizing: border-box; font: .95rem/1.5 var(--di-mono, ui-monospace, monospace); padding: .5rem; }
+.di-eq-shown { min-height: 5.5rem; border: 1px solid var(--di-line, #ccc); border-radius: 6px; padding: .5rem; display: flex; align-items: center; justify-content: center; overflow-x: auto; }
+.di-eq-shown .di-equation { margin: 0; }
+.di-eq-palette { display: grid; gap: .5rem; margin: .75rem 0; }
+.di-eq-palette h3 { font-size: .8rem; margin: 0 0 .25rem; color: var(--di-muted); text-transform: none; }
+.di-eq-keys { display: flex; flex-wrap: wrap; gap: .25rem; }
+.di-eq-keys button { min-width: 2.25rem; padding: .2rem .45rem; font-size: .95rem; }
+.di-eq-label { display: flex; align-items: center; gap: .25rem; }
+.di-eq-label span { font-family: var(--di-mono, ui-monospace, monospace); color: var(--di-muted); }
+.di-eq-name input { font-family: var(--di-mono, ui-monospace, monospace); }

@@ -78,3 +78,16 @@ test('draft-inator check reports problems with their places, and passes a clean 
   assert.deepEqual(checkText(bad, { katex }).map(d => d.code), ['label-duplicate', 'ref-missing', 'math-error']);
   assert.deepEqual(checkText('$$x$$ {#eq:a}\n\nSee {ref eq:a}.', { katex }), []);
 });
+
+test('the Equation dialog writes plain Markdown maths, and its palette wraps a selection', async () => {
+  const { insertSnippet, writeEquation, PALETTE } = await import('../src/editor/equation.js');
+  assert.equal(writeEquation({ tex: ' a+b ', display: false }), '$a+b$');
+  assert.equal(writeEquation({ tex: 'x', display: true, name: 'one' }), '$$ x $$ {#eq:one}');
+  assert.equal(writeEquation({ tex: 'x', display: true, name: '' }), '$$ x $$');
+  assert.deepEqual(insertSnippet('1 + 2', 0, 1, '\\frac{|}{}'), { text: '\\frac{1}{} + 2', caret: 7 });
+  assert.deepEqual(insertSnippet('n', 1, 1, '\\le '), { text: 'n\\le ', caret: 5 });
+  for (const g of PALETTE) for (const [, snippet] of g.items) {
+    const tex = snippet.replace('|', 'x').replace(/\{\}/g, '{y}');
+    assert.equal(mathHTML({ tex, display: true }, katex).error, null, `palette snippet parses: ${snippet}`);
+  }
+});

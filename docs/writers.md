@@ -69,6 +69,10 @@ as `{ref eq:sample-size}`, which reads "Eq. 1". Figures work the same way, with 
 (`fig:depth`) and `{ref fig:depth}`, which reads "Figure 1". Never type a number: move things around and every number
 and reference changes with them. A typo in the maths is marked in the preview with what's wrong.
 
+You don't have to know LaTeX: choose **Equation** in the toolbar. Type or build the equation with the buttons (a
+fraction, a square root, a sum, Greek letters), watch it beside you as it will read, and give it a label if you'll
+refer to it. To change one later, put the cursor in it and choose **Edit equation**.
+
 ## If something looks wrong
 
 | You see | It means | What to do |
