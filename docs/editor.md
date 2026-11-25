@@ -95,6 +95,12 @@ mountEditor(el, { ..., importer: {
   every change and at once on paste. `importer.handTyped` sets how firm it is: `'block'` (the default: Save refuses
   until they're imported, or until the writer chooses **Save without importing**, which lasts until more
   are added; citations left as typed in an import count as allowed), `'warn'` (the banner only), or `'off'`. `editor.handTyped` gives `{ count, examples }`.
+- **Save without importing** (cite.inator 0.5.1; Randal, 25 Nov 2026) doesn't just let plain text through. Each typed
+  citation with no entry in the reference list becomes an unresolved placeholder, `{cite pending-rivera-2020 |
+  unresolved:"(Rivera, 2020)"}`: a real citation that keeps the words typed, flagged by the build, with its placeholder
+  record saved with the page. The status line counts unresolved citations ("1 unresolved") until each is opened and
+  given its work. Citations whose work is in the typed reference list can't be placeholders in cite.inator 0.5.1; they
+  stay as plain text, and the result line says so and points to Import citations. One undoable step, with Undo.
 - **The review's sections.** Three disclosures, each with a live count in its heading: **Needs your attention**
   (several candidates, or no reference; nothing is chosen for you), **Works this site already has**, and **Probably
   right** (one clear match each, selected and changeable; closed to start). Close one and its heading still says

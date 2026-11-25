@@ -323,3 +323,6 @@
 .di-editor .di-done-close { padding: .2rem .55rem; }
 /* A focused control is never hidden behind the dialog's sticky footer. */
 .di-editor .di-import { scroll-padding-bottom: 5.5rem; }
+
+/* Unresolved placeholders in the article: counted in the status line until finished. */
+.di-editor .di-counts-warn { color: var(--di-warn-ink); font-weight: 600; }

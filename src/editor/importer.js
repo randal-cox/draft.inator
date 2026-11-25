@@ -34,7 +34,9 @@ export function siteStyleId(record, { taken = [] } = {}) {
   const who = slug(first?.family || (first?.literal || '').split(/\s+/)[0]) || 'anon';
   const year = /^\d{4}$/.test(String(record.issued?.[0])) ? String(record.issued[0]) : 'nd';
   const word = (record.title || '').split(/[\s:]+/).map(slug).find(w => w && !['a', 'an', 'the'].includes(w)) || 'work';
-  const base = `${who}-${year}-${word}`;
+  // An unresolved placeholder has no author or title yet: its id comes from the words typed, as in pending-okafor-2019.
+  const typed = record.state === 'unresolved' && slug(record.unresolvedText || record.original).split('-').slice(0, 4).join('-');
+  const base = typed ? `pending-${typed}` : `${who}-${year}-${word}`;
   let id = base, n = 2;
   while (taken.includes(id)) id = `${base}-${n++}`;
   return id;
@@ -84,6 +86,31 @@ export function findHandTyped(text, process, { keyword = citationKeyword() } = {
   if (!matches.length) matches = [found('apa'), found('chicago-author-date')].sort((x, y) => y.length - x.length)[0];
   const raws = matches.map(m => m.citation.raw.replace(/\s+/g, ' '));
   return { count: raws.length, examples: [...new Set(raws)].slice(0, 3) };
+}
+
+/**
+ * "Save now, sort out later": every citation typed by hand that cite.inator can keep as an unresolved placeholder
+ * becomes one, a flagged marker that keeps the typed words, in one replacement. cite.inator 0.5.1 allows placeholders
+ * only for citations with no entry in the reference list; the rest are left as typed and counted.
+ * @returns {null | { plan: { start: number, end: number, text: string }, records: object[], cache: object, kept: number, left: number }}
+ */
+export function planUnresolved(text, process, { keyword = citationKeyword(), siteCache, recordId = siteStyleId } = {}) {
+  let best = null;
+  for (const style of ['auto', 'apa', 'chicago-author-date']) {
+    try {
+      const ctx = { mode: 'document', source: text, style, citationKeyword: keyword, namespace: 'draft-import', limits: { references: 300 }, ...(siteCache && { siteCache }) };
+      const a = process(ctx);
+      if (a.review?.matches?.length && (!best || a.review.matches.length > best.a.review.matches.length)) best = { ctx, a };
+      if (best && style === 'auto' && !a.formatChoiceRequired) break;
+    } catch { /* try the next style */ }
+  }
+  if (!best) return null;
+  const { ctx, a } = best, matches = a.review.matches;
+  const decisions = matches.map((m, i) => m.items.length && m.items.every(it => it.state === 'unmatched') && { citationIndex: i, action: 'placeholder' }).filter(Boolean);
+  if (!decisions.length) return { plan: null, records: [], cache: null, kept: 0, left: matches.length };
+  const p = process({ ...ctx, action: 'preview', review: a.review, reviewId: a.review.reviewId, decisions, recordId });
+  if (!p.edits?.length) return null;
+  return { plan: planReplacement(text, p, null, keyword), records: worksToKeep(p, decisions), cache: p.cache, kept: decisions.length, left: matches.length - decisions.length };
 }
 
 /** A citation the review can propose with confidence: every work has exactly one candidate, unique. */

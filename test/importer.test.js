@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { processImportRequest } from '../vendor/citation-inator/citation-import.mjs';
 import { markerKind } from '../vendor/citation-inator/citation-tools.mjs';
-import { planReplacement, siteStyleId, worksToKeep, findHandTyped, isProbablyRight, siteEvidence, citationContext, decisionFor, PLACEHOLDER } from '../src/editor/importer.js';
+import { planReplacement, siteStyleId, worksToKeep, findHandTyped, isProbablyRight, siteEvidence, citationContext, decisionFor, PLACEHOLDER, planUnresolved } from '../src/editor/importer.js';
 
 const root = new URL('..', import.meta.url).pathname;
 const source = fs.readFileSync(root + 'demo/editor/sample-import.md', 'utf8');
@@ -136,4 +136,16 @@ test('a citation with no reference kept as unresolved: a flagged marker, its rec
   const c = compileMarkdown(pp.source, pp.cache);
   assert.ok(c.diagnostics.some(d => d.code === 'citation-unresolved-placeholder'), 'the build flags it');
   assert.equal(findHandTyped(pp.source, processImportRequest).count, 0, 'nothing is typed by hand any more');
+});
+
+test('save without importing: citations with no reference become unresolved placeholders; the rest are counted, not guessed', () => {
+  const text = 'Masks recur (Okafor, 2019), and (Bell, 1992).\n\nReferences\n\nBell, C. (1992). Ritual theory, ritual practice. Oxford University Press.\n';
+  const r = planUnresolved(text, processImportRequest, { keyword: 'cite' });
+  assert.equal(r.kept, 1); assert.equal(r.left, 1);
+  const after = text.slice(0, r.plan.start) + r.plan.text + text.slice(r.plan.end);
+  assert.match(after, /\{cite pending-okafor-2019 \| unresolved:"\(Okafor, 2019\)"\}/);
+  assert.ok(after.includes('(Bell, 1992)'), 'a citation with a reference is left as typed');
+  assert.equal(markerKind(after.match(/\{cite [^}]*\}/)[0]), 'citation');
+  assert.deepEqual(r.records.map(x => [x.id, x.state]), [['pending-okafor-2019', 'unresolved']]);
+  assert.equal(findHandTyped(after, processImportRequest).count, 1, 'only Bell is still typed by hand');
 });

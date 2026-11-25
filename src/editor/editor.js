@@ -298,7 +298,11 @@ export function mountEditor(root, options = {}) {
     note.hidden = r.formatted;
     if (r.compileError) { note.hidden = false; note.textContent = 'Citations show each work\'s note: the citation compiler stopped (' + r.compileError + ').'; }
     title.textContent = (panel && typeof panel.values().title === 'string' && panel.values().title) || r.title;
-    counts.textContent = `${r.words} words · ${r.citations} citations · ${r.figures} figures`;
+    // Unresolved placeholders stay visible until someone finishes them (opens each and chooses its work).
+    const kw = window.DRAFT_CITATION?.keyword || 'cite';
+    const unresolved = (source.value.match(new RegExp(`\\{${kw}\\s[^}]*\\bunresolved:`, 'g')) || []).length;
+    counts.textContent = `${r.words} words · ${r.citations} citations · ${r.figures} figures` + (unresolved ? ` · ${unresolved} unresolved` : '');
+    counts.classList.toggle('di-counts-warn', unresolved > 0);
   }
 
   // ---------- Editing text ----------
@@ -325,6 +329,15 @@ export function mountEditor(root, options = {}) {
     const next = lines.map((l, i) => (all ? l.slice(p(i).length) : p(i) + l)).join('\n');
     replace(a, b, next, [0, next.length]);
   }
+  function addImportedWorks(works, records) {
+    window.DRAFT_CITATION?.addWorks(works);
+    // New works join the records the preview compiles with, so their citations are formatted at once.
+    if (o.citations?.cache && records?.length) {
+      const have = new Set(o.citations.cache.records.map(r => r.id));
+      o.citations.cache = { ...o.citations.cache, records: [...o.citations.cache.records, ...records.filter(r => !have.has(r.id))] };
+    }
+    render();
+  }
   const COMMANDS = {
     bold: () => wrap('**', '**', 'bold text'),
     italic: () => wrap('*', '*', 'italic text'),
@@ -346,15 +359,7 @@ export function mountEditor(root, options = {}) {
         // Citations the writer chose to leave as typed count as permission to save with them.
         leftAsTyped: n => { typed.acceptedLeft = n; },
         report: msg => { doneText.textContent = msg; doneBar.hidden = false; },
-        addWorks: (works, records) => {
-          window.DRAFT_CITATION?.addWorks(works);
-          // New works join the records the preview compiles with, so their citations are formatted at once.
-          if (o.citations?.cache && records?.length) {
-            const have = new Set(o.citations.cache.records.map(r => r.id));
-            o.citations.cache = { ...o.citations.cache, records: [...o.citations.cache.records, ...records.filter(r => !have.has(r.id))] };
-          }
-          render();
-        } }, o.importer);
+        addWorks: addImportedWorks }, o.importer);
     }
   };
   toolbar.addEventListener('click', e => { const b = e.target.closest('button[data-cmd]'); if (b && !b.disabled && COMMANDS[b.dataset.cmd]) COMMANDS[b.dataset.cmd](); });
@@ -584,7 +589,28 @@ export function mountEditor(root, options = {}) {
   }
   const checkTypedSoon = () => { clearTimeout(typedTimer); typedTimer = setTimeout(checkTyped, 600); };
   typedReview.addEventListener('click', () => COMMANDS.import());
-  typedAnyway.addEventListener('click', () => { typed.override = true; checkTyped(); announce(`Save will keep ${typed.count === 1 ? 'this citation' : 'these citations'} as plain text.`); (saveButton || source).focus(); });
+  // Save without importing: each typed citation cite.inator can hold becomes an unresolved placeholder, a flagged
+  // citation that keeps the words typed and is finished later (cite.inator 0.5.1). One undoable step, reported with
+  // Undo. Any it can't hold (those with an entry in the typed reference list) stay as plain text.
+  typedAnyway.addEventListener('click', async () => {
+    const { planUnresolved } = await import('./importer.js');
+    let r = null;
+    try { r = planUnresolved(source.value, o.importer.process, { siteCache: o.importer.siteCache, ...(o.importer.recordId && { recordId: o.importer.recordId }) }); } catch { r = null; }
+    if (r?.plan) {
+      source.focus();
+      replace(r.plan.start, r.plan.end, r.plan.text, [0, 0]);
+      addImportedWorks(r.records.map(rec => ({ id: rec.id, note: rec.unresolvedText || rec.original || rec.id, title: '' })), r.records);
+      o.importer.onRecords?.(r.records, r.cache);
+    }
+    const kept = r?.kept || 0, left = r ? r.left : typed.count;
+    if (left) { typed.override = true; typed.acceptedLeft = left; }
+    await checkTyped();
+    const msg = [kept && `${kept} kept as unresolved citation${kept === 1 ? '' : 's'}, flagged to finish later`,
+      left && `${left} left as plain text, because ${left === 1 ? 'its work is' : 'their works are'} in your reference list (Import citations links ${left === 1 ? 'it' : 'them'})`].filter(Boolean).join('; ') + '.';
+    doneText.textContent = msg[0].toUpperCase() + msg.slice(1); doneBar.hidden = false;
+    announce(doneText.textContent);
+    (saveButton || source).focus();
+  });
   // Pasting is when hand-typed citations usually arrive: say so at once.
   source.addEventListener('paste', () => setTimeout(async () => { const before = typed.count; await checkTyped();
     if (typed.count > before) announce(`${typed.count - before} citation${typed.count - before === 1 ? '' : 's'} typed by hand pasted in. Review and import them.`); }, 0));
