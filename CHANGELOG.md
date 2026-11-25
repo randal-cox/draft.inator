@@ -13,9 +13,10 @@
 - **Import review, after an outside review.** No selection after converting (the next keystroke would have replaced
   the converted text); a result line with Undo; each citation says in words which works it cites, with Show code;
   leaving one work of a group explains that the whole citation stays; choices remembered while the page is open;
-  evidence without internal ids; a warning before adding a duplicate of a site work; "Allow saving with typed
-  citations" offered from the start, and citations left as typed in an import count as allowed; focus returns to the
+  evidence without internal ids; a warning before adding a duplicate of a site work; "Save without importing" offered from the start, and citations left as typed in an import count as allowed; focus returns to the
   opener; the style selector re-runs the review; a quieter live region; the reference-list choice is a fieldset.
+- **The typed reference list** (Randal, 25 Nov 2026): put as one list or two, since keeping the typed list means readers
+  see two; one list (replace) is chosen to start. The banner's escape hatch is now **Save without importing**.
 - **citation.inator 0.4.0** (tag `v0.4.0`), vendored from its release tarball: the tools bundle (now with
   `formatRecordId`), and new, the import bundle and the browser compiler. `vendor/citation-inator/README.md` has the
   checksums.
