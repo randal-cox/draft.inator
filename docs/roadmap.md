@@ -115,6 +115,28 @@ editor. Not started; nothing here is agreed beyond the split of work, and nothin
   the new record with the page. Direct connectors to other reference managers are deferred; file import and export
   stay in cite.inator's 0.6.
 
+## Republish elsewhere: Substack first (Randal, 25 Nov 2026; planned, not started)
+
+Write once on the site, with real citations, and republish anywhere without redoing them. Christopher publishes on
+Substack as well as korazonresearch.org; Patreon is likely second.
+
+- [ ] **Copy for Substack** (and Patreon), and **Download Markdown**, from the editor. Copy and paste for now; better
+      integration (each platform's API or import format) to be explored.
+- [ ] What the copy holds: the article as readers see it (headings, italics, quotes, and images at the site's full
+      addresses, with credits), without what only works on the site (the citation panel, curator-only notes).
+- [ ] Citations as text, "(Bell 1992, 94)", each linking to its reference on the site's article (Randal: better than
+      linking out). A References section at the end, each entry linking to its source (DOI, PubMed, or publisher)
+      and to the work on the site.
+- [ ] "Originally published at …", linking to the article (the canonical copy), worded per site.
+- [ ] Checks before copying: unresolved citations, an article with no public address yet, images without alt text.
+- [ ] Each platform a small profile (what formatting it keeps, plain links, where the line goes), so Medium, Ghost,
+      LinkedIn articles, WordPress, and Joomla are additions, not rewrites.
+- **Open question:** automatic text a site may want on every republished copy. The site has no comments, so
+  discussion happens on the platform (Substack, say); what, if anything, to add is undecided.
+- **Ownership (proposed):** cite.inator formats citations and the reference list without the site's panel, with full
+  addresses; draft.inator owns the profiles, checks, copy, and download; the host gives each article's public address
+  (an additive data-contract change).
+
 ## 0.7: The media library (images)
 
 - [ ] Browse and search the site's images; details with a sidecar record (alt, credit, licence, source, focal point).
