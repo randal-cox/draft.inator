@@ -15,7 +15,7 @@ const EVIDENCE = { 'exact-normalized': 'authors match', issued: 'year matches', 
 // A short note for a new work, as citation.inator would give it, when the site gives no describe().
 function fallbackNote(r) {
   const names = (r.authors || []).map(a => a.family || a.literal).filter(Boolean);
-  const who = names.length > 2 ? names[0] + ' et al.' : names.join(' and ') || r.title || r.id;
+  const who = names.length > 2 ? names[0] + ' et al.' : names.join(' and ') || r.title || 'An untitled reference';
   return `${who} ${r.issued?.[0] ?? 'n.d.'}`;
 }
 
@@ -87,19 +87,23 @@ const families = r => (r?.authors || []).map(a => plain(a.family || a.literal)).
  * punctuation, and initials against full given names don't count as differences; a missing subtitle is named as one.
  */
 export function siteEvidence(candidate, source = null, site = null) {
-  const same = [], other = [];
+  const same = [], diff = [];
   const e = [].concat(candidate.evidence || [])[0] || {};   // one evidence object (cite.inator 0.4.0), or a list
   const c = e.assessment?.comparisons || {};
-  if (e.sharedIdentifierCount) same.push(`${e.sharedIdentifierCount} shared identifier${e.sharedIdentifierCount === 1 ? '' : 's'}`);
+  if (e.sharedIdentifierCount) same.push(e.sharedIdentifierCount === 1 ? 'the same DOI or ISBN' : 'the same identifiers');
   const st = plain(source?.title), tt = plain(site?.title);
   const titleSame = st && tt ? st === tt : c.title;
   const mainOnly = !titleSame && st && tt && (plain(String(source.title).split(':')[0]) === tt || plain(String(site.title).split(':')[0]) === st);
-  if (titleSame) same.push('title'); else if (mainOnly || e.mainTitleMatch) { same.push('main title'); other.push('subtitle'); }
-  else if (st && tt) other.push('title');
   const authorsSame = source && site ? families(source) === families(site) : c.authors;
-  if (authorsSame) same.push('authors'); else if (source && site) other.push('authors');
+  if (titleSame) same.push('title'); else if (mainOnly || e.mainTitleMatch) {
+    same.push('main title');
+    diff.push(plain(site?.title).length < plain(source?.title).length ? "the site's copy has no subtitle" : 'the typed reference has no subtitle');
+  } else if (st && tt) diff.push('the titles differ');
+  if (authorsSame) same.push('authors');
   if (c.year || (source?.issued?.[0] && source.issued[0] === site?.issued?.[0])) same.push('year');
-  return [same.length && `${words(same)} match`, other.length && `differs: ${words(other)}`].filter(Boolean).join('; ');
+  if (source && site && !authorsSame) diff.push('the authors differ');
+  const head = same.length ? 'Same ' + words(same) : '';
+  return [head, ...diff].filter(Boolean).join('; ') + (head || diff.length ? '.' : '');
 }
 
 /**
@@ -152,14 +156,18 @@ export function planReplacement(analysed, preview, bibliography = null) {
  */
 export function openImport(editor, options) {
   const { el, root } = editor;
+  const opener = document.activeElement;   // focus goes back here, however the dialog closes
+  const memory = editor.memory || new Map();
+  const remember = m => `${m.citation.raw}\u0000${citationContext(analysed, m.citation.start, m.citation.end).before.slice(-40)}`;
   let style = options.style || 'auto', analysed = null, context = null, matches = [], chosen = [], siteChoice = {};
 
-  const title = el('h2', { text: 'Import citations' });
+  const title = el('h2', { text: 'Import citations', tabindex: '-1' });
   const intro = el('p', { class: 'hint', text: 'Finds citations such as (Bell, 1992) and the reference list in this article, and turns the ones you accept into citations of works. Anything you leave stays as written.' });
   const styleSelect = el('select', { id: 'di-import-style' }, STYLES.map(s => el('option', { value: s.id, text: s.label, selected: s.id === style })));
-  const find = el('button', { type: 'button', class: 'di-primary', text: 'Find citations' });
+  const find = el('button', { type: 'button', class: 'di-quiet', text: 'Find citations' });
   const controls = el('div', { class: 'di-import-controls' }, [el('label', { for: 'di-import-style', text: 'Citation style' }), styleSelect, find]);
-  const summary = el('p', { class: 'di-import-summary', role: 'status', 'aria-live': 'polite' });
+  const summary = el('p', { class: 'di-import-summary', id: 'di-import-summary' });
+  const spoken = el('span', { class: 'di-sr', role: 'status', 'aria-live': 'polite' });   // only what changed, briefly
   // Three sections, each a disclosure whose heading says how much is left in it, so a writer can close one and still
   // see its state: what needs them, the site's own works, and what's probably right (closed to start).
   const section = (cls, title, hint) => {
@@ -180,14 +188,14 @@ export function openImport(editor, options) {
   const cancel = el('button', { type: 'button', class: 'di-quiet', text: 'Cancel' });
   const apply = el('button', { type: 'button', class: 'di-primary', text: 'Apply', disabled: true });
   const dialog = el('dialog', { class: 'di-dialog di-import', 'aria-labelledby': 'di-import-h' },
-    [el('div', {}, [title, intro, controls, summary, el('div', { class: 'di-import-body' }, [secAttention.box, secSite.box, secProbable.box, secRefs.box]), error, el('div', { class: 'di-actions' }, [cancel, apply])])]);
+    [el('div', {}, [title, intro, controls, summary, spoken, el('div', { class: 'di-import-body' }, [secAttention.box, secSite.box, secProbable.box, secRefs.box]), error, el('div', { class: 'di-actions' }, [cancel, apply])])]);
   title.id = 'di-import-h';
   root.append(dialog);
 
-  const close = () => { dialog.close(); dialog.remove(); editor.focus(); };
+  const close = () => { dialog.close(); dialog.remove(); if (opener?.isConnected) opener.focus(); else editor.focus(); };
   cancel.addEventListener('click', close);
   dialog.addEventListener('close', () => dialog.remove());
-  styleSelect.addEventListener('change', () => { style = styleSelect.value; });
+  styleSelect.addEventListener('change', () => { style = styleSelect.value; analyse(); });
   find.addEventListener('click', analyse);
   apply.addEventListener('click', applyChosen);
 
@@ -209,6 +217,11 @@ export function openImport(editor, options) {
     // A choice per work: a record id, null (leave as written), or undefined (not decided yet). What's probably right is
     // proposed; everything in Needs your attention starts undecided, and Convert waits until it's decided.
     chosen = matches.map(m => m.items.map(it => (isProbablyRight(m) ? it.candidates[0].recordId : undefined)));
+    // Choices made earlier for the same citation (same words, same place in its sentence) come back.
+    matches.forEach((m, i) => {
+      const was = memory.get(remember(m));
+      if (was && was.length === m.items.length && was.every((c, j) => c === undefined || c === null || m.items[j].candidates?.some(x => x.recordId === c))) chosen[i] = was.slice();
+    });
     // A site work is proposed the same way: one candidate with nothing in conflict is selected, visibly, for the
     // writer to confirm by converting. Anything else (a conflict, several candidates) waits for a choice, and
     // Convert waits with it: adding a work the site may already have is as much a guess as merging it.
@@ -221,7 +234,7 @@ export function openImport(editor, options) {
       const clear = only && ![].concat(only.evidence || []).some(e => e.assessment?.conflicts?.length);
       siteChoice[s.recordId] = only && (clear || policy !== 'offer') ? only.recordId : undefined;
     }
-    bibChoice = undefined;
+    bibChoice = memory.get('\u0000refs');
     draw();
   }
 
@@ -265,7 +278,7 @@ export function openImport(editor, options) {
     drawSite();
     drawRefs();
     tally();
-    const first = dialog.querySelector('.di-import-section:not([hidden]) input'); if (first) first.focus();
+    title.focus();
   }
 
   function drawSite() {
@@ -281,8 +294,8 @@ export function openImport(editor, options) {
         const id = `di-site-${s.recordId}-${c.recordId}`, why = siteEvidence(c, ref, siteRec);
         const radio = el('input', { type: 'radio', name: `di-site-${s.recordId}`, id, checked: siteChoice[s.recordId] === c.recordId });
         radio.addEventListener('change', () => { siteChoice[s.recordId] = c.recordId; tally(); });
-        set.append(el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id }, [
-          el('span', { text: `Use the site's “${c.title || c.recordId}”` }), el('small', { text: ` · ${c.recordId}${why ? ' · ' + why : ''}` })])]));
+        set.append(el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id, title: c.recordId }, [
+          el('span', { text: `Use the site's “${c.title || 'untitled work'}”` }), why ? el('small', { text: ' · ' + why }) : null])]));
       }
       if (options.siteWorks === 'require') {
         set.append(el('p', { class: 'hint', text: 'This site uses its own works where it has them.' }));
@@ -290,7 +303,8 @@ export function openImport(editor, options) {
         const nid = `di-site-${s.recordId}-new`;
         const fresh = el('input', { type: 'radio', name: `di-site-${s.recordId}`, id: nid, checked: siteChoice[s.recordId] === null });
         fresh.addEventListener('change', () => { siteChoice[s.recordId] = null; tally(); });
-        set.append(el('div', { class: 'di-import-choice' }, [fresh, el('label', { for: nid, text: 'Add it as a new work' })]));
+        set.append(el('div', { class: 'di-import-choice' }, [fresh, el('label', { for: nid }, [el('span', { text: 'Add it as a new work' }),
+          el('small', { text: ' · the site would then have two copies of this work' })])]));
       }
       siteList.append(set);
     }
@@ -306,12 +320,12 @@ export function openImport(editor, options) {
     const choice = (value, text) => {
       const id = `di-refs-${value}`;
       const radio = el('input', { type: 'radio', name: 'di-refs', id, checked: bibChoice === value });
-      radio.addEventListener('change', () => { bibChoice = value; tally(); });
+      radio.addEventListener('change', () => { bibChoice = value; memory.set('\u0000refs', value); tally(); });
       return el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id, text })]);
     };
-    secRefs.body.replaceChildren(list,
-      choice('replace', 'Replace the typed list with the list of works cited ({citation endnote})'),
-      choice('keep', 'Keep the typed list as it is'));
+    secRefs.body.replaceChildren(list, el('fieldset', { class: 'di-import-item' }, [el('legend', { text: 'What to do with the typed list' }),
+      choice('replace', 'Replace it with the list of works cited, made from the site\'s records'),
+      choice('keep', 'Keep it as typed (readers will also see the generated list of works cited)')]));
   }
   function markUnused() {
     const r = ready(), used = new Set(matches.flatMap((m, i) => (r[i] ? chosen[i] : [])));
@@ -338,11 +352,24 @@ export function openImport(editor, options) {
     }
     writes.forEach((node, i) => {
       const edit = edits.find(e => e.citationIndex === i);
-      node.replaceChildren(...(edit ? [el('span', { text: 'Becomes ' }), el('code', { text: edit.text })] : [document.createTextNode(decided(i) ? 'Stays as written.' : 'Choose above.')]));
+      const partial = chosen[i].some(c => typeof c === 'string') && chosen[i].some(c => c === null);
+      const said = edit ? null : partial ? 'Stays as written: a citation is converted whole, so leaving one of its works leaves all of them.'
+        : decided(i) ? 'Stays as written.' : 'Choose above.';
+      node.replaceChildren(...(edit ? [el('span', { text: 'Becomes a citation of ' + words(chosen[i].map(workName)) + '. ' }),
+        el('details', { class: 'di-import-code' }, [el('summary', { text: 'Show code' }), el('code', { text: edit.text })])] : [document.createTextNode(said)]));
       node.classList.toggle('di-import-writes-none', !edit);
     });
   }
 
+  // A work as a writer knows it: authors and year, and whether it's new or the site's own.
+  function workName(recordId) {
+    const site = siteChoice[recordId] && options.siteCache?.records?.find(r => r.id === siteChoice[recordId]);
+    const ref = context.result.referenceRecords.find(r => r.id === recordId);
+    const name = fallbackNote(site || ref || {});
+    // Two works by the same people in the same year (Cox 1995a and 1995b) are told apart by title.
+    const twin = ref && context.result.referenceRecords.some(r => r !== ref && fallbackNote(r) === fallbackNote(ref));
+    return `${name}${twin && (site || ref).title ? `, “${(site || ref).title}”` : ''} (${site ? "the site's" : 'new'})`;
+  }
   const ready = () => matches.map((m, i) => m.items.length && chosen[i].every(c => typeof c === 'string'));
   const decided = i => chosen[i].every(c => c !== undefined);
   function tally() {
@@ -357,8 +384,9 @@ export function openImport(editor, options) {
     const nProbable = matches.filter(isProbablyRight).length;
     const left = k => (k ? `${k} to decide` : 'all decided ✓');
     secAttention.count.textContent = left(attentionLeft);
-    secSite.count.textContent = `${siteTotal} · ${left(siteLeft)}`;
-    secProbable.count.textContent = `${nProbable}${changed ? ` · ${changed} changed` : ' · all selected ✓'}`;
+    secSite.count.textContent = `${siteTotal} work${siteTotal === 1 ? '' : 's'} · ${left(siteLeft)}`;
+    secProbable.count.textContent = `${nProbable} citation${nProbable === 1 ? '' : 's'}${changed ? ` · ${changed} changed` : ' · all selected ✓'}`;
+    matches.forEach((m, i) => memory.set(remember(m), chosen[i].slice()));
     for (const [sec, k] of [[secAttention, attentionLeft], [secSite, siteLeft]]) sec.box.classList.toggle('di-import-todo', k > 0);
     const refsLeft = !secRefs.box.hidden && bibChoice === undefined ? 1 : 0;
     secRefs.count.textContent = refsLeft ? '1 to decide' : bibChoice === 'replace' ? 'replace ✓' : bibChoice === 'keep' ? 'keep ✓' : '';
@@ -369,6 +397,8 @@ export function openImport(editor, options) {
       : `${matches.length} citation${matches.length === 1 ? '' : 's'} found, ${refs} reference${refs === 1 ? '' : 's'} read. ` +
         (todo ? `Decide ${todo} more before converting: ${[attentionLeft && `${attentionLeft} in Needs your attention`, siteLeft && `${siteLeft} in Works this site already has`, refsLeft && 'the reference list'].filter(Boolean).join(', ')}.`
           : `${n} will be converted; ${matches.length - n} will stay as written.`);
+    const say = todo ? `${todo} left to decide.` : 'All decided.';
+    if (spoken.textContent !== say) spoken.textContent = say;
     apply.disabled = !n || todo > 0;
     apply.textContent = todo ? `Decide ${todo} more` : n ? `Convert ${n} citation${n === 1 ? '' : 's'}` : 'Apply';
   }
@@ -391,14 +421,20 @@ export function openImport(editor, options) {
     close();
     const bib = bibChoice === 'replace' ? context.result.document.bibliography : null;
     const plan = planReplacement(analysed, p, bib);
-    // One undoable step, and the converted stretch is left selected so the writer can see what changed.
-    editor.replace(plan.start, plan.end, plan.text, [0, plan.text.length]);
+    // One undoable step. The caret goes to the start of the change, with nothing selected: a selection would be
+    // replaced by the writer's next keystroke.
+    editor.replace(plan.start, plan.end, plan.text, [0, 0]);
     // New works the converted citations point to join the works list, with notes, and go to the site to keep.
     // The site's own works, reused, are already there.
     const records = worksToKeep(p, decisions);
     editor.addWorks(records.map(rec => ({ id: rec.id, note: options.describe?.(rec.id, p.cache) || fallbackNote(rec), title: rec.title || '' })), records);
     options.onRecords?.(records, p.cache);
     const left = matches.length - decisions.length, reused = (p.reusedRecordIds || []).length;
+    editor.leftAsTyped?.(left);
+    editor.recheck?.();
+    const msg = `Converted ${decisions.length} citation${decisions.length === 1 ? '' : 's'}${left ? `; ${left} left as typed` : ''}` +
+      `${records.length ? `; ${records.length} new work${records.length === 1 ? '' : 's'} will be saved with the page` : ''}${reused ? `; ${reused} of the site's own works used` : ''}.`;
+    editor.report?.(msg);
     editor.announce(`Converted ${decisions.length} citation${decisions.length === 1 ? '' : 's'}${left ? `; ${left} left as written` : ''}` +
       `${records.length ? `; ${records.length} new work${records.length === 1 ? '' : 's'}` : ''}${reused ? `; ${reused} of the site's own` : ''}. Undo reverses the text.`);
   }
@@ -406,5 +442,5 @@ export function openImport(editor, options) {
   dialog.showModal();
   // The editor already knows there are citations to import: look at once, rather than wait for a click.
   analyse();
-  if (!dialog.querySelector('.di-import-section:not([hidden]) input')) styleSelect.focus();
+  title.focus();
 }

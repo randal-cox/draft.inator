@@ -314,3 +314,12 @@
 .di-import-refs-list { margin: 0 0 .5rem; padding-left: 1.2rem; font: .9rem/1.45 var(--di-serif); }
 .di-import-unused { color: var(--di-warn-ink); }
 .di-import-unused-note { font-family: var(--di-sans); }
+
+/* What an import did, with Undo. */
+.di-done { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .9rem; padding: .55rem .9rem; background: var(--di-surface);
+  border-bottom: 2px solid var(--di-accent); font-weight: 500; }
+.di-done[hidden] { display: none; }
+.di-done > span:first-child { flex: 1 1 22rem; }
+.di-editor .di-done-close { padding: .2rem .55rem; }
+/* A focused control is never hidden behind the dialog's sticky footer. */
+.di-editor .di-import { scroll-padding-bottom: 5.5rem; }

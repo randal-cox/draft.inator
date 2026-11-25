@@ -91,24 +91,31 @@ mountEditor(el, { ..., importer: {
 - **Ids for new works.** `siteStyleId` (exported from `importer.js`) gives `bell-1992-ritual`: first author's family
   name, year, and the title's first word, made unique. A site with another scheme passes `recordId(record, { taken })`.
 - **Citations typed by hand.** While the article has author–date citations that aren't markers yet (pasted in from
-  a word processor, say), a banner says so, with examples and a **Review and import** button, and checks again after
+  a word processor, say), a banner says so, with examples and an **Import citations** button, and checks again after
   every change and at once on paste. `importer.handTyped` sets how firm it is: `'block'` (the default: Save refuses
-  until they're imported; after reviewing, the writer can choose **Save with them as typed**, which lasts until more
-  are added), `'warn'` (the banner only), or `'off'`. `editor.handTyped` gives `{ count, examples }`.
+  until they're imported, or until the writer chooses **Allow saving with typed citations**, which lasts until more
+  are added; citations left as typed in an import count as allowed), `'warn'` (the banner only), or `'off'`. `editor.handTyped` gives `{ count, examples }`.
 - **The review's sections.** Three disclosures, each with a live count in its heading: **Needs your attention**
   (several candidates, or no reference; nothing is chosen for you), **Works this site already has**, and **Probably
   right** (one clear match each, selected and changeable; closed to start). Close one and its heading still says
   what's left ("1 to decide", "all decided ✓", "2 changed"). Convert waits, and says "Decide 1 more", until every
   citation in Needs your attention and every site work has a decision, "Leave as written" included. Cancel and
   Convert stay in view at the bottom.
-- **What it becomes.** Each citation shows the exact marker it will be written as (from cite.inator's own preview of
-  the current choices), so new works' ids and the site's own works are visible before converting, in the sentence it
-  sits in. The review runs as soon as it opens.
+- **What it becomes.** Each citation says in words which works it will cite, new or the site's own (two works by the
+  same people in the same year are told apart by title), with **Show code** for the exact marker from cite.inator's
+  own preview of the current choices, in the sentence it sits in. A citation is converted whole: leaving one of its
+  works leaves all of them, and it says so. The review runs as soon as it opens, and again when the style changes.
+- **Choices are remembered** while the page is open: reopening the review, or opening it after Undo, brings back what
+  was decided for each citation and the reference list.
 - **The reference list** is a decision of its own: replace the typed list with the list of works cited, or keep it.
   Its entries are shown, and any no converted citation uses are flagged, since replacing the list removes them.
-- **Evidence in plain words.** Capitals, punctuation, and initials against full names don't count as differences; a
-  site title without the source's subtitle says "differs: subtitle".
-- **After converting**, the changed stretch of text is selected, so the writer sees what changed. Undo reverses it.
+- **Evidence in plain words.** "Same title, authors, and year." Capitals, punctuation, and initials against full
+  names don't count as differences; a site title without the source's subtitle says "the site's copy has no
+  subtitle". Internal ids aren't shown. Adding a work the site already has warns that the site would have two copies.
+- **After converting**, a line above the text says what happened ("Converted 6 citations; 1 left as typed; 2 new works
+  will be saved with the page …") with **Undo**, which reverses the whole import in one step. The caret goes to the
+  start of the change, with nothing selected, so the next keystroke can't replace it. Closing the review, by Cancel
+  or Escape, returns focus to where it was opened from.
 - **The site's own works, by policy.** `importer.siteWorks`: `'offer'` (the default: one clear match is selected;
   anything written differently waits for a choice), `'prefer'` (one match is selected even when written a little
   differently), or `'require'` (no "Add it as a new work" where the site has a match).
