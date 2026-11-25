@@ -5,8 +5,9 @@
 - **Citations typed by hand can't be missed** (Randal's review, 25 Nov 2026). While an article has author–date
   citations that aren't markers yet, a banner names them and offers **Review and import**; by default Save waits
   until they're imported (`importer.handTyped`: `block`, `warn`, or `off`). Pasting them in says so at once.
-- **Import review, second round.** Needs your attention first, then the works the site already has, then probably
-  right; Cancel and Convert always in view; a site policy for its own works (`importer.siteWorks`: `offer`, `prefer`,
+- **Import review, second round.** Three sections as disclosures with live counts ("1 to decide", "all decided ✓"):
+  Needs your attention, where nothing is chosen for you and Convert waits until each is decided; the works the site
+  already has; and probably right, closed to start; Cancel and Convert always in view; a site policy for its own works (`importer.siteWorks`: `offer`, `prefer`,
   `require`); radios and checkboxes drawn the same in light and dark.
 - **citation.inator 0.4.0** (tag `v0.4.0`), vendored from its release tarball: the tools bundle (now with
   `formatRecordId`), and new, the import bundle and the browser compiler. `vendor/citation-inator/README.md` has the

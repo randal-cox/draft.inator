@@ -136,10 +136,19 @@ export function openImport(editor, options) {
   const find = el('button', { type: 'button', class: 'di-primary', text: 'Find citations' });
   const controls = el('div', { class: 'di-import-controls' }, [el('label', { for: 'di-import-style', text: 'Citation style' }), styleSelect, find]);
   const summary = el('p', { class: 'di-import-summary', role: 'status', 'aria-live': 'polite' });
-  const list = el('div', { class: 'di-import-sections' }), probableHost = el('div', { class: 'di-import-sections' });
-  const siteHead = el('h3', { text: 'Works this site already has', hidden: true });
-  const siteIntro = el('p', { class: 'hint', hidden: true, text: 'These references look like works already on the site. Use the site\'s work, or add the reference as a new one.' });
-  const siteList = el('div', { class: 'di-import-site' });
+  // Three sections, each a disclosure whose heading says how much is left in it, so a writer can close one and still
+  // see its state: what needs them, the site's own works, and what's probably right (closed to start).
+  const section = (cls, title, hint) => {
+    const count = el('span', { class: 'di-import-count' });
+    const body = el('div', { class: 'di-import-section-body' });
+    const box = el('details', { class: 'di-import-section ' + cls, hidden: true }, [
+      el('summary', {}, [el('span', { class: 'di-import-section-title', text: title }), count]), el('p', { class: 'hint', text: hint }), body]);
+    return { box, count, body };
+  };
+  const secAttention = section('di-import-attention', 'Needs your attention', 'More than one work could match, or none in the reference list does. Choose for each, or leave it as written.');
+  const secSite = section('di-import-site-section', 'Works this site already has', 'These references look like works already on the site. Use the site\'s work, or add the reference as a new one.');
+  const secProbable = section('di-import-probable', 'Probably right', 'One clear match each, already selected. Check them; change any that are wrong.');
+  const siteList = secSite.body;
   const replaceBox = el('input', { type: 'checkbox', id: 'di-import-replace' });
   const replaceLabel = el('label', { for: 'di-import-replace' });
   const replaceRow = el('div', { class: 'check di-import-replace', hidden: true }, [replaceBox, replaceLabel]);
@@ -147,7 +156,7 @@ export function openImport(editor, options) {
   const cancel = el('button', { type: 'button', class: 'di-quiet', text: 'Cancel' });
   const apply = el('button', { type: 'button', class: 'di-primary', text: 'Apply', disabled: true });
   const dialog = el('dialog', { class: 'di-dialog di-import', 'aria-labelledby': 'di-import-h' },
-    [el('div', {}, [title, intro, controls, summary, el('div', { class: 'di-import-body' }, [list, siteHead, siteIntro, siteList, probableHost, replaceRow]), error, el('div', { class: 'di-actions' }, [cancel, apply])])]);
+    [el('div', {}, [title, intro, controls, summary, el('div', { class: 'di-import-body' }, [secAttention.box, secSite.box, secProbable.box, replaceRow]), error, el('div', { class: 'di-actions' }, [cancel, apply])])]);
   title.id = 'di-import-h';
   root.append(dialog);
 
@@ -159,7 +168,7 @@ export function openImport(editor, options) {
   apply.addEventListener('click', applyChosen);
 
   function analyse() {
-    error.textContent = ''; list.textContent = ''; probableHost.textContent = '';
+    error.textContent = ''; for (const sec of [secAttention, secSite, secProbable]) { sec.body.textContent = ''; sec.box.hidden = true; }
     analysed = editor.getText();
     context = { mode: 'document', source: analysed, style, citationKeyword: 'citation', namespace: 'draft-import',
       limits: { references: 300 }, ...(options.siteCache && { siteCache: options.siteCache }) };
@@ -172,7 +181,9 @@ export function openImport(editor, options) {
     context.result = a;
     matches = a.review.matches;
     // A unique match is proposed (selected, visibly, and changeable); anything else waits for the writer.
-    chosen = matches.map(m => m.items.map(it => (it.state === 'unique' && it.candidates?.length === 1 ? it.candidates[0].recordId : null)));
+    // A choice per work: a record id, null (leave as written), or undefined (not decided yet). What's probably right is
+    // proposed; everything in Needs your attention starts undecided, and Convert waits until it's decided.
+    chosen = matches.map(m => m.items.map(it => (isProbablyRight(m) ? it.candidates[0].recordId : undefined)));
     // A site work is proposed the same way: one candidate with nothing in conflict is selected, visibly, for the
     // writer to confirm by converting. Anything else (a conflict, several candidates) waits for a choice, and
     // Convert waits with it: adding a work the site may already have is as much a guess as merging it.
@@ -189,16 +200,11 @@ export function openImport(editor, options) {
   }
 
   function draw() {
-    list.textContent = ''; probableHost.textContent = '';
-    // Sections: what needs the writer first, then what's probably right (still visible, still changeable).
     const attention = el('ol', { class: 'di-import-list' }), probable = el('ol', { class: 'di-import-list' });
-    const nAttention = matches.filter(m => !isProbablyRight(m)).length, nProbable = matches.length - nAttention;
-    if (nAttention) list.append(el('section', { class: 'di-import-section di-import-attention', 'aria-label': 'Needs your attention' }, [
-      el('h3', { text: `Needs your attention (${nAttention})` }),
-      el('p', { class: 'hint', text: 'More than one work could match, or none in the reference list does. Choose, or leave as written.' }), attention]));
-    if (nProbable) probableHost.append(el('section', { class: 'di-import-section', 'aria-label': 'Probably right' }, [
-      el('h3', { text: `Probably right (${nProbable})` }),
-      el('p', { class: 'hint', text: 'One clear match each, already selected. Check them; change any that are wrong.' }), probable]));
+    secAttention.body.replaceChildren(attention); secProbable.body.replaceChildren(probable);
+    const nAttention = matches.filter(m => !isProbablyRight(m)).length;
+    secAttention.box.hidden = !nAttention; secAttention.box.open = true;
+    secProbable.box.hidden = nAttention === matches.length; secProbable.box.open = !nAttention;
     matches.forEach((m, i) => {
       const at = m.citation.start, text = analysed;
       const before = text.slice(Math.max(0, at - 50), at).replace(/^\S*\s/, '…'), after = text.slice(m.citation.end, m.citation.end + 40).replace(/\s\S*$/, '…');
@@ -209,7 +215,7 @@ export function openImport(editor, options) {
       m.items.forEach((it, j) => {
         const names = (it.item.authors || []).join(', ') + (it.item.etAl ? ' et al.' : '') + ' ' + (it.item.year ?? '');
         const set = el('fieldset', { class: 'di-import-item' }, [el('legend', { text: m.items.length > 1 ? `Work ${j + 1}: ${names.trim()}` : names.trim() })]);
-        if (!it.candidates?.length) set.append(el('p', { class: 'hint', text: 'Not found in the reference list. It stays as written.' }));
+        if (!it.candidates?.length) set.append(el('p', { class: 'hint', text: 'Not found in the reference list.' }));
         for (const c of it.candidates || []) {
           const id = `di-imp-${i}-${j}-${c.recordId}`;
           const evidence = Object.values(c.evidence || {}).map(v => EVIDENCE[v] ?? v).filter(Boolean).join(', ');
@@ -217,11 +223,11 @@ export function openImport(editor, options) {
           radio.addEventListener('change', () => { chosen[i][j] = c.recordId; tally(); });
           set.append(el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id }, [el('span', { text: c.title }), evidence ? el('small', { text: ' · ' + evidence }) : null])]));
         }
-        if (it.candidates?.length) {
+        {
           const id = `di-imp-${i}-${j}-leave`;
-          const radio = el('input', { type: 'radio', name: `di-imp-${i}-${j}`, id, value: '', checked: !chosen[i][j] });
+          const radio = el('input', { type: 'radio', name: `di-imp-${i}-${j}`, id, value: '', checked: chosen[i][j] === null });
           radio.addEventListener('change', () => { chosen[i][j] = null; tally(); });
-          set.append(el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id, text: 'Leave as written' })]));
+          set.append(el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id, text: it.candidates?.length ? 'Leave as written' : 'Leave as written (the banner will keep reminding you)' })]));
         }
         row.append(set);
       });
@@ -229,13 +235,13 @@ export function openImport(editor, options) {
     });
     drawSite();
     tally();
-    const first = list.querySelector('input'); if (first) first.focus();
+    const first = dialog.querySelector('.di-import-section:not([hidden]) input'); if (first) first.focus();
   }
 
   function drawSite() {
     siteList.textContent = '';
     const proposals = (context.result.siteMatches || []).filter(s => s.candidates?.length);
-    siteHead.hidden = siteIntro.hidden = !proposals.length;
+    secSite.box.hidden = !proposals.length; secSite.box.open = true;
     for (const s of proposals) {
       const ref = context.result.referenceRecords.find(r => r.id === s.recordId);
       const set = el('fieldset', { class: 'di-import-item' }, [el('legend', { text: `${ref ? fallbackNote(ref) : s.recordId}: ${ref?.title || ''}` })]);
@@ -258,7 +264,8 @@ export function openImport(editor, options) {
     }
   }
 
-  const ready = () => matches.map((m, i) => m.items.length && chosen[i].every(Boolean));
+  const ready = () => matches.map((m, i) => m.items.length && chosen[i].every(c => typeof c === 'string'));
+  const decided = i => chosen[i].every(c => c !== undefined);
   // The typed reference list can be replaced by {citation endnote}, which lists the cited works. Typed text is only
   // removed when the writer says so: ticked when every reference is used by a converted citation, else unticked
   // with the ones that would go named.
@@ -277,15 +284,26 @@ export function openImport(editor, options) {
   function tally() {
     offerReplace();
     const r = ready(), n = r.filter(Boolean).length, refs = context.result.referenceRecords.length;
-    summary.textContent = matches.length
-      ? `${matches.length} citation${matches.length === 1 ? '' : 's'} found, ${refs} reference${refs === 1 ? '' : 's'} read. ${n} will be converted; ${matches.length - n} will stay as written.`
-      : `No citations found${refs ? `, though ${refs} reference${refs === 1 ? ' was' : 's were'} read` : ''}. Is the style right?`;
+    const attentionLeft = matches.filter((m, i) => !isProbablyRight(m) && !decided(i)).length;
     // References the converted citations use whose site match hasn't been decided.
     const usedNow = new Set(matches.flatMap((m, i) => (r[i] ? chosen[i] : [])));
-    const undecided = Object.entries(siteChoice).filter(([id, v]) => v === undefined && usedNow.has(id)).length;
-    if (undecided) summary.textContent += ` Choose for ${undecided} work${undecided === 1 ? '' : 's'} this site may already have (below).`;
-    apply.disabled = !n || undecided > 0;
-    apply.textContent = n ? `Convert ${n} citation${n === 1 ? '' : 's'}` : 'Apply';
+    const siteLeft = Object.entries(siteChoice).filter(([id, v]) => v === undefined && usedNow.has(id)).length;
+    const siteTotal = Object.keys(siteChoice).length;
+    const changed = matches.filter((m, i) => isProbablyRight(m) && chosen[i].some((c, j) => c !== m.items[j].candidates[0].recordId)).length;
+    const nProbable = matches.filter(isProbablyRight).length;
+    const left = k => (k ? `${k} to decide` : 'all decided ✓');
+    secAttention.count.textContent = ` · ${left(attentionLeft)}`;
+    secSite.count.textContent = ` · ${siteTotal} · ${left(siteLeft)}`;
+    secProbable.count.textContent = ` · ${nProbable}${changed ? ` · ${changed} changed` : ' · all selected ✓'}`;
+    for (const [sec, k] of [[secAttention, attentionLeft], [secSite, siteLeft]]) sec.box.classList.toggle('di-import-todo', k > 0);
+    const todo = attentionLeft + siteLeft;
+    summary.textContent = !matches.length
+      ? `No citations found${refs ? `, though ${refs} reference${refs === 1 ? ' was' : 's were'} read` : ''}. Is the style right?`
+      : `${matches.length} citation${matches.length === 1 ? '' : 's'} found, ${refs} reference${refs === 1 ? '' : 's'} read. ` +
+        (todo ? `Decide ${todo} more before converting: ${[attentionLeft && `${attentionLeft} in Needs your attention`, siteLeft && `${siteLeft} in Works this site already has`].filter(Boolean).join(', ')}.`
+          : `${n} will be converted; ${matches.length - n} will stay as written.`);
+    apply.disabled = !n || todo > 0;
+    apply.textContent = todo ? `Decide ${todo} more` : n ? `Convert ${n} citation${n === 1 ? '' : 's'}` : 'Apply';
   }
 
   function applyChosen() {

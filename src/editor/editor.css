@@ -282,10 +282,15 @@
 
 /* Import review: sections, and actions that stay in view. */
 .di-editor .di-import { padding-bottom: 0; }
-.di-import-section { margin: .75rem 0 0; }
-.di-import-section h3 { margin: .2rem 0; font-size: 1rem; }
+.di-import-section { margin: .75rem 0 0; border: 1px solid var(--di-line); border-radius: 10px; padding: 0 .75rem; background: var(--di-surface); }
+.di-import-section[hidden] { display: none; }
+.di-import-section > summary { cursor: pointer; padding: .55rem 0; font-weight: 700; font-size: 1rem; list-style-position: inside; }
+.di-import-section > summary:focus-visible { outline: 3px solid var(--di-focus); outline-offset: 2px; border-radius: 6px; }
+.di-import-count { font-weight: 500; color: var(--di-muted); }
+.di-import-todo { border-color: var(--di-warn-line); border-left-width: 5px; }
+.di-import-todo > summary .di-import-count { color: var(--di-warn-ink); font-weight: 700; }
 .di-import-section > .hint { margin: 0 0 .5rem; }
-.di-import-attention > h3 { color: var(--di-warn-ink); }
+.di-import-section-body { padding-bottom: .75rem; }
 .di-editor .di-import .di-actions { position: sticky; bottom: 0; z-index: 1; margin: .75rem -1.25rem 0; padding: .7rem 1.25rem;
   background: var(--di-bg); border-top: 1px solid var(--di-line); box-shadow: 0 -6px 12px -10px rgb(0 0 0 / .35); }
 

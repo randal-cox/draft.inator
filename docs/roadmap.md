@@ -129,5 +129,10 @@ assembled as a preset, revisited after a small experiment (labelled figures, cro
 
 ## Later, when someone needs them
 
+- **Editing together** (Randal, 25 Nov 2026: level 2). Saving merges the writer's changes into the latest version,
+  the way git does: untouched paragraphs go straight through, a paragraph both people changed is shown side by side
+  to choose, and front matter merges field by field. A notice says when someone else is editing the page, and since
+  when. No live server; live editing (shared cursors) stays out unless real users ask for it.
+
 - Gallery, columns, reusable snippets, a site-wide link picker for external sources.
 - Glossary auto-linking by use (Randal's note, 20 Nov 2026: link a term's uses, possibly found by embeddings).

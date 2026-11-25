@@ -95,9 +95,12 @@ mountEditor(el, { ..., importer: {
   every change and at once on paste. `importer.handTyped` sets how firm it is: `'block'` (the default: Save refuses
   until they're imported; after reviewing, the writer can choose **Save with them as typed**, which lasts until more
   are added), `'warn'` (the banner only), or `'off'`. `editor.handTyped` gives `{ count, examples }`.
-- **The review's order.** Citations that need the writer come first (several candidates, or no reference), then the
-  works the site already has, then the ones that are probably right (one clear match each, selected and changeable).
-  Cancel and Convert stay in view at the bottom.
+- **The review's sections.** Three disclosures, each with a live count in its heading: **Needs your attention**
+  (several candidates, or no reference; nothing is chosen for you), **Works this site already has**, and **Probably
+  right** (one clear match each, selected and changeable; closed to start). Close one and its heading still says
+  what's left ("1 to decide", "all decided ✓", "2 changed"). Convert waits, and says "Decide 1 more", until every
+  citation in Needs your attention and every site work has a decision, "Leave as written" included. Cancel and
+  Convert stay in view at the bottom.
 - **The site's own works, by policy.** `importer.siteWorks`: `'offer'` (the default: one clear match is selected;
   anything written differently waits for a choice), `'prefer'` (one match is selected even when written a little
   differently), or `'require'` (no "Add it as a new work" where the site has a match).
