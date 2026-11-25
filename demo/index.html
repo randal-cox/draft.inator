@@ -11,18 +11,26 @@
 <header class="site">
   <p class="kicker"><a href="https://github.com/randal-cox/draft.inator">draft.inator</a></p>
   <h1>Try draft.inator</h1>
-  <p class="lede">draft.inator adds the blocks writers expect (citations first) to Sveltia CMS, for sites whose pages
-    live in a git repository. These pages run its real code in your browser. Nothing is sent anywhere.</p>
+  <p class="lede">An article editor for sites whose pages live in a git repository: Markdown with citations and
+    figures, a live preview, and the page's details, saved as a pull request. These pages run its real code in your
+    browser. Nothing is sent anywhere.</p>
 </header>
 <main>
+  <section class="hero" aria-labelledby="hero-title">
+    <div>
+      <h2 id="hero-title">Start here: the editor</h2>
+      <p>A sample essay with its details (title, authors, topics, card image) above the text, citations and figures in
+        it, and the page as readers will see it beside you. Change anything; Save says what it would write.</p>
+    </div>
+    <a class="go" href="editor/">Open the editor</a>
+  </section>
+  <h2>More to try</h2>
   <div class="cards">
-    <a class="card" href="editor/"><strong>The live editor</strong>Write an article with citations and figures and see it
-      beside you, above you, or alone. Hide the toolbar, or go plain. Nothing leaves your browser.</a>
     <a class="card" href="editor/?sample=import"><strong>Importing citations</strong>An essay with citations typed out by
       hand and a reference list, as if pasted from a word processor. Choose "Import citations".</a>
     <a class="card" href="site/"><strong>Editing inside a site</strong>The same editor in a box on a site's own page, with its
       menus still in view. Choose "Edit this page".</a>
-    <a class="card" href="sveltia/"><strong>In Sveltia CMS</strong>The real editor, with the Cite and Figure blocks, on a
+    <a class="card" href="sveltia/"><strong>In Sveltia CMS</strong>The Cite and Figure blocks in Sveltia's own editor, on a
       sample site. Insert a figure, upload an image, cite a work. Changes stay in your browser.</a>
     <a class="card" href="cite.html"><strong>The Cite block</strong>Open a citation, change it in the form, and save
       it back, and see that nothing but its note changes.</a>

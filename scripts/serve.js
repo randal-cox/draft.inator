@@ -21,6 +21,7 @@ const TYPES = {
 const server = http.createServer((req, res) => {
   let rel;
   try { rel = decodeURIComponent(new URL(req.url, 'http://localhost').pathname); } catch { res.writeHead(400).end(); return; }
+  if (rel === '/') { res.writeHead(302, { location: '/demo/' }).end(); return; }   // the demos are the front door
   let file = path.join(root, rel);
   if (!file.startsWith(root + path.sep) && file !== root) { res.writeHead(403).end(); return; }   // nothing outside the repository
   if (path.relative(root, file).split(path.sep).some(p => p.startsWith('.') && p.length > 1)) { res.writeHead(404).end(); return; }  // no .git

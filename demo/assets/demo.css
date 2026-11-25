@@ -63,3 +63,13 @@ mark { background: var(--mark); color: var(--mark-ink); border-radius: 2px; }
 .cards a.card strong { display: block; color: var(--accent); font-size: 1.1rem; margin-bottom: .25rem; }
 footer.site { margin-top: 3rem; padding-bottom: 2rem; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 1rem; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* The landing page's way in. */
+.hero { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem 2rem;
+  background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--accent); border-radius: 10px;
+  padding: 1.25rem 1.5rem; margin: 1.5rem 0 .5rem; }
+.hero h2 { margin: 0 0 .35rem; }
+.hero p { margin: 0; max-width: 40rem; }
+a.go { display: inline-block; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 1.1rem;
+  text-decoration: none; padding: .7rem 1.3rem; border-radius: 8px; white-space: nowrap; }
+a.go:hover { filter: brightness(1.1); }

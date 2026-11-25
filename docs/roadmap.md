@@ -64,6 +64,10 @@ can grow into the editor real sites use (PRD principle 3).
 
 From `docs/plan-full-editor.md` (decided 21 Nov 2026).
 
+- [x] Front matter edited without disturbing it: only changed keys are written, in their own style (`yaml.js`).
+- [x] The Details panel, drawn from a collection's fields (`DRAFT_COLLECTIONS`), with relations from
+      `DRAFT_ENTRIES`, and checked on Save (required, patterns, ranges). Shown in the editor demo.
+
 - [ ] A settings panel beside the editor: title, slug, authors, dates, status, excerpt, preview image with alt text,
       tags and topics, SEO and social cards, canonical address, noindex, redirects.
 - [ ] Who may see a page (`visibility`: public, unlisted, members, or the site's groups) and who may edit it

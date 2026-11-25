@@ -52,6 +52,10 @@ const editor = mountEditor(document.querySelector('#edit-here'), {
 | `importer` | Turns on Import citations: `{ process, describe?, onRecords?, siteCache?, recordId? }` (see Importing citations) |
 | `citations` | Formatted citations in the preview: `{ compileHTML, cache, citationStyle? }` (see Formatted citations in the preview) |
 | `showImport` | Show the Import citations button even without an importer (disabled) |
+| `collection` | A collection in `window.DRAFT_COLLECTIONS`: adds the Details panel, and `text` becomes the whole file (see below) |
+| `fields` | Or the collection's fields directly |
+| `entries` | Entries by collection: choices for relation fields, keyword suggestions (values the collection's other entries use), and places for an order field. Default: `window.DRAFT_ENTRIES` |
+| `slug` | The page's slug, so it isn't counted among its collection's other entries |
 
 `mountEditor` returns `{ ready, text, focus(), setLayout(id) }`. `text` reads and replaces the Markdown.
 
@@ -108,7 +112,26 @@ those pages to its CMS instead.
 
 ## Front matter
 
-The editor edits a page's body. Set the YAML front matter aside and put it back exactly:
+### With the Details panel (0.5)
+
+Give the editor the page's collection and the whole file. The front matter is edited as a form above the text, drawn
+from the collection's fields (`docs/data-contract.md`); the body is edited in the text box; `save` and `done` get the
+whole file back, and `editor.text` reads and replaces the whole file.
+
+```js
+mountEditor(el, { collection: 'essays', text: fileText, save: async file => saveFile(file) });
+```
+
+Only the keys a writer changes are written, in the style they had; everything else stays byte for byte. Save checks
+the details first (required fields, patterns, number ranges): a problem is shown beside its field, which gets focus,
+and nothing is sent.
+
+Kept drafts hold the whole file. A site turning the panel on should change its `storageKey`, so a draft kept as a
+body alone isn't offered in place of a whole file.
+
+### Without it
+
+Without `collection`, the editor edits a page's body. Set the YAML front matter aside and put it back exactly:
 
 ```js
 import { splitFrontMatter, joinFrontMatter } from '/admin/draft-inator/editor/frontmatter.js';

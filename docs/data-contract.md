@@ -1,4 +1,4 @@
-# The data contract (0.3)
+# The data contract (0.5)
 
 draft.inator's blocks run in the browser and know nothing about the host site's build. The host gives them data as
 globals, written by its build into one script loaded after Sveltia and before the blocks.
@@ -35,6 +35,42 @@ window.DRAFT_TOPICS = [ { "id": "ritual-theory", "label": "Theory › Ritual the
 ```
 
 Optional. With none, the Topics field offers nothing and tags already in markers are kept.
+
+### `window.DRAFT_COLLECTIONS`: what a page's front matter holds (0.5)
+
+```js
+window.DRAFT_COLLECTIONS = [
+  { "name": "essays", "label": "Essays", "folder": "content/essays", "fields": [
+    { "name": "title", "label": "Title" },
+    { "name": "authors", "label": "Authors", "widget": "relation", "collection": "people", "multiple": true, "display_fields": ["{{name}}"] },
+    { "name": "body", "label": "Body", "widget": "markdown" }
+  ] },
+  ...
+]
+```
+
+Optional; only the editor's Details panel reads it (`mountEditor(el, { collection: 'essays' })`). The format is
+Sveltia CMS's `collections`, so a site with a Sveltia config passes its collections as they are (JSON, or YAML parsed
+by its build). Of each field the panel reads `name`, `label`, `widget` (default `string`), `required` (default true),
+`hint`, `pattern`, `options`, `multiple`, `min`, `max`, `value_type`, `time_format`, and, for relations,
+`collection`, `value_field` (default `{{slug}}`), and `display_fields`. Anything else is ignored, not an error.
+
+It edits the widgets `string`, `text`, `number`, `boolean`, `datetime`, `date`, `select`, `relation`, `image`,
+`file`, and `list` (of plain values). Other fields (`object`, a list of objects, `code`, a site's own widget) and any
+value too complex for a form are shown as kept and written back exactly as they were; so are keys the collection
+doesn't describe. A `markdown` field named `body` is the text being written.
+
+### `window.DRAFT_ENTRIES`: what a relation field can point to (0.5)
+
+```js
+window.DRAFT_ENTRIES = {
+  "people": [ { "slug": "mara-ellison", "name": "Mara Ellison" }, ... ],
+  "topics": [ { "id": "ritual-theory", "label": "Theory › Ritual theory" }, ... ]
+}
+```
+
+Optional. Entries by collection name, each `{ slug, ...fields }` (whatever `value_field` and `display_fields` name).
+A relation whose collection has no entries offers nothing, and values already in a page are kept and shown.
 
 ## What the blocks write
 
@@ -96,11 +132,24 @@ One line of its own (a block, not inline):
 Guarantee (tested, and checked in Sveltia 0.262.4): reading a figure and writing it back changes nothing, and a
 second pass changes nothing.
 
+### Front matter (0.5)
+
+With the Details panel, the editor writes a page's YAML front matter. Only the keys a writer changes are written,
+each in the style it had (plain or quoted, flow `[a, b]` or block `- a` list, `|` text), with its comment and line
+endings. Keys the panel doesn't edit, comments, blank lines, and order stay byte for byte. A cleared field the page
+didn't have is left out; new keys go at the end. A value that would read as something else (`"true"`, `"1992"`,
+`"a: b"`) is quoted.
+
+Guarantee (tested, `test/yaml.test.js` and `test/details.test.js`): writing a page's own values back changes nothing,
+and one change touches only that key's lines.
+
 ## Changes to this contract
 
 - 0.2 (additive): `draft-inator works` produces `works.js`; the skipped directives now match citation.inator exactly.
 - 0.3 (additive): the Figure block's `{figure …}` tag.
 - 0.4 (additive): `local:` ids are read as the bare work id and kept as written.
+- 0.5 (additive): `DRAFT_COLLECTIONS` and `DRAFT_ENTRIES`, for the Details panel. What the editor writes in front
+  matter is below.
 
 
 Additive only within 0.x where possible. A breaking change bumps the minor version and is listed in the roadmap.

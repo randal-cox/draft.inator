@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (0.4)
+## Unreleased
 
 - **citation.inator 0.4.0** (tag `v0.4.0`), vendored from its release tarball: the tools bundle (now with
   `formatRecordId`), and new, the import bundle and the browser compiler. `vendor/citation-inator/README.md` has the
@@ -22,6 +22,15 @@
   writes) opens with Bell selected and Bell's note, and is written back in the form it had. A newly chosen work is
   written bare, or `local:` when its id is a directive word such as `list`. Checked against citation.inator's
   `markerKind`.
+- **The Details panel (0.5).** With `collection` (or `fields`), the editor takes the whole file: front matter as a
+  document's properties above the text, drawn from the site's collection fields in Sveltia's format
+  (`DRAFT_COLLECTIONS`): the title large, a summary that opens when wanted, and compact rows whose choosers (authors,
+  topics, keywords, card image, order) open only when asked for, search hundreds of entries, and work from the
+  keyboard. Choices come from `DRAFT_ENTRIES`; an order is chosen as a place among the other entries. Save checks required fields, patterns, and number
+  ranges first and shows each problem beside its field. The demos' landing page now opens with the editor, and
+  `npm run demo` serves it at the bare address too. Only the keys a writer changes are written, in their own
+  style; everything else in the front matter stays byte for byte (`src/editor/yaml.js`). Additive: without
+  `collection`, the editor works as before. The editor demo shows it.
 - **Kept drafts are offered, not loaded silently.** The editor always opens the page's own text; changes kept in the
   browser are offered with their time (Restore them, or Discard), with a warning if the page has changed since, so a
   newer save is never hidden. Restore is one undoable step; a successful save forgets the kept draft.

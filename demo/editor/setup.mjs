@@ -26,3 +26,9 @@ export async function sample() {
   const r = await fetch(new URL('sample.md', here));
   return r.ok ? r.text() : '# Untitled\n';
 }
+
+// The same article as a whole file, front matter and all, for the editor with a Details panel.
+export async function sampleArticle() {
+  const r = await fetch(new URL('sample-article.md', here));
+  return r.ok ? r.text() : '---\ntitle: Untitled\n---\n';
+}
