@@ -69,8 +69,8 @@ With citation.inator's importer, the toolbar's **Import citations** finds author
 matches and why ("authors match, year matches").
 - **Proposed, not applied:** unique matches start selected and can be changed; others need a choice; "Leave as
   written" is always there.
-- **One undoable step:** accepted citations become `{citation …}` markers, keeping locators, prefixes, and the
-  narrative form, and the typed reference list can be replaced by `{citation endnote}`.
+- **One undoable step:** accepted citations become `{cite …}` markers, keeping locators, prefixes, and the
+  narrative form, and the typed reference list can be replaced by `{cite endnote}`.
 - **Unmatched citations stay exactly as written.**
 
 ```js
@@ -130,7 +130,7 @@ mountEditor(el, { ..., citations: { compileHTML, cache: siteCache, citationStyle
 ```
 
 The preview then shows citations and endnotes as the published page will (and adds endnotes if the text has no
-`{citation endnote}`). Without `citations`, or if the compiler stops, the preview shows each work's note and says so.
+`{cite endnote}`). Without `citations`, or if the compiler stops, the preview shows each work's note and says so.
 Use the same style as the site's build. Works added by an import are added to this cache, so they format at once.
 
 ## Bodies written in HTML

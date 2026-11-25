@@ -1,6 +1,6 @@
 /* draft.inator: the Cite block. In the text editor, a "Citation" button opens a form:
    one or more works, each with an optional page, prefix, form, and reference topics. It writes a citation.inator
-   marker, {citation id | note:"Bell 1992" | locator:12 | tags:ritual-theory; other-id}, with each note taken from
+   marker, {cite id | note:"Bell 1992" | locator:12 | tags:ritual-theory; other-id}, with each note taken from
    citation.inator's description of the work (window.DRAFT_WORKS, written by the host site's build; see docs/data-contract.md). Existing markers open in the same form;
    any option the form doesn't show (a label, fallback words) is kept as it was. */
 (function () {
@@ -165,8 +165,8 @@
       ]
     }],
     // Directives are not citations of a work; leave them alone. Matches citation.inator 0.2.0's own test exactly
-    // ({citation endnote}, {citation endnote | …}, {citation list …}, {citation nocite …}, {citation evidence},
-    // {citation credit}), so a work whose id merely starts with one of those words (list-2001) still opens.
+    // ({cite endnote}, {cite endnote | …}, {cite list …}, {cite nocite …}, {cite evidence},
+    // {cite credit}), so a work whose id merely starts with one of those words (list-2001) still opens.
     pattern: new RegExp('\\{' + KEYWORD + ' (?!\\s*(?:endnote(?:[\\s|}])|(?:list|nocite|tags)[ \\t]|(?:evidence|credit)(?:[\\s|}])))((?:[^{}\\\\]|\\\\.)*)\\}'),
     fromBlock: function (match) { return { items: parse(match[1]) }; },
     toBlock: function (data) { return build(data.items); },

@@ -108,3 +108,12 @@ test('fields separated by spaces (cite.inator 0.5.1) are read, and written back 
   assert.ok(!pattern.test('{cite tags bell-1992-ritual methods:"Methods"}'), 'the tags directive is left alone');
   assert.ok(!pattern.test('{cite endnote heading:"Notes"}'), 'a directive with space-separated options is left alone');
 });
+
+test('an import placeholder opens as a citation and keeps its unresolved: option (cite.inator 0.5.1)', () => {
+  const pattern = new RegExp(cite.pattern.source);
+  const raw = '{cite pending-rivera-2020 | note:"(Rivera, 2020)" | unresolved:"(Rivera, 2020)"}';
+  assert.ok(pattern.test(raw), 'a placeholder is a citation');
+  const once = cite.toBlock(cite.fromBlock(raw.match(pattern)));
+  assert.match(once, /^\{cite pending-rivera-2020 \| note:"[^"]*" \| unresolved:"\(Rivera, 2020\)"\}$/);
+  assert.equal(cite.toBlock(cite.fromBlock(once.match(pattern))), once, 'a second pass changes nothing');
+});

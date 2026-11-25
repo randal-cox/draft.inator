@@ -10,7 +10,7 @@ draft.inator never formats a citation for readers. cite.inator does that, in the
 
 | Job | draft.inator | cite.inator |
 |---|---|---|
-| The marker grammar (`{citation id \| locator:12}`) | Writes it | Defines it, reads it |
+| The marker grammar (`{cite id \| locator:12}`) | Writes it | Defines it, reads it |
 | A form for writers | **Cite block** | |
 | Citations, endnotes, and reading lists readers see | | Compiler |
 | A work's short description ("Bell 1992") | Shows it | `describeCitation` |

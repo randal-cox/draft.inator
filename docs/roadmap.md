@@ -30,7 +30,7 @@ and the host taking it.
 - [x] Live demos viewable from GitHub (GitHub Pages, `demo/`): the Cite block's form without installing Sveltia, a
       round trip, and the build tools' output on a sample site.
 - [x] GitHub Pages turned on (Randal, 21 Nov 2026: `main`, `/ (root)`).
-- Moved to 1.0: the reference renderer for `{citation …}` (a thin, documented call into citation.inator's compiler),
+- Moved to 1.0: the reference renderer for `{cite …}` (a thin, documented call into citation.inator's compiler),
   with the other JS reference renderers.
 
 ## 0.3: Figure (released, v0.3.0, with the first of 0.4's editor)
@@ -105,7 +105,7 @@ From `docs/plan-full-editor.md` (decided 21 Nov 2026).
 ## 1.0: A plug-in other sites use
 
 - [ ] One site file; nothing host-specific left in the blocks (see `origin.md`).
-- [ ] JS reference renderers, starting with `{citation …}` as a thin, documented call into citation.inator's
+- [ ] JS reference renderers, starting with `{cite …}` as a thin, documented call into citation.inator's
       compiler; packaging decided; docs for a new site.
 - [ ] A second site adopts it.
 

@@ -20,7 +20,7 @@
     <section class="panel" aria-labelledby="text-h">
       <h2 id="text-h">The page's text</h2>
       <label for="source">Markdown, as a writer's file holds it</label>
-      <p class="hint" id="source-hint">Edit freely. Citations are the <code>{citation …}</code> markers.</p>
+      <p class="hint" id="source-hint">Edit freely. Citations are the <code>{cite …}</code> markers.</p>
       <textarea id="source" class="code" aria-describedby="source-hint" spellcheck="false"></textarea>
       <h3 id="markers-h">Citations in this text</h3>
       <ol class="markers" id="markers" aria-labelledby="markers-h"></ol>
@@ -54,7 +54,7 @@
         "Bell 1991" one.</li>
       <li><strong>Unknown options are kept.</strong> <code>label:"chapter"</code> isn't in the form, but it shows up
         under "Other options" and is written back where it was.</li>
-      <li><strong>Directives are left alone.</strong> <code>{citation endnote}</code> isn't a citation of a work, so
+      <li><strong>Directives are left alone.</strong> <code>{cite endnote}</code> isn't a citation of a work, so
         it isn't listed and can't be opened.</li>
       <li><strong>"Open and save every citation"</strong> runs the round-trip test the project runs on every corpus.</li>
     </ul>
