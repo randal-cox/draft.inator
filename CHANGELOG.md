@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 · 2026-11-25 · The live editor, citation import, and one keyword
+
+**Upgrading (breaking):** markers are now written `{cite …}` (cite.inator 0.5.1, #33). Run
+`npx draft-inator migrate --config draft-inator.json --write` once, and check anything it prints as `check:`; or set
+`DRAFT_CITATION_KEYWORD` and the `keyword` setting to keep another word.
 
 - **cite.inator 0.5.1** (tag `v0.5.1`, commit `1bbee65`), vendored from its release tarball (SHA-256 checked against
   `SHA256SUMS`): one configured keyword, default `cite`; optional pipes; the `tags` directive; unresolved placeholders.
