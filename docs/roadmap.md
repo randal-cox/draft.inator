@@ -86,6 +86,35 @@ From `docs/plan-full-editor.md` (decided 21 Nov 2026).
 - [x] Recover an unsaved draft: offered, never loaded silently.
 - [ ] Unpublish, trash, and restore; scheduled publishing with a scheduled build.
 
+## 0.6 planning: citing from Zotero (issue #40; planning only, after 0.5.1)
+
+Randal keeps his library in Zotero and wants to insert works from it as `{cite …}` markers without leaving the
+editor. Not started; nothing here is agreed beyond the split of work, and nothing reads a private library yet.
+
+- **What Randal wants** (25 Nov 2026): a fast library search in the Cite dialog; **Already cited** shown for works
+  this page cites; Zotero's curation respected, with any merge reviewed by a person; **Open in Zotero**; a quote and
+  a page captured with the citation; a review of relevant updates when a Zotero record changes; and a bibliography file
+  for one manuscript.
+- **cite.inator owns** reading Zotero's data into records, identity and edition reconciliation, provenance, reviewed
+  merges, and the CSL-JSON, BibTeX, and RIS writers (only `toCSL(record)` exists today).
+- **draft.inator owns** the picker and its keyboard flow, choosing a library or collection, connection settings and
+  credentials, saving the page and its new records together, and the download button that calls cite.inator's
+  writers.
+- **Who talks to Zotero** (agreed on #40, 25 Nov 2026): for the first prototype, draft.inator owns the web client,
+  credentials, permissions, and the connection's lifecycle; cite.inator owns `fromZotero`, reconciliation, the
+  reviewed difference, and the serializers. An adapter with an injected `fetch` is extracted only if a second host
+  needs one. Web first; local access later, and only if tested (a hosted page reaching `localhost` is restricted by
+  browsers); no implicit failover and no automatic two-way sync.
+- **A quote with a citation** (`quote:`, proposed by cite.inator for 0.6): the writer's excerpt for that citation,
+  next to its locator; draft.inator captures it from the selection. Not written by either project until the contract
+  and its tests are agreed. **Who sees it is a site setting** (Randal, 25 Nov 2026), defaulting to readers seeing it
+  on hover over the citation; a site can keep quotes private, and then they must never reach anything published or
+  exported (tested, not just stated).
+- **Smallest prototype:** search one Zotero library read-only through the web API, choose a work, reconcile it
+  against the site's works (a match goes to the writer to confirm, never merged silently), insert the marker, and save
+  the new record with the page. Direct connectors to other reference managers are deferred; file import and export
+  stay in cite.inator's 0.6.
+
 ## 0.7: The media library (images)
 
 - [ ] Browse and search the site's images; details with a sidecar record (alt, credit, licence, source, focal point).
