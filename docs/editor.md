@@ -92,7 +92,8 @@ mountEditor(el, { ..., importer: {
   name, year, and the title's first word, made unique. A site with another scheme passes `recordId(record, { taken })`.
 - **Citations typed by hand.** While the article has author–date citations that aren't markers yet (pasted in from
   a word processor, say), a banner says so, with examples and an **Import citations** button, and checks again after
-  every change and at once on paste. `importer.handTyped` sets how firm it is: `'block'` (the default: Save refuses
+  every change and at once on paste. `importer.handTyped` sets how firm it is: `'require'` (Save refuses until they're imported, and there's no way
+  round it: a site that forbids citations typed by hand), `'block'` (the default: Save refuses
   until they're imported, or until the writer chooses **Save without importing**, which lasts until more
   are added; citations left as typed in an import count as allowed), `'warn'` (the banner only), or `'off'`. `editor.handTyped` gives `{ count, examples }`.
 - **Save without importing** (cite.inator 0.5.1; Randal, 25 Nov 2026) doesn't just let plain text through. Each typed

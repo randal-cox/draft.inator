@@ -247,7 +247,10 @@ export function mountEditor(root, options = {}) {
     [recoverText, el('span', { class: 'di-recover-actions' }, [recoverButton, discardButton])]);
 
   // Citations typed by hand (not yet markers): a banner that can't be missed, and Save waits (importer.handTyped).
+  // 'block' (Save waits; Save without importing is the way out), 'require' (Save waits, no way out: the site forbids
+  // saving citations typed by hand), 'warn' (the banner only), or 'off'.
   const typedPolicy = o.importer ? (o.importer.handTyped || 'block') : 'off';
+  const typedHolds = typedPolicy === 'block' || typedPolicy === 'require';
   const typedText = el('span', { class: 'di-typed-text' });
   const typedReview = el('button', { type: 'button', class: 'di-primary', text: 'Import citations' });
   const typedAnyway = el('button', { type: 'button', class: 'di-quiet', text: 'Save without importing', hidden: true });
@@ -475,9 +478,9 @@ export function mountEditor(root, options = {}) {
     saveButton.disabled = true; saved.textContent = 'Saving…';
     try {
       await checkTyped();
-      if (typedPolicy === 'block' && typed.count && !typed.override) {
+      if (typedHolds && typed.count && !typed.override) {
         typedBar.hidden = false; typedReview.focus();
-        throw new Error(`${typed.count} citation${typed.count === 1 ? ' is' : 's are'} typed by hand. Import ${typed.count === 1 ? 'it' : 'them'}, or choose Save without importing.`);
+        throw new Error(`${typed.count} citation${typed.count === 1 ? ' is' : 's are'} typed by hand. Import ${typed.count === 1 ? 'it' : 'them'}` + (typedPolicy === 'require' ? ' first: this site doesn\'t save citations typed by hand.' : ', or choose Save without importing.'));
       }
       if (panel) {
         const problems = checkDetails(fields, panel.values());
@@ -566,6 +569,7 @@ export function mountEditor(root, options = {}) {
     if (found.count > typed.count && found.count > typed.acceptedLeft) typed.override = false;   // new ones aren't covered
     Object.assign(typed, found);
     if (typed.acceptedLeft && typed.count <= typed.acceptedLeft) typed.override = true;
+    if (typedPolicy === 'require') typed.override = false;   // leaving some as typed in an import doesn't count either
     const n = typed.count;
     typedBar.hidden = !n;
     if (!n) { showSaveBlocked(); return; }
@@ -573,14 +577,14 @@ export function mountEditor(root, options = {}) {
     const list = ex.length > 2 ? ex.slice(0, -1).join(', ') + ', and ' + ex[ex.length - 1] : ex.join(' and ');
     typedText.textContent = (one ? `1 citation is typed by hand: ${list}. It isn't linked to a work, so readers won't get a real citation or endnote.`
       : `${n} citations are typed by hand, such as ${list}. They aren't linked to works, so readers won't get real citations or endnotes.`) +
-      (typedPolicy !== 'block' ? ` Import ${one ? 'it' : 'them'} to fix this.` : typed.override ? ` You chose to save without importing ${one ? 'it' : 'them'}.` : ` Import ${one ? 'it' : 'them'} before saving.`);
-    typedAnyway.hidden = typedPolicy !== 'block' || typed.override;
+      (!typedHolds ? ` Import ${one ? 'it' : 'them'} to fix this.` : typed.override ? ` You chose to save without importing ${one ? 'it' : 'them'}.` : ` Import ${one ? 'it' : 'them'} before saving.`);
+    typedAnyway.hidden = typedPolicy !== 'block' || typed.override;   // never offered under 'require'
     showSaveBlocked();
   }
   // While Save would refuse, it looks unavailable, but stays focusable so pressing it still says why.
   function showSaveBlocked() {
     if (!saveButton) return;
-    const blocked = typedPolicy === 'block' && typed.count > 0 && !typed.override;
+    const blocked = typedHolds && typed.count > 0 && !typed.override;
     if (blocked) { saveButton.setAttribute('aria-disabled', 'true'); saveButton.title = 'Import the citations typed by hand first'; }
     else {
       saveButton.removeAttribute('aria-disabled'); saveButton.removeAttribute('title');

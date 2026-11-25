@@ -47,7 +47,9 @@ mountEditor(document.getElementById('editor'), {
     process: processImportRequest,
     siteCache,   // a reference the site already has is offered as that work, not a new one
     siteWorks: 'prefer',   // the site's own works are selected even when written a little differently
-    // handTyped: 'block' is the default: Save waits while citations are typed by hand
+    // handTyped: 'block' is the default: Save waits while citations are typed by hand. Try ?handTyped=require (no way
+    // round it) or ?handTyped=warn.
+    handTyped: ['require', 'block', 'warn', 'off'].find(v => v === new URLSearchParams(location.search).get('handTyped')) || 'block',
     describe: (id, cache) => describeCitation(id, cache, { citationStyle: 'chicago-author-date' }).text,
     onRecords: records => console.info(`New works: ${records.map(r => r.id).join(', ') || 'none'}. A site would keep them with the page.`)
   }

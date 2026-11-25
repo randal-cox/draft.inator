@@ -5,6 +5,8 @@
 - **Save without importing keeps them as unresolved citations** (Randal, 25 Nov 2026; cite.inator 0.5.1). Typed
   citations with no reference become flagged placeholders that keep the words typed, instead of plain text; the
   status line counts unresolved citations until they're finished. Placeholder ids read `pending-rivera-2020`.
+- **A site can forbid saving citations typed by hand** (Randal, 25 Nov 2026): `importer.handTyped: 'require'` holds Save
+  until every one is imported, with no Save without importing.
 - **Citations typed by hand can't be missed** (Randal's review, 25 Nov 2026). While an article has author–date
   citations that aren't markers yet, a banner names them and offers **Import citations**; by default Save waits
   until they're imported (`importer.handTyped`: `block`, `warn`, or `off`). Pasting them in says so at once.
