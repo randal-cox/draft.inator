@@ -142,7 +142,7 @@ export function openImport(editor, options) {
     const count = el('span', { class: 'di-import-count' });
     const body = el('div', { class: 'di-import-section-body' });
     const box = el('details', { class: 'di-import-section ' + cls, hidden: true }, [
-      el('summary', {}, [el('span', { class: 'di-import-section-title', text: title }), count]), el('p', { class: 'hint', text: hint }), body]);
+      el('summary', {}, [el('span', { class: 'di-import-section-title', text: title }), el('span', { class: 'di-sr', text: ': ' }), count]), el('p', { class: 'hint', text: hint }), body]);
     return { box, count, body };
   };
   const secAttention = section('di-import-attention', 'Needs your attention', 'More than one work could match, or none in the reference list does. Choose for each, or leave it as written.');
@@ -292,9 +292,9 @@ export function openImport(editor, options) {
     const changed = matches.filter((m, i) => isProbablyRight(m) && chosen[i].some((c, j) => c !== m.items[j].candidates[0].recordId)).length;
     const nProbable = matches.filter(isProbablyRight).length;
     const left = k => (k ? `${k} to decide` : 'all decided ✓');
-    secAttention.count.textContent = ` · ${left(attentionLeft)}`;
-    secSite.count.textContent = ` · ${siteTotal} · ${left(siteLeft)}`;
-    secProbable.count.textContent = ` · ${nProbable}${changed ? ` · ${changed} changed` : ' · all selected ✓'}`;
+    secAttention.count.textContent = left(attentionLeft);
+    secSite.count.textContent = `${siteTotal} · ${left(siteLeft)}`;
+    secProbable.count.textContent = `${nProbable}${changed ? ` · ${changed} changed` : ' · all selected ✓'}`;
     for (const [sec, k] of [[secAttention, attentionLeft], [secSite, siteLeft]]) sec.box.classList.toggle('di-import-todo', k > 0);
     const todo = attentionLeft + siteLeft;
     summary.textContent = !matches.length
