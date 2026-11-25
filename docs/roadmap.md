@@ -100,9 +100,15 @@ editor. Not started; nothing here is agreed beyond the split of work, and nothin
 - **draft.inator owns** the picker and its keyboard flow, choosing a library or collection, connection settings and
   credentials, saving the page and its new records together, and the download button that calls cite.inator's
   writers.
-- **To decide:** who talks to Zotero (a cite.inator adapter with draft.inator supplying the network access and
-  credentials is the leading option); web first, with local access later only if tested (a hosted page reaching
-  `localhost` is restricted by browsers); no automatic two-way sync.
+- **Who talks to Zotero** (agreed on #40, 25 Nov 2026): for the first prototype, draft.inator owns the web client,
+  credentials, permissions, and the connection's lifecycle; cite.inator owns `fromZotero`, reconciliation, the
+  reviewed difference, and the serializers. An adapter with an injected `fetch` is extracted only if a second host
+  needs one. Web first; local access later, and only if tested (a hosted page reaching `localhost` is restricted by
+  browsers); no implicit failover and no automatic two-way sync.
+- **A quote with a citation** (`quote:`, proposed by cite.inator for 0.6): the writer's excerpt for that citation,
+  next to its locator; draft.inator captures it from the selection. Not written by either project until the contract
+  and its tests are agreed. **Randal to decide:** shown to readers, or private drafting material (which must then
+  never reach anything published or exported).
 - **Smallest prototype:** search one Zotero library read-only through the web API, choose a work, reconcile it
   against the site's works (a match goes to the writer to confirm, never merged silently), insert the marker, and save
   the new record with the page. Direct connectors to other reference managers are deferred; file import and export
