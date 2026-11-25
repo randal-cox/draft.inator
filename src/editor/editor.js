@@ -253,6 +253,7 @@ export function mountEditor(root, options = {}) {
       tb('italic', [el('i', { text: 'I' })], 'Italic (Ctrl+I)', { 'aria-label': 'Italic' }), tb('link', 'Link', 'Link (Ctrl+K)'), tb('code', 'Code', 'Code')]),
     el('div', { class: 'di-group' }, [tb('ul', '• List', 'Bulleted list'), tb('ol', '1. List', 'Numbered list'), tb('quote', 'Quote', 'Quotation')]),
     el('div', { class: 'di-group di-blocks' }, [cite && tb('citation', 'Citation', 'Insert a citation'), figure && tb('figure', 'Figure', 'Insert a figure'),
+      o.math?.katex && tb('equation', 'Equation', 'Insert an equation, or edit the one the cursor is in (Ctrl+M)'),
       (cite || figure) && editButton, (o.importer || o.showImport) && tb('import', 'Import citations',
         o.importer ? 'Find citations such as (Bell, 1992) and convert them' : 'Coming with citation.inator\'s importer', { disabled: !o.importer })])
   ]);
@@ -382,7 +383,12 @@ export function mountEditor(root, options = {}) {
     quote: () => prefixLines('> '),
     citation: () => openBlock('citation'),
     figure: () => openBlock('figure'),
-    edit: () => { const b = blockAt(source.value, source.selectionStart); if (b) openBlock(b.kind, b); },
+    equation: async () => {
+      const { openEquation } = await import('./equation.js');
+      openEquation({ el, root, getText: () => source.value, getSelection: () => [source.selectionStart, source.selectionEnd],
+        replace, announce, focus: () => source.focus() }, o.math);
+    },
+    edit: () => { const b = blockAt(source.value, source.selectionStart); if (b) openBlock(b.kind, b); else if (mathAt()) COMMANDS.equation(); },
     import: async () => {
       typed.reviewed = true;
       const { openImport } = await import('./importer.js');
@@ -395,10 +401,12 @@ export function mountEditor(root, options = {}) {
     }
   };
   toolbar.addEventListener('click', e => { const b = e.target.closest('button[data-cmd]'); if (b && !b.disabled && COMMANDS[b.dataset.cmd]) COMMANDS[b.dataset.cmd](); });
+  // Maths the cursor is in (with the maths option): the Edit button and Ctrl+E open it in the Equation dialog.
+  const mathAt = () => o.math?.katex && findMath(source.value).find(m => m.kind === 'math' && source.selectionStart >= m.start && source.selectionStart <= m.end);
   function updateEditButton() {
-    const b = blockAt(source.value, source.selectionStart);
-    editButton.disabled = !b;
-    editButton.textContent = b ? `Edit ${b.kind}` : 'Edit';
+    const b = blockAt(source.value, source.selectionStart), m = !b && mathAt();
+    editButton.disabled = !b && !m;
+    editButton.textContent = b ? `Edit ${b.kind}` : m ? 'Edit equation' : 'Edit';
   }
 
   // ---------- The block dialog ----------
@@ -498,7 +506,7 @@ export function mountEditor(root, options = {}) {
   });
   source.addEventListener('keydown', e => {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-    const cmd = { b: 'bold', i: 'italic', k: 'link', e: 'edit' }[e.key.toLowerCase()];
+    const cmd = { b: 'bold', i: 'italic', k: 'link', e: 'edit', ...(o.math?.katex && { m: 'equation' }) }[e.key.toLowerCase()];
     if (cmd) { e.preventDefault(); COMMANDS[cmd](); }
   });
 

@@ -146,6 +146,10 @@ mountEditor(el, { …, math: { katex, macros: { '\\R': '\\mathbb{R}' }, refNames
 - Maths with a mistake shows its source, marked, with KaTeX's message; a reference to a missing label is marked too.
   The status line counts both ("2 to fix"), and lists them on hover.
 - `renderArticle` returns `equations` and `crossref` (the problems) alongside its other counts.
+- **The Equation dialog** (the toolbar's Equation, or Ctrl+M; Ctrl+E or Edit equation when the cursor is in maths):
+  LaTeX beside how it reads, live; a palette of structures (fractions, roots, sums, integrals, binomials, matrices,
+  cases, aligned lines), relations, and Greek letters, which wraps any selected LaTeX; on its own line or inside the
+  sentence; and a label, checked against the article's others. It writes plain Markdown maths and nothing else.
 - Try it: `demo/editor/?sample=equations`.
 
 ## Formatted citations in the preview

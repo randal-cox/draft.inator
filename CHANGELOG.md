@@ -8,6 +8,9 @@
   "Eq. 3" or "Figure 2". Files hold labels, never numbers, so moving things renumbers them and every reference.
   Mistakes and missing labels are marked in the preview and counted in the status line. `draft-inator check` fails a
   pull request on them. Demo: `demo/editor/?sample=equations`.
+- **The Equation dialog** (Ctrl+M): LaTeX beside how it reads, a palette of structures, relations, and Greek
+  letters, inline or displayed, and a label checked against the article's others; Ctrl+E edits the maths the cursor
+  is in. It writes plain Markdown maths.
 - **`draft-inator migrate` names each line to check** (`file:line:column`); 0.4.0 printed `undefined:undefined`.
 - **Replacing a work doesn't carry the old work's options** (Theandra's point on #40; a bug in 0.4.0). When a
   writer changes the work a citation points to, the old work's page and other options are set aside and shown, with
