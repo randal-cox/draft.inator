@@ -117,3 +117,15 @@ test('an import placeholder opens as a citation and keeps its unresolved: option
   assert.match(once, /^\{cite pending-rivera-2020 \| note:"[^"]*" \| unresolved:"\(Rivera, 2020\)"\}$/);
   assert.equal(cite.toBlock(cite.fromBlock(once.match(pattern))), once, 'a second pass changes nothing');
 });
+
+test('finishing a placeholder drops its unresolved:, and only that; a same-work edit keeps everything', () => {
+  const pattern = new RegExp(cite.pattern.source);
+  const raw = '{cite pending-rivera-2020 | unresolved:"(Rivera, 2020)" | label:"chapter" | locator:12}';
+  const data = cite.fromBlock(raw.match(pattern));
+  assert.equal(cite.toBlock(data), '{cite pending-rivera-2020 | note:"pending-rivera-2020" | unresolved:"(Rivera, 2020)" | label:"chapter" | locator:12}', 'same work: kept');
+  data.items[0].work = 'bell-1992-ritual';
+  assert.equal(cite.toBlock(data), '{cite bell-1992-ritual | note:"Bell 1992" | label:"chapter" | locator:12}', 'new work: unresolved: dropped, the rest left to the writer');
+  const again = cite.toBlock(cite.fromBlock(cite.toBlock(data).match(pattern)));
+  assert.equal(again, cite.toBlock(data), 'a second pass changes nothing');
+  assert.equal(JSON.stringify(cite.bound.fields), '["locator","extra"]', 'the form sets these aside when the work changes');
+});
