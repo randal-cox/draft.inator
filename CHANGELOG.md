@@ -3,14 +3,19 @@
 ## Unreleased
 
 - **Citations typed by hand can't be missed** (Randal's review, 25 Nov 2026). While an article has author–date
-  citations that aren't markers yet, a banner names them and offers **Review and import**; by default Save waits
+  citations that aren't markers yet, a banner names them and offers **Import citations**; by default Save waits
   until they're imported (`importer.handTyped`: `block`, `warn`, or `off`). Pasting them in says so at once.
 - **Import review, second round.** Three sections as disclosures with live counts ("1 to decide", "all decided ✓"):
   Needs your attention, where nothing is chosen for you and Convert waits until each is decided; the works the site
   already has; and probably right, closed to start; the reference list as its own decision, with unused entries
-  flagged; each citation shows exactly what it becomes; evidence in plain words; the review runs on opening; the
-  converted text is selected afterwards; Cancel and Convert always in view; a site policy for its own works (`importer.siteWorks`: `offer`, `prefer`,
+  flagged; each citation shows exactly what it becomes; evidence in plain words; the review runs on opening; Cancel and Convert always in view; a site policy for its own works (`importer.siteWorks`: `offer`, `prefer`,
   `require`); radios and checkboxes drawn the same in light and dark.
+- **Import review, after an outside review.** No selection after converting (the next keystroke would have replaced
+  the converted text); a result line with Undo; each citation says in words which works it cites, with Show code;
+  leaving one work of a group explains that the whole citation stays; choices remembered while the page is open;
+  evidence without internal ids; a warning before adding a duplicate of a site work; "Allow saving with typed
+  citations" offered from the start, and citations left as typed in an import count as allowed; focus returns to the
+  opener; the style selector re-runs the review; a quieter live region; the reference-list choice is a fieldset.
 - **citation.inator 0.4.0** (tag `v0.4.0`), vendored from its release tarball: the tools bundle (now with
   `formatRecordId`), and new, the import bundle and the browser compiler. `vendor/citation-inator/README.md` has the
   checksums.

@@ -104,12 +104,12 @@ test('site evidence ignores capitals and initials, and names a missing subtitle'
   const ev = { evidence: { assessment: { comparisons: { title: true, authors: true, year: true } }, differences: ['title', 'authors', 'type'] } };
   const bellSrc = { title: 'Ritual theory, ritual practice', authors: [{ family: 'Bell', given: 'C.' }], issued: [1992] };
   const bellSite = { title: 'Ritual Theory, Ritual Practice', authors: [{ family: 'Bell', given: 'Catherine' }], issued: [1992] };
-  assert.equal(siteEvidence(ev, bellSrc, bellSite), 'title, authors, and year match');
+  assert.equal(siteEvidence(ev, bellSrc, bellSite), 'Same title, authors, and year.');
   const turnerSrc = { title: 'The ritual process: Structure and anti-structure', authors: [{ family: 'Turner', given: 'V.' }], issued: [1969] };
   const turnerSite = { title: 'The Ritual Process', authors: [{ family: 'Turner', given: 'Victor' }], issued: [1969] };
   assert.equal(siteEvidence({ evidence: { mainTitleMatch: true, assessment: { comparisons: { authors: true, year: true } } } }, turnerSrc, turnerSite),
-    'main title, authors, and year match; differs: subtitle');
-  assert.equal(siteEvidence(ev, bellSrc, { ...bellSite, authors: [{ family: 'Bel' }] }), 'title and year match; differs: authors');
+    "Same main title, authors, and year; the site's copy has no subtitle.");
+  assert.equal(siteEvidence(ev, bellSrc, { ...bellSite, authors: [{ family: 'Bel' }] }), 'Same title and year; the authors differ.');
 });
 
 test('a citation is shown in its own sentence', () => {
