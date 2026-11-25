@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Replacing a work doesn't carry the old work's options** (Theandra's point on #40; a bug in 0.4.0). When a
+  writer changes the work a citation points to, the old work's page and other options are set aside and shown, with
+  **Keep them**; nothing moves by default, and going back restores them. Finishing a placeholder drops its
+  `unresolved:`. Same-work edits keep every option, as before.
+
 ## 0.4.0 · 2026-11-25 · The live editor, citation import, and one keyword
 
 **Upgrading (breaking):** markers are now written `{cite …}` (cite.inator 0.5.1, #33). Run

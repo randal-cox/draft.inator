@@ -107,6 +107,9 @@
       // Unknown options go back where each one was. If the writer changed "Other options" so they no longer match
       // one for one, they all go where the first one was.
       var extras = it.extra ? splitParts(it.extra).parts.filter(Boolean) : [];
+      // A placeholder that gets a real work is finished: its unresolved: (cite.inator 0.5.1) belonged to the
+      // placeholder and is not carried to the work that replaces it. Every other option stays the writer's call.
+      if (it.written && bareId(it.written) !== it.work) extras = extras.filter(function (x) { return !/^unresolved:/.test(x); });
       var slots = was.filter(function (k) { return k === 'extra'; }).length, next = 0;
       var out = [], seen = {};
       was.forEach(function (k) {
@@ -170,6 +173,10 @@
     pattern: new RegExp('\\{' + KEYWORD + ' (?!\\s*(?:endnote(?:[\\s|}])|(?:list|nocite|tags)[ \\t]|(?:evidence|credit)(?:[\\s|}])))((?:[^{}\\\\]|\\\\.)*)\\}'),
     fromBlock: function (match) { return { items: parse(match[1]) }; },
     toBlock: function (data) { return build(data.items); },
+    // Options that belong to the work an item cites, not to the citation: when the work is changed in draft.inator's
+    // own form, they're set aside, shown, and kept only if the writer says so (forms.js).
+    bound: { key: 'work', fields: ['locator', 'extra'], labels: { locator: 'page', extra: 'other options' },
+      describe: function (id) { return NOTE[id] || id; } },
     toPreview: function (data) {
       return '(' + (data.items || []).map(function (it) {
         return (it.prefix ? it.prefix + ' ' : '') + (NOTE[it.work] || it.work) + (it.locator ? ', ' + it.locator : '');

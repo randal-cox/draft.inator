@@ -102,6 +102,10 @@ cite.inator's marker grammar (0.5.1), shown with the default keyword:
   chosen work is written bare, unless the bare id is a directive word (`endnote`, `list`, `nocite`, `evidence`,
   `credit`, `tags`), which is written `local:list`.
 - Options the form doesn't show (`label:`, fallback words, anything newer) are kept as written, in place.
+- **Changing the work an item cites** (0.4.1): in draft.inator's own form, the old work's page and other options are
+  set aside and shown, and kept only if the writer chooses "Keep them"; going back to the old work restores them. A
+  placeholder's `unresolved:` is never carried to the work that replaces it (that is what finishing it means). In
+  Sveltia's form, which can't ask, the fields stay visible for the writer to clear; only `unresolved:` is dropped.
 - The marker's own option order is kept, and an option written quoted stays quoted.
 - `{cite endnote}` (and `{cite endnote | …}`), `{cite list …}`, `{cite nocite …}`, `{cite tags …}`,
   `{cite evidence}`, and `{cite credit}` are not citations of a work, and the block leaves them alone. A work whose id only starts
@@ -167,5 +171,7 @@ and one change touches only that key's lines.
   Markers written `{citation …}` are no longer read under the default; run `draft-inator migrate` (or set the keyword
   to `citation`). Also: whitespace-separated options, the `tags` directive, and import placeholders.
 
+
+- 0.4.1: replacing a work no longer carries the old work's options silently (above).
 
 Additive only within 0.x where possible. A breaking change bumps the minor version and is listed in the roadmap.
