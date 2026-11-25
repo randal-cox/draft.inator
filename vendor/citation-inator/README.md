@@ -9,9 +9,10 @@ tests need nothing installed:
 
 | | |
 |---|---|
-| Version | **0.5.1-preview.6** (commit `ce312c3`), **for testing only**: this branch can't merge until it carries the 0.5.1 release, from its tarball, checked against `SHA256SUMS` |
-| Source | cite.inator's `dist/` at that commit (bundle file names unchanged from 0.4.0) |
-| Bundle SHA-256 | `citation-tools.mjs` `4edd675282ce91805e0794f811e609822febee03aa01c80c4aa1355ec74d9e9b`; `citation-import.mjs` `5540d183d3fbbfd71d90be95c3d244bc4dcbd48eb1d255913946d6c05ea65082`; `citation-compiler.mjs` `308c5fe197e04456b887042ecf8d1e5ba311acb917089bfab59e5be6d511caa8` |
+| Version | **0.5.1** (tag `v0.5.1`, commit `1bbee6573fc0fdf10deca9fccd6e59ea175a7f6a`) |
+| Source | The release tarball `cite-inator-0.5.1.tgz`, `package/dist/` (bundle file names unchanged from 0.4.0) |
+| Tarball SHA-256 | `31d726ee52e54e5d6226900c8caae03a12abdb7db363a8328e3921bdd142edcf` (matches the release's `SHA256SUMS`) |
+| Bundle SHA-256 | `citation-tools.mjs` `810e40a50ad1033d697abb3adfde2e6754caf1017a20c77636be3a6b57dbb256`; `citation-import.mjs` `e76f4891fa7641c0d2d9d24d1c380fe3dbc715f8e03179f8f99ec2417adf7716`; `citation-compiler.mjs` `f07ed16d3ad7cbfd8765340a3fb333ac84f6a898e0b8b2f2b73e322c3c4dcaab` |
 | Licence | MIT (`LICENSE`); bundled parse5, marked, and entities notices in `THIRD_PARTY_LICENSES.txt` and the file headers |
 | Tools exports | `describeCitation`, `annotateMarkers` (with `noteContext`), `collectMarkerTags`, `createSiteOccurrenceIndex`, `markerKind`, `formatRecordId` |
 

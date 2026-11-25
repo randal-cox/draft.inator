@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **cite.inator 0.5.1** (tag `v0.5.1`, commit `1bbee65`), vendored from its release tarball (SHA-256 checked against
+  `SHA256SUMS`): one configured keyword, default `cite`; optional pipes; the `tags` directive; unresolved placeholders.
 - **Save without importing keeps them as unresolved citations** (Randal, 25 Nov 2026; cite.inator 0.5.1). Typed
   citations with no reference become flagged placeholders that keep the words typed, instead of plain text; the
   status line counts unresolved citations until they're finished. Placeholder ids read `pending-rivera-2020`.
