@@ -326,3 +326,13 @@
 
 /* Unresolved placeholders in the article: counted in the status line until finished. */
 .di-editor .di-counts-warn { color: var(--di-warn-ink); font-weight: 600; }
+
+/* Maths (KaTeX MathML) and cross-references. A numbered equation: centred, its number at the right margin. */
+.di-article .di-equation { display: flex; align-items: center; gap: 1rem; margin: 1rem 0; overflow-x: auto; }
+.di-article .di-equation > .katex { flex: 1; text-align: center; }
+.di-article .di-equation math { font-size: 1.1em; }
+.di-article .di-eq-number { flex: none; font-variant-numeric: tabular-nums; }
+.di-article .di-fig-number { font-weight: 600; color: var(--di-ink, inherit); }
+.di-article a.di-ref { text-decoration: none; border-bottom: 1px dotted currentColor; }
+.di-article .di-ref-missing, .di-article .di-math-error { background: var(--di-warn-bg); color: var(--di-warn-ink); outline: 1px solid var(--di-warn-line); border-radius: 2px; }
+.di-article .di-math-message { font: .85rem/1.4 var(--di-sans); color: var(--di-warn-ink); margin: -.5rem 0 1rem; }

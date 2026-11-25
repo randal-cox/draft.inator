@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Equations and cross-references** (Randal, 25 Nov 2026). LaTeX maths between `$…$` and `$$…$$`, drawn by KaTeX
+  0.16.11 (vendored, MIT) as MathML: no fonts, styles, or scripts, so it suits a strict security policy, and screen
+  readers read it. Label a displayed equation with `{#eq:name}` and a figure with `label:fig:name`; `{ref …}` reads
+  "Eq. 3" or "Figure 2". Files hold labels, never numbers, so moving things renumbers them and every reference.
+  Mistakes and missing labels are marked in the preview and counted in the status line. `draft-inator check` fails a
+  pull request on them. Demo: `demo/editor/?sample=equations`.
+- **`draft-inator migrate` names each line to check** (`file:line:column`); 0.4.0 printed `undefined:undefined`.
+
 ## 0.4.0 · 2026-11-25 · The live editor, citation import, and one keyword
 
 **Upgrading (breaking):** markers are now written `{cite …}` (cite.inator 0.5.1, #33). Run

@@ -10,7 +10,9 @@
   var ALIGN = ['left', 'right', 'centre', 'wide', 'full'];
   var WIDTH = ['third', 'half', 'two-thirds', 'full'];
   var TEXT = ['alt', 'caption', 'credit', 'licence', 'source'];
-  var SHOWN = TEXT.concat(['align', 'width', 'wrap']);
+  var SHOWN = TEXT.concat(['align', 'width', 'wrap', 'label']);
+  // A label names the figure for cross-references ({ref fig:depth} reads "Figure 2"); numbers are never written.
+  var LABEL = /^[a-z][a-z0-9]*:[a-z0-9][a-z0-9_-]*$/;
 
   // Split on a separator outside quotes, honouring backslash escapes (citation.inator's notation; as in the Cite block).
   function split(s, sep) {
@@ -43,7 +45,7 @@
       var value = m ? unquote(raw) : '';
       var known = m && SHOWN.indexOf(key) >= 0 && !(key in data) &&
         (key === 'align' ? ALIGN.indexOf(value) >= 0 : key === 'width' ? WIDTH.indexOf(value) >= 0 :
-         key === 'wrap' ? value === 'yes' || value === 'no' : true);
+         key === 'wrap' ? value === 'yes' || value === 'no' : key === 'label' ? LABEL.test(value) : true);
       if (known) {
         data[key] = key === 'wrap' ? value === 'yes' : value;
         data.order.push(key + (key === 'wrap' ? '=' + value : '') + (/^\s*"/.test(raw) ? '"' : ''));
@@ -68,6 +70,7 @@
     });
     if (d.align && ALIGN.indexOf(d.align) >= 0) parts.align = 'align:' + d.align;
     if (d.width && WIDTH.indexOf(d.width) >= 0) parts.width = 'width:' + d.width;
+    if (d.label && LABEL.test(d.label)) parts.label = 'label:' + (quoted('label') ? quoteAlways(d.label) : d.label);
     if (d.wrap === true) parts.wrap = 'wrap:yes';
     else if (d.wrap === false && wrapWas === 'no') parts.wrap = 'wrap:no';
     // Unknown options go back where each one was. If the writer changed "Other options" so they no longer match one
@@ -112,6 +115,8 @@
         options: [{ label: 'A third', value: 'third' }, { label: 'Half', value: 'half' },
                   { label: 'Two thirds', value: 'two-thirds' }, { label: 'Full', value: 'full' }] },
       { name: 'wrap', label: 'Let the text wrap around it', widget: 'boolean', required: false },
+      { name: 'label', label: 'Label, to refer to it as {ref fig:…} (such as fig:depth); it is numbered automatically', widget: 'string', required: false,
+        pattern: ['^$|^fig:[a-z0-9][a-z0-9_-]*$', 'Start with fig: and use lowercase letters, digits, and hyphens'] },
       { name: 'extra', label: 'Other options (kept as written)', widget: 'string', required: false },
       { name: 'order', label: 'Option order', widget: 'hidden', required: false },
       { name: 'srcQuoted', label: 'Image path quoted', widget: 'hidden', required: false }

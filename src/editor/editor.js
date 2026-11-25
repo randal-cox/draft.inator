@@ -13,6 +13,7 @@
 
    Load src/editor/forms.js, the works list, and the blocks (src/blocks/*.js) first, as classic scripts. Plain
    browser JavaScript, no dependencies, no inline handlers, so it runs under a strict Content Security Policy. */
+import { findMath, numberLabels, refText, mathHTML, REF_NAMES } from './crossref.js';
 import { splitFrontMatter } from './frontmatter.js';
 import { drawDetails, checkDetails } from './details.js';
 
@@ -85,20 +86,40 @@ export function renderArticle(text, options = {}) {
   const WORKS = Object.fromEntries((window.DRAFT_WORKS || []).map(w => [w.id, w]));
   const imageURL = options.imageURL || (p => p);
   const compiler = options.citations?.compileHTML && options.citations.cache ? options.citations : null;
-  const found = findBlocks(text, cite, figure), cited = [], parts = [];
+  const blocks = findBlocks(text, cite, figure), cited = [], parts = [];
+  // Maths and cross-references ({ref eq:n}), outside code and outside other blocks; then numbers for every label.
+  const inBlock = (a, z) => blocks.some(b => a < b.end && z > b.start);
+  const maths = findMath(text, blocks.inCode).filter(m => !inBlock(m.start, m.end));
+  const found = [...blocks, ...maths].sort((x, y) => x.start - y.start);
+  found.inCode = blocks.inCode;
+  for (const b of blocks) if (b.kind === 'figure') b.data = figure.fromBlock(b.match);
+  const { numbers, diagnostics: refProblems } = numberLabels([
+    ...maths.filter(m => m.kind === 'math' && m.label),
+    ...blocks.filter(b => b.kind === 'figure' && b.data.label).map(b => ({ start: b.start, label: b.data.label }))]);
+  const crossref = [...refProblems];
   const hold = html => `DRAFTPH${parts.push(html) - 1}X`;
   let out = '', last = 0;
   for (const b of found) {
     out += text.slice(last, b.start);
-    if (b.kind === 'figure') {
-      const d = figure.fromBlock(b.match);
+    if (b.kind === 'math') {
+      const r = mathHTML(b, options.math || null, { number: b.label ? numbers.get(b.label) : undefined, macros: options.mathMacros });
+      if (r.error) crossref.push({ code: 'math-error', at: b.start, message: `Maths that doesn't parse: ${r.error}` });
+      out += hold(r.html);
+    } else if (b.kind === 'ref') {
+      const said = refText(b.label, numbers, { ...REF_NAMES, ...(options.refNames || {}) });
+      if (!said) crossref.push({ code: 'ref-missing', label: b.label, at: b.start, message: `{ref ${b.label}} points to a label that doesn't exist.` });
+      out += hold(said ? `<a class="di-ref" href="#${esc(b.label)}">${esc(said)}</a>`
+        : `<span class="di-ref-missing" title="No ${esc(b.label)} in this article">${esc(`{ref ${b.label}}`)}</span>`);
+    } else if (b.kind === 'figure') {
+      const d = b.data, n = d.label && numbers.get(d.label);
       const cls = ['fig', d.align && 'align-' + d.align, d.width && 'width-' + d.width, d.wrap && 'wrap'].filter(Boolean).join(' ');
       const credit = [d.credit, d.licence].filter(Boolean).join(', ');
-      const cap = d.caption || credit ? `<figcaption>${esc(d.caption)}${credit ? ` <small>${esc(credit)}</small>` : ''}</figcaption>` : '';
+      const name = n ? `<span class="di-fig-number">${esc(refText(d.label, numbers, { ...REF_NAMES, ...(options.refNames || {}) }))}.</span> ` : '';
+      const cap = d.caption || credit || name ? `<figcaption>${name}${esc(d.caption)}${credit ? ` <small>${esc(credit)}</small>` : ''}</figcaption>` : '';
       const url = d.src ? imageURL(d.src) : null;
       const img = !d.src ? '' : url ? `<img src="${esc(url)}" alt="${esc(d.alt)}">`
         : `<div class="di-missing" role="img" aria-label="${esc(d.alt)}">${esc(d.src)} isn't in this browser. Uploads stay in the browser they were made in.</div>`;
-      out += hold(`<figure class="${cls}">${img}${cap}</figure>`);
+      out += hold(`<figure class="${cls}"${n ? ` id="${esc(d.label)}"` : ''}>${img}${cap}</figure>`);
     } else {
       const data = cite.fromBlock(b.match);
       data.items.forEach(it => { if (it.work && !cited.includes(it.work)) cited.push(it.work); });
@@ -129,10 +150,10 @@ export function renderArticle(text, options = {}) {
     }
   }
   const h1 = text.match(/^#\s+(.+)$/m);
-  const prose = found.reduceRight((t, b) => t.slice(0, b.start) + t.slice(b.end), text).replace(/[#>*_`[\]()-]/g, ' ');
+  const prose = found.filter(b => b.kind !== 'ref').reduceRight((t, b) => t.slice(0, b.start) + t.slice(b.end), text).replace(/[#>*_`[\]()-]/g, ' ');
   return { html, title: h1 ? h1[1] : '', words: (prose.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []).length,
     citations: found.filter(b => b.kind === 'citation').length, figures: found.filter(b => b.kind === 'figure').length,
-    formatted, diagnostics };
+    equations: maths.filter(m => m.kind === 'math' && m.display).length, crossref, formatted, diagnostics };
 }
 
 /**
@@ -172,6 +193,9 @@ export function recoveryChoice(given, kept) {
  * @param {string} [options.slug]  The page's slug, so it isn't listed among its collection's other entries.
  * @param {Record<string, Array<object>>} [options.entries]  Entries for relation fields, by collection
  *   (default `window.DRAFT_ENTRIES`).
+ * @param {{ katex: object, macros?: object, refNames?: object }} [options.math]  LaTeX maths ($…$, $$…$$ {#eq:…}) drawn by
+ *   KaTeX (vendor/katex/katex.mjs) as MathML, with the site's macros; numbered equations and figures, and {ref …}
+ *   worded by refNames (default "Eq. 3", "Figure 2"). Without it, maths shows as its source.
  * @param {{ compileHTML: Function, cache: object, citationStyle?: string }} [options.citations]  Formatted citations
  *   and endnotes in the preview: citation.inator's browser compiler (citation-compiler.mjs) and the site's citation
  *   cache. Without it the preview shows each work's note.
@@ -296,7 +320,8 @@ export function mountEditor(root, options = {}) {
   // An upload lives only in the browser it was made in; elsewhere renderArticle says so instead of a broken image.
   const imageURL = p => F.assets[p] || (SAMPLES.has(p) || !p.startsWith(o.publicFolder + '/') || !o.storageKey ? p : null);
   function render() {
-    const r = renderArticle(source.value, { render: o.render, imageURL, blocks: o.blocks, citations: o.citations });
+    const r = renderArticle(source.value, { render: o.render, imageURL, blocks: o.blocks, citations: o.citations,
+      math: o.math?.katex || null, mathMacros: o.math?.macros, refNames: o.math?.refNames });
     preview.innerHTML = r.html;
     note.hidden = r.formatted;
     if (r.compileError) { note.hidden = false; note.textContent = 'Citations show each work\'s note: the citation compiler stopped (' + r.compileError + ').'; }
@@ -304,8 +329,12 @@ export function mountEditor(root, options = {}) {
     // Unresolved placeholders stay visible until someone finishes them (opens each and chooses its work).
     const kw = window.DRAFT_CITATION?.keyword || 'cite';
     const unresolved = (source.value.match(new RegExp(`\\{${kw}\\s[^}]*\\bunresolved:`, 'g')) || []).length;
-    counts.textContent = `${r.words} words · ${r.citations} citations · ${r.figures} figures` + (unresolved ? ` · ${unresolved} unresolved` : '');
-    counts.classList.toggle('di-counts-warn', unresolved > 0);
+    // Maths that doesn't parse, references to missing labels, and labels used twice: counted, and listed on hover.
+    const fix = r.crossref || [];
+    counts.textContent = `${r.words} words · ${r.citations} citations · ${r.figures} figures` + (r.equations ? ` · ${r.equations} equations` : '') +
+      (unresolved ? ` · ${unresolved} unresolved` : '') + (fix.length ? ` · ${fix.length} to fix` : '');
+    counts.title = fix.map(d => d.message).join('\n');
+    counts.classList.toggle('di-counts-warn', unresolved > 0 || fix.length > 0);
   }
 
   // ---------- Editing text ----------

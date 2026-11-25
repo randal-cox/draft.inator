@@ -145,6 +145,30 @@ One line of its own (a block, not inline):
 Guarantee (tested, and checked in Sveltia 0.262.4): reading a figure and writing it back changes nothing, and a
 second pass changes nothing.
 
+- `label:fig:depth` (0.4.1) names the figure for cross-references. It's read only when it's a valid label
+  (`kind:name`, lowercase letters, digits, and hyphens); anything else is kept as another option, as before.
+
+### Equations and cross-references (0.4.1)
+
+The article's own Markdown, not a block, so Sveltia leaves it as text and nothing round-trips through a form:
+
+```
+Inline $p \ge 0.10$ and displayed maths, with an optional label:
+
+$$ n \ge \frac{\ln(1-C)}{\ln(1-p)} $$ {#eq:sample-size}
+
+As {ref eq:sample-size} shows … and {ref fig:depth}.
+```
+
+- Maths is LaTeX between `$…$` (inline) or `$$…$$` (displayed). A `$` opens maths only before a non-space and closes
+  only after a non-space and not before a digit (Pandoc's rule), so "$5 and $10" stays prose; `\$` is a dollar sign.
+  Code is never maths.
+- A label follows a displayed equation as `{#kind:name}` (Pandoc's form); figures take `label:`. Only labelled
+  equations and figures are numbered, by kind, in the order they appear.
+- `{ref kind:name}` reads as the label's number, worded by the site ("Eq. 3", "Figure 2" by default). **Files hold
+  labels, never numbers.** A host renders the same way with `src/editor/crossref.js`, and `draft-inator check` fails
+  on maths that doesn't parse, a reference to a missing label, or a label used twice.
+
 ### Front matter (0.5)
 
 With the Details panel, the editor writes a page's YAML front matter. Only the keys a writer changes are written,
@@ -166,6 +190,7 @@ and one change touches only that key's lines.
 - 0.5.1 (**breaking**, Randal's decision on #33): one configured keyword, `DRAFT_CITATION_KEYWORD`, default `cite`.
   Markers written `{citation …}` are no longer read under the default; run `draft-inator migrate` (or set the keyword
   to `citation`). Also: whitespace-separated options, the `tags` directive, and import placeholders.
+- 0.4.1 (additive): equations (`$…$`, `$$…$$ {#eq:…}`), a figure's `label:`, and `{ref …}`.
 
 
 Additive only within 0.x where possible. A breaking change bumps the minor version and is listed in the roadmap.

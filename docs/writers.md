@@ -58,6 +58,14 @@ The preview shows the image as soon as it's uploaded, before it's published. The
 {figure /uploads/mask.jpg | alt:"A carved wooden mask" | caption:"Mask, about 1910" | credit:"Ann Cox" | licence:"CC BY 4.0"}
 ```
 
+## Write an equation
+
+Type LaTeX between dollar signs: `$p \ge 0.10$` inside a sentence, or `$$ … $$` on its own line for an equation set
+apart. To number it, give it a label right after it: `$$ n \ge \frac{a}{b} $$ {#eq:sample-size}`. Refer to it anywhere
+as `{ref eq:sample-size}`, which reads "Eq. 1". Figures work the same way, with a label in the Figure form
+(`fig:depth`) and `{ref fig:depth}`, which reads "Figure 1". Never type a number: move things around and every number
+and reference changes with them. A typo in the maths is marked in the preview with what's wrong.
+
 ## If something looks wrong
 
 | You see | It means | What to do |
