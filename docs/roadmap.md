@@ -59,6 +59,21 @@ can grow into the editor real sites use (PRD principle 3).
       the site's own works reused, site-style ids for new ones (`src/editor/importer.js`).
 - [x] The editor in `src/editor/` (`mountEditor`, `renderArticle`, the blocks' forms), with tests.
 - [x] Front matter kept byte for byte; saving as a Sveltia-compatible draft pull request (`github.js`).
+- [x] A kept draft is offered, never loaded silently (Recover or Discard).
+
+Also in the 0.4.0 release (25 Nov 2026), the most important features beyond the milestone:
+
+- [x] **Citations typed by hand can't be missed:** a banner names them, Save waits until they're imported, and a site
+      can forbid saving them at all (`importer.handTyped`: `require`, `block`, `warn`, `off`).
+- [x] **The import review, second round:** sections as disclosures with live counts, Convert waiting until everything
+      is decided, the site's own works by policy (`siteWorks`), plain-language evidence, each citation's result in
+      words, one list or two for the typed references, a result line with Undo, and choices remembered; then fixes
+      from an outside UX review (#39).
+- [x] **One citation keyword, `{cite …}`** (cite.inator 0.5.1, #33), configurable per site, with
+      `draft-inator migrate` to move a site's pages; whitespace-separated options and the `tags` directive read.
+- [x] **Unresolved placeholders** (#34): a citation with no reference becomes a flagged marker that keeps the words
+      typed, and **Save without importing** keeps them that way instead of as plain text; the status line counts them.
+- [x] **The Details panel and minimal-edit front matter**, early from 0.5 (below).
 
 ## 0.5: Metadata, entities, and the permission structure
 
@@ -143,9 +158,11 @@ editor. Not started; nothing here is agreed beyond the split of work, and nothin
 - [x] In-text citation parsing and matching against the document's own reference list (cite.inator 0.4.0).
 - [x] The site's own works offered for reuse; site-style ids for new works.
 - [x] Import review in the editor; one undoable conversion (#23).
-- [ ] Import review, second round (Randal, 25 Nov 2026): an unmissable "needs importing" indicator with Save blocked,
+- [x] Import review, second round (Randal, 25 Nov 2026; released in 0.4.0): an unmissable "needs importing" indicator with Save blocked,
       three sections (probably right, needs attention, the site already has it), Cancel and Convert always visible,
       unmatched citations kept as flagged placeholders (#34), and a site policy to prefer or require the site's works.
+- [ ] Placeholders for citations that do have a reference (cite.inator 0.6.0-preview.0, #34), so Save without
+      importing can flag every typed citation.
 - [ ] Crossref bibliographic search (cite.inator).
 
 ## Exploration: a scholarly writing environment ("write.inator")
