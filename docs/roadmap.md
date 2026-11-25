@@ -109,12 +109,23 @@ From `docs/plan-full-editor.md` (decided 21 Nov 2026).
       compiler; packaging decided; docs for a new site.
 - [ ] A second site adopts it.
 
-## Stretch: Import citations (with citation.inator F4)
+## Stretch: Import citations (with cite.inator) — done in 0.4
 
-- [ ] In-text citation parsing and matching against the document's own reference list (citation.inator).
-- [ ] Crossref bibliographic search (citation.inator).
-- [ ] Import page: paste or upload; review table; confirm; one pull request.
-- [ ] Measured test set of real pasted references; a parser plug-in beyond rules only if the numbers call for it.
+- [x] In-text citation parsing and matching against the document's own reference list (cite.inator 0.4.0).
+- [x] The site's own works offered for reuse; site-style ids for new works.
+- [x] Import review in the editor; one undoable conversion (#23).
+- [ ] Import review, second round (Randal, 25 Nov 2026): an unmissable "needs importing" indicator with Save blocked,
+      three sections (probably right, needs attention, the site already has it), Cancel and Convert always visible,
+      unmatched citations kept as flagged placeholders (#34), and a site policy to prefer or require the site's works.
+- [ ] Crossref bibliographic search (cite.inator).
+
+## Exploration: a scholarly writing environment ("write.inator")
+
+Not a milestone or a commitment (issue #35). The question is whether labelled figures and equations,
+cross-references, manuscript checks, claim-to-evidence links, and a reviewer-response workflow are draft.inator
+improvements, a scholarly preset of draft.inator, or a separate product. Current recommendation: draft.inator features
+assembled as a preset, revisited after a small experiment (labelled figures, cross-references, and a check). See
+[the exploration](explore-scholarly-writing.md).
 
 ## Later, when someone needs them
 
