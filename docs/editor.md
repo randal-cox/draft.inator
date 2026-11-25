@@ -90,6 +90,17 @@ mountEditor(el, { ..., importer: {
   with nothing in conflict is selected, visibly; the writer confirms by converting. Nothing is merged unseen.
 - **Ids for new works.** `siteStyleId` (exported from `importer.js`) gives `bell-1992-ritual`: first author's family
   name, year, and the title's first word, made unique. A site with another scheme passes `recordId(record, { taken })`.
+- **Citations typed by hand.** While the article has author–date citations that aren't markers yet (pasted in from
+  a word processor, say), a banner says so, with examples and a **Review and import** button, and checks again after
+  every change and at once on paste. `importer.handTyped` sets how firm it is: `'block'` (the default: Save refuses
+  until they're imported; after reviewing, the writer can choose **Save with them as typed**, which lasts until more
+  are added), `'warn'` (the banner only), or `'off'`. `editor.handTyped` gives `{ count, examples }`.
+- **The review's order.** Citations that need the writer come first (several candidates, or no reference), then the
+  works the site already has, then the ones that are probably right (one clear match each, selected and changeable).
+  Cancel and Convert stay in view at the bottom.
+- **The site's own works, by policy.** `importer.siteWorks`: `'offer'` (the default: one clear match is selected;
+  anything written differently waits for a choice), `'prefer'` (one match is selected even when written a little
+  differently), or `'require'` (no "Add it as a new work" where the site has a match).
 - **What the site keeps.** Only new works that a converted citation cites join the works list (with notes) and go to
   `onRecords`. The site's own works, reused, are already there; references nobody cites are not kept.
 

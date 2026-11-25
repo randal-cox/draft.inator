@@ -50,6 +50,33 @@ export function worksToKeep(preview, decisions) {
   return (preview.cache?.records || []).filter(rec => cited.has(rec.id) && fresh.has(rec.id));
 }
 
+/**
+ * Citations typed by hand in the text: author–date citations that aren't yet markers, found by cite.inator's import
+ * analysis (existing markers and code are skipped). Used by the editor to warn, and to hold Save, until they're imported.
+ * @param {string} text  The article.
+ * @param {Function} process  cite.inator's processImportRequest.
+ * @returns {{ count: number, examples: string[] }}
+ */
+export function findHandTyped(text, process, { citationKeyword = 'citation' } = {}) {
+  if (!process || !text || !/\(|\d{4}/.test(text)) return { count: 0, examples: [] };
+  const found = style => {
+    try {
+      const a = process({ mode: 'document', source: text, style, citationKeyword, namespace: 'draft-check', limits: { references: 300 } });
+      return a.review?.matches || [];
+    } catch { return []; }
+  };
+  // When the style is ambiguous, count what either reading finds rather than nothing.
+  let matches = found('auto');
+  if (!matches.length) matches = [found('apa'), found('chicago-author-date')].sort((x, y) => y.length - x.length)[0];
+  const raws = matches.map(m => m.citation.raw.replace(/\s+/g, ' '));
+  return { count: raws.length, examples: [...new Set(raws)].slice(0, 3) };
+}
+
+/** A citation the review can propose with confidence: every work has exactly one candidate, unique. */
+export function isProbablyRight(match) {
+  return match.items.length > 0 && match.items.every(it => it.state === 'unique' && it.candidates?.length === 1);
+}
+
 // What a proposed site work has in common with the imported reference, and how it's written differently, in words.
 function siteEvidence(candidate) {
   const same = [], other = new Set();
@@ -94,6 +121,10 @@ export function planReplacement(analysed, preview, bibliography = null) {
  *   recordId    (record, { taken }) => the id the site gives a new work (default: siteStyleId, bell-1992-ritual)
  *   onRecords   (records, cache) => the site keeps new works (for example, alongside the page in the same pull request)
  *   style       the starting style (default 'auto')
+ *   siteWorks   how strongly to steer to the site's own works: 'offer' (default: one clear match is selected, anything
+ *               with a difference waits for a choice), 'prefer' (one match is selected even with differences), or
+ *               'require' (no "Add it as a new work" when the site has a match)
+ *   handTyped   what the editor does while citations are typed by hand: 'block' (default: Save waits), 'warn', or 'off'
  */
 export function openImport(editor, options) {
   const { el, root } = editor;
@@ -105,7 +136,7 @@ export function openImport(editor, options) {
   const find = el('button', { type: 'button', class: 'di-primary', text: 'Find citations' });
   const controls = el('div', { class: 'di-import-controls' }, [el('label', { for: 'di-import-style', text: 'Citation style' }), styleSelect, find]);
   const summary = el('p', { class: 'di-import-summary', role: 'status', 'aria-live': 'polite' });
-  const list = el('ol', { class: 'di-import-list' });
+  const list = el('div', { class: 'di-import-sections' }), probableHost = el('div', { class: 'di-import-sections' });
   const siteHead = el('h3', { text: 'Works this site already has', hidden: true });
   const siteIntro = el('p', { class: 'hint', hidden: true, text: 'These references look like works already on the site. Use the site\'s work, or add the reference as a new one.' });
   const siteList = el('div', { class: 'di-import-site' });
@@ -116,7 +147,7 @@ export function openImport(editor, options) {
   const cancel = el('button', { type: 'button', class: 'di-quiet', text: 'Cancel' });
   const apply = el('button', { type: 'button', class: 'di-primary', text: 'Apply', disabled: true });
   const dialog = el('dialog', { class: 'di-dialog di-import', 'aria-labelledby': 'di-import-h' },
-    [el('div', {}, [title, intro, controls, summary, list, siteHead, siteIntro, siteList, replaceRow, error, el('div', { class: 'di-actions' }, [cancel, apply])])]);
+    [el('div', {}, [title, intro, controls, summary, el('div', { class: 'di-import-body' }, [list, siteHead, siteIntro, siteList, probableHost, replaceRow]), error, el('div', { class: 'di-actions' }, [cancel, apply])])]);
   title.id = 'di-import-h';
   root.append(dialog);
 
@@ -128,7 +159,7 @@ export function openImport(editor, options) {
   apply.addEventListener('click', applyChosen);
 
   function analyse() {
-    error.textContent = ''; list.textContent = '';
+    error.textContent = ''; list.textContent = ''; probableHost.textContent = '';
     analysed = editor.getText();
     context = { mode: 'document', source: analysed, style, citationKeyword: 'citation', namespace: 'draft-import',
       limits: { references: 300 }, ...(options.siteCache && { siteCache: options.siteCache }) };
@@ -145,17 +176,29 @@ export function openImport(editor, options) {
     // A site work is proposed the same way: one candidate with nothing in conflict is selected, visibly, for the
     // writer to confirm by converting. Anything else (a conflict, several candidates) waits for a choice, and
     // Convert waits with it: adding a work the site may already have is as much a guess as merging it.
+    // The site's policy (siteWorks) can say to prefer its works even when they're written differently.
     siteChoice = {};
+    const policy = options.siteWorks || 'offer';
     for (const s of a.siteMatches || []) {
       if (!s.candidates?.length) continue;
       const only = s.candidates.length === 1 ? s.candidates[0] : null;
-      siteChoice[s.recordId] = only && ![].concat(only.evidence || []).some(e => e.assessment?.conflicts?.length) ? only.recordId : undefined;
+      const clear = only && ![].concat(only.evidence || []).some(e => e.assessment?.conflicts?.length);
+      siteChoice[s.recordId] = only && (clear || policy !== 'offer') ? only.recordId : undefined;
     }
     draw();
   }
 
   function draw() {
-    list.textContent = '';
+    list.textContent = ''; probableHost.textContent = '';
+    // Sections: what needs the writer first, then what's probably right (still visible, still changeable).
+    const attention = el('ol', { class: 'di-import-list' }), probable = el('ol', { class: 'di-import-list' });
+    const nAttention = matches.filter(m => !isProbablyRight(m)).length, nProbable = matches.length - nAttention;
+    if (nAttention) list.append(el('section', { class: 'di-import-section di-import-attention', 'aria-label': 'Needs your attention' }, [
+      el('h3', { text: `Needs your attention (${nAttention})` }),
+      el('p', { class: 'hint', text: 'More than one work could match, or none in the reference list does. Choose, or leave as written.' }), attention]));
+    if (nProbable) probableHost.append(el('section', { class: 'di-import-section', 'aria-label': 'Probably right' }, [
+      el('h3', { text: `Probably right (${nProbable})` }),
+      el('p', { class: 'hint', text: 'One clear match each, already selected. Check them; change any that are wrong.' }), probable]));
     matches.forEach((m, i) => {
       const at = m.citation.start, text = analysed;
       const before = text.slice(Math.max(0, at - 50), at).replace(/^\S*\s/, '…'), after = text.slice(m.citation.end, m.citation.end + 40).replace(/\s\S*$/, '…');
@@ -182,7 +225,7 @@ export function openImport(editor, options) {
         }
         row.append(set);
       });
-      list.append(row);
+      (isProbablyRight(m) ? probable : attention).append(row);
     });
     drawSite();
     tally();
@@ -203,10 +246,14 @@ export function openImport(editor, options) {
         set.append(el('div', { class: 'di-import-choice' }, [radio, el('label', { for: id }, [
           el('span', { text: `Use the site's “${c.title || c.recordId}”` }), el('small', { text: ` · ${c.recordId}${why ? ' · ' + why : ''}` })])]));
       }
-      const nid = `di-site-${s.recordId}-new`;
-      const fresh = el('input', { type: 'radio', name: `di-site-${s.recordId}`, id: nid, checked: siteChoice[s.recordId] === null });
-      fresh.addEventListener('change', () => { siteChoice[s.recordId] = null; tally(); });
-      set.append(el('div', { class: 'di-import-choice' }, [fresh, el('label', { for: nid, text: 'Add it as a new work' })]));
+      if (options.siteWorks === 'require') {
+        set.append(el('p', { class: 'hint', text: 'This site uses its own works where it has them.' }));
+      } else {
+        const nid = `di-site-${s.recordId}-new`;
+        const fresh = el('input', { type: 'radio', name: `di-site-${s.recordId}`, id: nid, checked: siteChoice[s.recordId] === null });
+        fresh.addEventListener('change', () => { siteChoice[s.recordId] = null; tally(); });
+        set.append(el('div', { class: 'di-import-choice' }, [fresh, el('label', { for: nid, text: 'Add it as a new work' })]));
+      }
       siteList.append(set);
     }
   }

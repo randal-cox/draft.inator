@@ -46,6 +46,8 @@ mountEditor(document.getElementById('editor'), {
   importer: {
     process: processImportRequest,
     siteCache,   // a reference the site already has is offered as that work, not a new one
+    siteWorks: 'prefer',   // the site's own works are selected even when written a little differently
+    // handTyped: 'block' is the default: Save waits while citations are typed by hand
     describe: (id, cache) => describeCitation(id, cache, { citationStyle: 'chicago-author-date' }).text,
     onRecords: records => console.info(`New works: ${records.map(r => r.id).join(', ') || 'none'}. A site would keep them with the page.`)
   }

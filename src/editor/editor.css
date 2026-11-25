@@ -3,7 +3,7 @@
    site's own article class (the previewClass option) wins. */
 .di-editor {
   --di-bg: #fbfaf7; --di-surface: #ffffff; --di-ink: #1d1b18; --di-muted: #5d5850; --di-line: #d9d4ca;
-  --di-accent: #7a2e1f; --di-accent-ink: #ffffff; --di-focus: #1f5fbf; --di-mark: #fff1b8; --di-error: #b3261e;
+  --di-accent: #7a2e1f; --di-accent-ink: #ffffff; --di-focus: #1f5fbf; --di-mark: #fff1b8; --di-error: #b3261e; --di-warn-bg: #fff4d6; --di-warn-ink: #6b3d00; --di-warn-line: #c27a00;
   --di-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --di-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --di-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
@@ -16,12 +16,12 @@
 @media (prefers-color-scheme: dark) {
   .di-editor:not([data-di-theme="light"]) {
     --di-bg: #171614; --di-surface: #201f1c; --di-ink: #ece8e1; --di-muted: #a8a196; --di-line: #3a3732;
-    --di-accent: #e39a7f; --di-accent-ink: #1b1210; --di-focus: #8ab4ff; --di-mark: #5a4a12; --di-error: #ffb4ab; color-scheme: dark;
+    --di-accent: #e39a7f; --di-accent-ink: #1b1210; --di-focus: #8ab4ff; --di-mark: #5a4a12; --di-error: #ffb4ab; --di-warn-bg: #3a2a08; --di-warn-ink: #ffd88a; --di-warn-line: #e0a030; color-scheme: dark;
   }
 }
 .di-editor[data-di-theme="dark"] {
   --di-bg: #171614; --di-surface: #201f1c; --di-ink: #ece8e1; --di-muted: #a8a196; --di-line: #3a3732;
-  --di-accent: #e39a7f; --di-accent-ink: #1b1210; --di-focus: #8ab4ff; --di-mark: #5a4a12; --di-error: #ffb4ab; color-scheme: dark;
+  --di-accent: #e39a7f; --di-accent-ink: #1b1210; --di-focus: #8ab4ff; --di-mark: #5a4a12; --di-error: #ffb4ab; --di-warn-bg: #3a2a08; --di-warn-ink: #ffd88a; --di-warn-line: #e0a030; color-scheme: dark;
 }
 /* A site hides the box with the hidden attribute; that must win over display: flex above. */
 .di-editor[hidden] { display: none !important; }
@@ -270,3 +270,25 @@
 .di-article .citation-note-actions { display: inline; margin-left: .35rem; }
 .di-article .citation-icon { font-size: .75em; vertical-align: super; text-decoration: none; margin-right: .2rem; }
 .di-article .citation-note-status { font-weight: 600; font-size: .85em; color: var(--di-muted); }
+
+/* Citations typed by hand: meant to be impossible to miss (Randal, 25 Nov 2026). */
+.di-typed { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .9rem; padding: .7rem .9rem;
+  background: var(--di-warn-bg); color: var(--di-warn-ink); border-bottom: 2px solid var(--di-warn-line); font-weight: 600; }
+.di-typed[hidden] { display: none; }
+.di-typed-icon { display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; flex: none;
+  background: var(--di-warn-line); color: var(--di-warn-bg); font-weight: 800; }
+.di-typed-text { flex: 1 1 22rem; font-weight: 500; }
+.di-typed-actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+
+/* Import review: sections, and actions that stay in view. */
+.di-editor .di-import { padding-bottom: 0; }
+.di-import-section { margin: .75rem 0 0; }
+.di-import-section h3 { margin: .2rem 0; font-size: 1rem; }
+.di-import-section > .hint { margin: 0 0 .5rem; }
+.di-import-attention > h3 { color: var(--di-warn-ink); }
+.di-editor .di-import .di-actions { position: sticky; bottom: 0; z-index: 1; margin: .75rem -1.25rem 0; padding: .7rem 1.25rem;
+  background: var(--di-bg); border-top: 1px solid var(--di-line); box-shadow: 0 -6px 12px -10px rgb(0 0 0 / .35); }
+
+/* Radios and checkboxes drawn the same everywhere, in light and dark (Safari otherwise varies them). */
+.di-editor input[type=radio], .di-editor input[type=checkbox] { accent-color: var(--di-accent); width: 1rem; height: 1rem; margin: 0; flex: none; }
+.di-import-choice { align-items: center; }

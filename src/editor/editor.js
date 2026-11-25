@@ -245,6 +245,14 @@ export function mountEditor(root, options = {}) {
   const recover = el('div', { class: 'di-recover', role: 'region', 'aria-label': 'Unsaved changes', hidden: true },
     [recoverText, el('span', { class: 'di-recover-actions' }, [recoverButton, discardButton])]);
 
+  // Citations typed by hand (not yet markers): a banner that can't be missed, and Save waits (importer.handTyped).
+  const typedPolicy = o.importer ? (o.importer.handTyped || 'block') : 'off';
+  const typedText = el('span', { class: 'di-typed-text' });
+  const typedReview = el('button', { type: 'button', class: 'di-primary', text: 'Review and import' });
+  const typedAnyway = el('button', { type: 'button', class: 'di-quiet', text: 'Save with them as typed', hidden: true });
+  const typedBar = el('div', { class: 'di-typed', role: 'region', 'aria-label': 'Citations typed by hand', hidden: true },
+    [el('span', { class: 'di-typed-icon', 'aria-hidden': 'true', text: '!' }), typedText, el('span', { class: 'di-typed-actions' }, [typedReview, typedAnyway])]);
+
   const dTitle = el('h2', { text: 'Citation' }), dFields = el('div'), dOut = el('output', { class: 'di-code' });
   const dError = el('p', { class: 'di-error', role: 'alert' });
   const dCancel = el('button', { type: 'button', class: 'di-quiet', text: 'Cancel' }), dSave = el('button', { type: 'submit', class: 'di-primary', text: 'Insert' });
@@ -254,7 +262,7 @@ export function mountEditor(root, options = {}) {
   const detailsHost = el('div', { class: 'di-details-body' });
   // Open, except on a narrow screen, where the text comes first and Details is a tap away.
   const details = fields && el('details', { class: 'di-details', open: !window.matchMedia?.('(max-width: 40rem)').matches }, [el('summary', { text: 'Details' }), detailsHost]);
-  root.append(...[head, recover, details, toolbar, panes, status, exitPlain, dialog].filter(Boolean));
+  root.append(...[head, recover, typedBar, details, toolbar, panes, status, exitPlain, dialog].filter(Boolean));
 
   const announce = msg => { live.textContent = ''; setTimeout(() => { live.textContent = msg; }, 30); };
 
@@ -324,6 +332,7 @@ export function mountEditor(root, options = {}) {
     figure: () => openBlock('figure'),
     edit: () => { const b = blockAt(source.value, source.selectionStart); if (b) openBlock(b.kind, b); },
     import: async () => {
+      typed.reviewed = true;
       const { openImport } = await import('./importer.js');
       openImport({ el, root, getText: () => source.value, replace, announce, focus: () => source.focus(),
         addWorks: (works, records) => {
@@ -449,6 +458,11 @@ export function mountEditor(root, options = {}) {
   if (saveButton) saveButton.addEventListener('click', async () => {
     saveButton.disabled = true; saved.textContent = 'Saving…';
     try {
+      await checkTyped();
+      if (typedPolicy === 'block' && typed.count && !typed.override) {
+        typedBar.hidden = false; typedReview.focus();
+        throw new Error(`${typed.count} citation${typed.count === 1 ? ' is' : 's are'} typed by hand. Import ${typed.count === 1 ? 'it' : 'them'} first, or choose Review and import.`);
+      }
       if (panel) {
         const problems = checkDetails(fields, panel.values());
         if (problems.length) {
@@ -523,10 +537,36 @@ export function mountEditor(root, options = {}) {
     announce(recoverText.textContent);
   }
 
+  // ---------- Citations typed by hand ----------
+  const typed = { count: 0, examples: [], reviewed: false, override: false };
+  let typedTimer;
+  async function checkTyped() {
+    if (typedPolicy === 'off') return;
+    const { findHandTyped } = await import('./importer.js');
+    const found = findHandTyped(source.value, o.importer.process);
+    if (found.count > typed.count) typed.override = false;   // new ones: the earlier "save anyway" doesn't cover them
+    Object.assign(typed, found);
+    const n = typed.count;
+    typedBar.hidden = !n;
+    if (!n) return;
+    const one = n === 1, ex = typed.examples;
+    const list = ex.length > 2 ? ex.slice(0, -1).join(', ') + ', and ' + ex[ex.length - 1] : ex.join(' and ');
+    typedText.textContent = (one ? `1 citation is typed by hand: ${list}. It isn't linked to a work, so readers won't get a real citation or endnote.`
+      : `${n} citations are typed by hand, such as ${list}. They aren't linked to works, so readers won't get real citations or endnotes.`) +
+      (typedPolicy !== 'block' ? ` Import ${one ? 'it' : 'them'} to fix this.` : typed.override ? ' Saving with them as typed.' : ` Import ${one ? 'it' : 'them'} before saving.`);
+    typedAnyway.hidden = typedPolicy !== 'block' || !typed.reviewed || typed.override;
+  }
+  const checkTypedSoon = () => { clearTimeout(typedTimer); typedTimer = setTimeout(checkTyped, 600); };
+  typedReview.addEventListener('click', () => COMMANDS.import());
+  typedAnyway.addEventListener('click', () => { typed.override = true; checkTyped(); announce('These citations will be saved as typed, unlinked.'); source.focus(); });
+  // Pasting is when hand-typed citations usually arrive: say so at once.
+  source.addEventListener('paste', () => setTimeout(async () => { const before = typed.count; await checkTyped();
+    if (typed.count > before) announce(`${typed.count - before} citation${typed.count - before === 1 ? '' : 's'} typed by hand pasted in. Review and import them.`); }, 0));
+
   // ---------- Start ----------
   let timer;
   function changed() {
-    render(); updateEditButton();
+    render(); updateEditButton(); checkTypedSoon();
     if (!o.storageKey) return;
     clearTimeout(timer);
     timer = setTimeout(() => {
@@ -551,11 +591,14 @@ export function mountEditor(root, options = {}) {
     if (choice === 'same') forgetDraft();
     if (choice === 'offer' || choice === 'offer-changed') offerDraft(kept, choice === 'offer-changed');
     render(); updateEditButton();
+    await checkTyped();
   })();
 
   return {
     ready,
     get text() { return whole(); },
+    /** Citations still typed by hand: { count, examples }. */
+    get handTyped() { return { count: typed.count, examples: typed.examples.slice() }; },
     set text(v) { base = v; source.value = load(v); render(); updateEditButton(); },
     focus() { source.focus(); },
     setLayout

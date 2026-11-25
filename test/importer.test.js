@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { processImportRequest } from '../vendor/citation-inator/citation-import.mjs';
-import { planReplacement, siteStyleId, worksToKeep } from '../src/editor/importer.js';
+import { planReplacement, siteStyleId, worksToKeep, findHandTyped, isProbablyRight } from '../src/editor/importer.js';
 
 const root = new URL('..', import.meta.url).pathname;
 const source = fs.readFileSync(root + 'demo/editor/sample-import.md', 'utf8');
@@ -81,4 +81,20 @@ test('a site work with a shorter title is still proposed, and reusing it adds no
   assert.ok(sp.reusedRecordIds.includes('turner-1969-ritual'));
   assert.ok(!worksToKeep(sp, decisions).some(r => r.id.startsWith('turner-')), 'no turner-1969-ritual-2');
   assert.match(sp.source, /\{citation turner-1969-ritual[;|}]/, 'written bare, as the site writes it (#26)');
+});
+
+test('citations typed by hand are found; markers, code, and bare years are not', () => {
+  const text = 'Already {citation bell-1992-ritual} and {cite turner-1969-ritual}. Practice first (Bell, 1992, p. 94). Turner (1969) says so. Code `(Smith, 2001)`. A year (1992) alone.';
+  const r = findHandTyped(text, processImportRequest);
+  assert.equal(r.count, 2);
+  assert.deepEqual(r.examples, ['(Bell, 1992, p. 94)', 'Turner (1969)']);
+  assert.deepEqual(findHandTyped('Nothing here {citation bell-1992-ritual}.', processImportRequest), { count: 0, examples: [] });
+  assert.equal(findHandTyped(source, processImportRequest).count, 7, 'the import sample: seven, before importing');
+  assert.equal(findHandTyped(p.source, processImportRequest).count, 1, 'after importing: only the one with no reference');
+});
+
+test('the review sorts citations into probably right and needs attention', () => {
+  const probable = a.review.matches.filter(isProbablyRight).length;
+  assert.equal(probable, 6);
+  assert.equal(a.review.matches.length - probable, 1, 'Rivera, with no reference, needs attention');
 });
