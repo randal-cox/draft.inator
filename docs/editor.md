@@ -170,13 +170,15 @@ nothing is sent anywhere. Turn the button off with `openFiles: false`.
 
 ## Formatted citations in the preview
 
-The preview keeps to what's being written: click or type anywhere and the same passage is brought into view in the
+The preview keeps to what's being written: click or move anywhere and the same passage is brought into view in the
 preview (centred, and briefly marked), matched by its words, or for equations and figures by their order; scroll the
-text and the preview shows the passage at its top. It stays in step in a long article, where tall equations,
+text and the preview shows the passage at its top; scroll the preview and the text follows. Where each paragraph sits
+in the text is measured in a hidden copy laid out the same way, so long wrapped lines don't throw it off. It stays in step in a long article, where tall equations,
 figures, and endnotes would put a simple proportional scroll out of step.
 
-Each formatted citation shows its reference on hover (its `title`), since the site's own citation panel isn't loaded
-in the editor. A long article's preview catches up just after typing pauses, dimmed while it does, so typing never waits
+Load cite.inator's citation panel (`vendor/citation-inator/citation-inspector.mjs` and `.css`) on the editor's page
+and hovering a citation in the preview opens the same panel readers get on the site (`citations.inspectorAttributes`
+changes its settings). Without it, each citation's reference shows as a plain tooltip. A long article's preview catches up just after typing pauses, dimmed while it does, so typing never waits
 for it; a short one is drawn at once.
 
 ```js

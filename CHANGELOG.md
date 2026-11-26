@@ -22,6 +22,10 @@
 - **The preview follows the cursor** (Randal): click or type, and the same passage comes into view in the preview,
   matched by its words (equations and figures by their order); scrolling the text brings the passage at its top. A
   long paper no longer drifts out of step.
+- **From Randal's second try:** the citation panel readers get on the site now opens on hover in the preview (load
+  `citation-inspector.mjs` and `.css` from the vendored cite.inator 0.5.1); scrolling the preview scrolls the text too,
+  both measured paragraph by paragraph; "Bringing in …" stays until the preview has caught up; a keystroke no longer
+  searches the preview or the whole article (1 ms in a 32,000-character paper).
 - **Displayed equations are indented, with their numbers flush right** (Randal): `--di-eq-indent` and `--di-eq-align`
   change it.
 - **`draft-inator migrate` names each line to check** (`file:line:column`); 0.4.0 printed `undefined:undefined`.

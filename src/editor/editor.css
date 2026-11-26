@@ -376,3 +376,7 @@
 .di-editor .di-article .di-here { animation: di-here 1.2s ease-out; border-radius: 3px; }
 @keyframes di-here { from { background: var(--di-mark); } to { background: transparent; } }
 @media (prefers-reduced-motion: reduce) { .di-editor .di-article .di-here { animation: none; } }
+
+/* A hidden copy of the text pane, laid out the same way, to measure where each paragraph sits (scroll sync). */
+.di-editor .di-mirror { position: absolute; top: 0; left: -10000px; visibility: hidden; height: auto; overflow: hidden;
+  white-space: pre-wrap; overflow-wrap: break-word; word-break: normal; pointer-events: none; }
