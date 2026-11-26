@@ -9,9 +9,9 @@ tests need nothing installed:
 
 | | |
 |---|---|
-| Version | **0.6.0-preview.7**, for testing on the `feature/cue` branch only (commit `1f73d336bf666382c142ea170bfa06aae4d386de`, branch `codex/cite-0.6-zotero`). Not for `main` until 0.6 is released |
+| Version | **0.6.0-preview.8**, for testing on the `feature/cue` branch only (commit `4b9c0929b10570df3e6f0fe6e0863851805d6ce9`, branch `codex/cite-0.6-zotero`). Not for `main` until 0.6 is released |
 | Source | `dist/` at that commit (tracked in citation.inator's repository) |
-| Bundle SHA-256 | `citation-tools.mjs` `58daa90ade9fd10c98ed5fff4f2cf265435214d4ad021a58747b208ac4f5fe5f`; `citation-import.mjs` `54c52eb4725b4d8fcfd17e5251671010cb3300d6a490137f03ced78e5ddc9c1a`; `citation-compiler.mjs` `4b786a235a9ab61f7ecaf61be0f38f17968f1ff51b76f91b180787c1a6830353` |
+| Bundle SHA-256 | `citation-tools.mjs` `a10f0a965b06f108b3abe66566dcb87fc4fa2a9a3391dacc2cab384a9025fca6`; `citation-import.mjs` `a7154509a9a59b48ccb90f845f020d5c3b3ee8bd70ee59a5ae58d2c1b5e1edc5`; `citation-compiler.mjs` `3e272324decbf55369da718c979a5fdba6e10549a11701ed010a87c7ce920d0f` |
 | Licence | MIT (`LICENSE`); bundled notices in `THIRD_PARTY_LICENSES.txt` and the file headers |
 | Tools exports used | `describeCitation`, `annotateMarkers` (with `noteContext`), `collectMarkerTags`, `markerKind`, `formatRecordId`, `migrateCitationCues` |
 

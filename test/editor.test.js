@@ -121,3 +121,14 @@ test('readers see an unresolved cue, flagged; a resolved work replaces its cue; 
   assert.ok(!/secret/.test(r.html + JSON.stringify(r.citationDescriptions || {}) + JSON.stringify(r.occurrences || {})), 'comments are in no reader output');
   assert.ok(r.diagnostics.some(d => d.code === 'citation-unresolved-placeholder' && d.identifier === 'local:missing-cox'), 'still unresolved: the cue resolved nothing');
 });
+
+test('a cue written with &quot; in HTML compiles as one written with quotes (#55, fixed in cite.inator 0.6.0-preview.8)', async () => {
+  const { compileHTML } = await import('../vendor/citation-inator/citation-compiler.mjs');
+  const cache = JSON.parse(fs.readFileSync(root + 'examples/sample-site/citations.json', 'utf8'));
+  const opts = { citationStyle: 'chicago-author-date', citationKeyword: 'cite', namespace: 't' };
+  const strip = h => h.replace(/ data-ci[\w-]*="[^"]*"/g, '');
+  const plain = compileHTML('<p>A {cite bell-1992-ritual | cue:"Bell 1992" | locator:"p. 12"}.</p>', cache, opts);
+  const encoded = compileHTML('<p>A {cite bell-1992-ritual | cue:&quot;Bell 1992&quot; | locator:&quot;p. 12&quot;}.</p>', cache, opts);
+  assert.deepEqual(encoded.diagnostics, []);
+  assert.equal(strip(encoded.html), strip(plain.html));
+});
