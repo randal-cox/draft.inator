@@ -252,7 +252,8 @@ export function mountEditor(root, options = {}) {
     el('div', { class: 'di-group' }, [tb('heading', 'H', 'Heading', { 'aria-label': 'Heading' }), tb('bold', [el('b', { text: 'B' })], 'Bold (Ctrl+B)', { 'aria-label': 'Bold' }),
       tb('italic', [el('i', { text: 'I' })], 'Italic (Ctrl+I)', { 'aria-label': 'Italic' }), tb('link', 'Link', 'Link (Ctrl+K)'), tb('code', 'Code', 'Code')]),
     el('div', { class: 'di-group' }, [tb('ul', '• List', 'Bulleted list'), tb('ol', '1. List', 'Numbered list'), tb('quote', 'Quote', 'Quotation')]),
-    el('div', { class: 'di-group di-blocks' }, [cite && tb('citation', 'Citation', 'Insert a citation'), figure && tb('figure', 'Figure', 'Insert a figure'),
+    el('div', { class: 'di-group di-blocks' }, [cite && tb('citation', 'Citation', 'Insert a citation'),
+      cite && o.zotero?.manager && tb('zotero', 'Zotero', 'Search your Zotero library and cite from it'), figure && tb('figure', 'Figure', 'Insert a figure'),
       (cite || figure) && editButton, (o.importer || o.showImport) && tb('import', 'Import citations',
         o.importer ? 'Find citations such as (Bell, 1992) and convert them' : 'Coming with citation.inator\'s importer', { disabled: !o.importer })])
   ]);
@@ -382,6 +383,17 @@ export function mountEditor(root, options = {}) {
     quote: () => prefixLines('> '),
     citation: () => openBlock('citation'),
     figure: () => openBlock('figure'),
+    zotero: async () => {
+      const { openZotero } = await import('./zotero.js');
+      const kw = window.DRAFT_CITATION?.keyword || 'cite';
+      openZotero({ el, root, getText: () => source.value, getSelection: () => [source.selectionStart, source.selectionEnd],
+        replace, announce, focus: () => source.focus(), addWorks: addImportedWorks,
+        records: () => { const seen = new Map(); for (const r of [...(o.importer?.siteCache?.records || []), ...(o.citations?.cache?.records || [])]) seen.set(r.id, r); return [...seen.values()]; },
+        // The works this page already cites, for "already cited here".
+        cited: () => [...source.value.matchAll(new RegExp(`\\{${kw}\\s([^}]*)\\}`, 'g'))]
+          .flatMap(m => m[1].split(';').map(p => p.trim().split(/[\s|]/)[0].replace(/^local:/, ''))) },
+        { siteCache: o.importer?.siteCache || o.citations?.cache, recordId: o.importer?.recordId, onRecords: o.importer?.onRecords, ...o.zotero });
+    },
     edit: () => { const b = blockAt(source.value, source.selectionStart); if (b) openBlock(b.kind, b); },
     import: async () => {
       typed.reviewed = true;

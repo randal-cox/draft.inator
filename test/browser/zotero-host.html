@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; object-src 'none'; base-uri 'none'">
+  <title>Zotero picker test host</title>
+  <link rel="stylesheet" href="../../src/editor/editor.css">
+</head>
+<body>
+  <!-- A minimal host for the browser regression test (run.mjs): the public mountEditor hooks, the demo's made-up
+       Zotero library, and an onRecords that can be told to fail (?stage=fail-once). -->
+  <div id="editor"></div>
+  <script src="../../src/editor/forms.js"></script>
+  <script src="../../examples/sample-site/works.js"></script>
+  <script src="../../src/blocks/citation.js"></script>
+  <script type="module" src="zotero-host.mjs"></script>
+</body>
+</html>

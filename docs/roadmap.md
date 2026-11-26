@@ -101,7 +101,11 @@ From `docs/plan-full-editor.md` (decided 21 Nov 2026).
 - [x] Recover an unsaved draft: offered, never loaded silently.
 - [ ] Unpublish, trash, and restore; scheduled publishing with a scheduled build.
 
-## 0.6 planning: citing from Zotero (issue #40; planning only, after 0.5.1)
+## 0.6 planning: citing from Zotero
+
+- [x] First prototype on the draft side (#40): connect with a session-only key, search, review against the site's
+      works, insert; disposable browser-local bindings. Waiting for cite.inator 0.6's release, and KR's CSP change.
+ (issue #40; planning only, after 0.5.1)
 
 Randal keeps his library in Zotero and wants to insert works from it as `{cite …}` markers without leaving the
 editor. Not started; nothing here is agreed beyond the split of work, and nothing reads a private library yet.
