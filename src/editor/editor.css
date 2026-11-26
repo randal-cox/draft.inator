@@ -327,11 +327,14 @@
 /* Unresolved placeholders in the article: counted in the status line until finished. */
 .di-editor .di-counts-warn { color: var(--di-warn-ink); font-weight: 600; }
 
-/* Maths (KaTeX MathML) and cross-references. A numbered equation: centred, its number at the right margin. */
-.di-article .di-equation { display: flex; align-items: center; gap: 1rem; margin: 1rem 0; overflow-x: auto; }
-.di-article .di-equation > .katex { flex: 1; text-align: center; }
-.di-article .di-equation math { font-size: 1.1em; }
-.di-article .di-eq-number { flex: none; font-variant-numeric: tabular-nums; }
+/* Maths (KaTeX MathML) and cross-references. A displayed equation, as typeset papers do it: indented from the left
+   margin, its number flush right. Both are custom properties a site can change (centred: --di-eq-align: center). */
+.di-article { --di-eq-indent: 2.5em; --di-eq-align: left; }
+.di-article .di-equation { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 1rem;
+  margin: 1rem 0; padding-left: var(--di-eq-indent); }
+.di-article .di-equation > .katex { display: block; min-width: 0; overflow-x: auto; text-align: var(--di-eq-align); }
+.di-article .di-equation math { display: inline-block; font-size: 1.1em; }
+.di-article .di-eq-number { justify-self: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .di-article .di-fig-number { font-weight: 600; color: var(--di-ink, inherit); }
 .di-article a.di-ref { text-decoration: none; border-bottom: 1px dotted currentColor; }
 .di-article .di-ref-missing, .di-article .di-math-error { background: var(--di-warn-bg); color: var(--di-warn-ink); outline: 1px solid var(--di-warn-line); border-radius: 2px; }
@@ -344,7 +347,7 @@
 .di-eq-sides label, .di-eq-caption { display: block; font-weight: 600; margin-bottom: .3rem; }
 .di-eq-tex { width: 100%; box-sizing: border-box; font: .95rem/1.5 var(--di-mono, ui-monospace, monospace); padding: .5rem; }
 .di-eq-shown { min-height: 5.5rem; border: 1px solid var(--di-line, #ccc); border-radius: 6px; padding: .5rem; display: flex; align-items: center; justify-content: center; overflow-x: auto; }
-.di-eq-shown .di-equation { margin: 0; }
+.di-eq-shown .di-equation { margin: 0; padding-left: 0; --di-eq-align: center; }
 .di-eq-palette { display: grid; gap: .5rem; margin: .75rem 0; }
 .di-eq-palette h3 { font-size: .8rem; margin: 0 0 .25rem; color: var(--di-muted); text-transform: none; }
 .di-eq-keys { display: flex; flex-wrap: wrap; gap: .25rem; }

@@ -19,6 +19,8 @@
   paper took about 3 seconds per change; now 0.3 seconds to open and 4 ms per keystroke). Citations in the preview
   show their reference on hover. A small spinner shows while a file is brought in ("Bringing in BEST.docx…", held
   long enough to be seen) and while a long preview catches up ("Updating the preview…"); still for reduced motion.
+- **Displayed equations are indented, with their numbers flush right** (Randal): `--di-eq-indent` and `--di-eq-align`
+  change it.
 - **`draft-inator migrate` names each line to check** (`file:line:column`); 0.4.0 printed `undefined:undefined`.
 - **Replacing a work doesn't carry the old work's options** (Theandra's point on #40; a bug in 0.4.0). When a
   writer changes the work a citation points to, the old work's page and other options are set aside and shown, with

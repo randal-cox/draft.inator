@@ -146,6 +146,8 @@ mountEditor(el, { …, math: { katex, macros: { '\\R': '\\mathbb{R}' }, refNames
 - Maths with a mistake shows its source, marked, with KaTeX's message; a reference to a missing label is marked too.
   The status line counts both ("2 to fix"), and lists them on hover.
 - `renderArticle` returns `equations` and `crossref` (the problems) alongside its other counts.
+- A displayed equation is indented from the left margin, with its number flush right, as typeset papers do it. A site
+  changes that with CSS: `--di-eq-indent` (default `2.5em`) and `--di-eq-align` (`left`, or `center`).
 - **The Equation dialog** (the toolbar's Equation, or Ctrl+M; Ctrl+E or Edit equation when the cursor is in maths):
   LaTeX beside how it reads, live; a palette of structures (fractions, roots, sums, integrals, binomials, matrices,
   cases, aligned lines), relations, and Greek letters, which wraps any selected LaTeX; on its own line or inside the
