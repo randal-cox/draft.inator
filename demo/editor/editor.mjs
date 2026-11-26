@@ -9,6 +9,8 @@ import { processImportRequest } from '../../vendor/citation-inator/citation-impo
 import { describeCitation } from '../../vendor/citation-inator/citation-tools.mjs';
 import { compileHTML } from '../../vendor/citation-inator/citation-compiler.mjs';
 import katex from '../../vendor/katex/katex.mjs';
+import * as manager from '../../vendor/citation-inator/citation-manager.mjs';
+import { sampleFetch } from './zotero-sample.mjs';
 
 // The sample site's own citation records: for the formatted preview, and so the importer can offer works it has.
 const siteCache = await (await fetch(new URL('../../examples/sample-site/citations.json', import.meta.url))).json();
@@ -47,6 +49,9 @@ mountEditor(document.getElementById('editor'), {
   images: SAMPLE_IMAGES,
   storageKey: importSample ? 'draft-inator-editor-import' : sample === 'equations' ? 'draft-inator-editor-equations' : 'draft-inator-editor-file',   // whole files: a body-only draft from 0.4 isn't offered
   citations: { compileHTML, cache: structuredClone(siteCache), citationStyle: 'chicago-author-date' },
+  // Cite from Zotero (cite.inator's manager module). The demo answers for Zotero with a small made-up library
+  // (zotero-sample.mjs; key samplesamplesamplesample); a site passes nothing here and the real api.zotero.org is used.
+  zotero: { manager, fetch: sampleFetch },
   math: { katex },   // LaTeX maths as MathML; numbered equations and figures, and {ref …}   // formatted, with endnotes
   importer: {
     process: processImportRequest,

@@ -237,6 +237,8 @@ export function openZotero(editor, options) {
   const c = connection.get();
   if (c) drawSearch(c); else drawConnect();
   dialog.showModal();
+  // showModal moves focus to the first control; the search box (or the key) is where to start.
+  dialog.querySelector('#di-z-q, #di-z-key')?.focus();
 }
 
 export { esc as _esc };
