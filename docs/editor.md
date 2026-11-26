@@ -148,6 +148,31 @@ mountEditor(el, { …, math: { katex, macros: { '\\R': '\\mathbb{R}' }, refNames
 - `renderArticle` returns `equations` and `crossref` (the problems) alongside its other counts.
 - Try it: `demo/editor/?sample=equations`.
 
+## Citing from Zotero
+
+With cite.inator's manager module (`vendor/citation-inator/citation-manager.mjs`, cite.inator 0.6), a **Zotero**
+button in the toolbar opens a search of the writer's own Zotero library:
+
+```js
+import * as manager from '/admin/draft-inator/vendor/citation-inator/citation-manager.mjs';
+mountEditor(el, { …, zotero: { manager } });
+```
+
+- **Connecting:** the writer pastes a Zotero API key (read-only is enough; made at zotero.org/settings/keys). It's
+  checked with Zotero, and kept for this browser tab only (`sessionStorage`), never in the page, a draft, or the
+  repository. **Forget the key** removes it.
+- **Searching:** by author, title, or year, from the keyboard (arrows and Enter); items only, no notes or attachments.
+  Works this page already cites are marked.
+- **Choosing:** cite.inator converts the item (`fromZotero`) and compares it with the site's works
+  (`reconcileZoteroItem`). A work the site already has is offered, with the evidence in plain words, as in the import
+  review; anything cite.inator flags is shown before inserting. A new work gets a site-style id, is added to the works
+  list, and goes to the site with the page (`importer.onRecords`).
+- **Remembering:** which Zotero item became which work is kept in this browser (`localStorage`), to mark "already
+  cited" and reuse the id. It's disposable: losing it never blocks a save.
+- The host must allow `https://api.zotero.org` in its Content Security Policy's `connect-src` for the editor's pages.
+  Nothing else is contacted; the demo answers with a small made-up library instead (key
+  `samplesamplesamplesample`).
+
 ## Formatted citations in the preview
 
 ```js

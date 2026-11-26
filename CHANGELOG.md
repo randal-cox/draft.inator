@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Cite from Zotero** (issue #40; cite.inator 0.6.0-preview.1, for testing): search your Zotero library from the
+  editor, with a key kept for the browser tab only; each item converted and compared with the site's works by
+  cite.inator, reviewed, then inserted. The demo has a small made-up library.
 - **Equations and cross-references** (Randal, 25 Nov 2026). LaTeX maths between `$…$` and `$$…$$`, drawn by KaTeX
   0.16.11 (vendored, MIT) as MathML: no fonts, styles, or scripts, so it suits a strict security policy, and screen
   readers read it. Label a displayed equation with `{#eq:name}` and a figure with `label:fig:name`; `{ref …}` reads
