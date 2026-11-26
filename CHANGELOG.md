@@ -13,6 +13,11 @@
   writer changes the work a citation points to, the old work's page and other options are set aside and shown, with
   **Keep them**; nothing moves by default, and going back restores them. Finishing a placeholder drops its
   `unresolved:`. Same-work edits keep every option, as before.
+- **A figure's caption can hold citations, references, and maths** (Randal, 26 Nov 2026). Inside a quoted value,
+  whole `{…}` markers (two deep) and `$…$` maths are kept exactly as written: their quotes and pipes don't end the
+  value, and nothing in them is an escape. The preview draws them in the caption, once; a caption's citations count
+  as cited; and `draft-inator check` finds a figure's label after such a caption. Existing figure lines read and
+  write back as before.
 
 ## 0.4.0 · 2026-11-25 · The live editor, citation import, and one keyword
 

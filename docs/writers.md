@@ -61,6 +61,10 @@ The preview shows the image as soon as it's uploaded, before it's published. The
 {figure /uploads/mask.jpg | alt:"A carved wooden mask" | caption:"Mask, about 1910" | credit:"Ann Cox" | licence:"CC BY 4.0"}
 ```
 
+A caption can cite a work, refer to an equation or figure, and hold maths, written just as in the article:
+`caption:"Sample size against $p$, from {cite guest-2006 | note:"Guest et al. 2006"}"`. Citations in captions
+count as cited and appear among the works cited.
+
 ## Write an equation
 
 Type LaTeX between dollar signs: `$p \ge 0.10$` inside a sentence, or `$$ … $$` on its own line for an equation set

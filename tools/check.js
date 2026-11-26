@@ -4,7 +4,8 @@ import { checkCrossrefs, LABEL } from '../src/editor/crossref.js';
 
 // Code is text, not maths: fenced and inline code in Markdown, and code, pre, script, and style in HTML.
 const CODE = /(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`|<(code|pre|script|style)\b[^>]*>[\s\S]*?<\/\2\s*>)/gi;
-const FIGURE_LABEL = new RegExp(String.raw`\{figure\b[^}\n]*?\|\s*label:"?(${LABEL})"?`, 'g');
+// A caption may hold whole {…} markers (two deep), so a label after it is still found.
+const FIGURE_LABEL = new RegExp(String.raw`\{figure\b(?:[^{}\n]|\{(?:[^{}\n]|\{[^{}\n]*\})*\})*?\|\s*label:"?(${LABEL})"?`, 'g');
 
 /**
  * @param {string} text  One article.

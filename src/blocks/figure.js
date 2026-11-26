@@ -14,26 +14,63 @@
   // A label names the figure for cross-references ({ref fig:depth} reads "Figure 2"); numbers are never written.
   var LABEL = /^[a-z][a-z0-9]*:[a-z0-9][a-z0-9_-]*$/;
 
-  // Split on a separator outside quotes, honouring backslash escapes (citation.inator's notation; as in the Cite block).
+  // A value may hold whole markers and maths, kept exactly as written (Randal, 26 Nov 2026): a caption such as
+  //   caption:"Sample size against $p$ {cite guest-2006 | note:"Guest et al. 2006"}"
+  // Inside balanced {…} and inside $…$ maths nothing is an escape, and quotes and pipes don't end anything. Elsewhere
+  // a backslash escapes the next character (citation.inator's notation; as in the Cite block).
+  function braceEnd(s, i) {   // s[i] is "{": the index after its matching "}", or -1 (unbalanced, or across a line)
+    for (var j = i, depth = 0; j < s.length; j++) {
+      var c = s[j];
+      if (c === '\\') { j++; continue; }
+      if (c === '\n') return -1;
+      if (c === '{') depth++;
+      else if (c === '}' && --depth === 0) return j + 1;
+    }
+    return -1;
+  }
+  function mathEnd(s, i) {    // s[i] is "$": the index after the closing "$" (Pandoc's rule, so "$5 and $10" isn't maths)
+    if (s[i + 1] === '$' || !s[i + 1] || /\s/.test(s[i + 1])) return -1;
+    for (var j = i + 1; j < s.length; j++) {
+      var c = s[j];
+      if (c === '\\') { j++; continue; }
+      if (c === '\n') return -1;
+      if (c === '$' && !/\s/.test(s[j - 1]) && !/\d/.test(s[j + 1] || '')) return j + 1;
+    }
+    return -1;
+  }
+  // Walk a value: each({ raw: text kept as is } | { esc: an escaped character, as written } | { ch: one character }).
+  function walk(s, escapes, each) {
+    for (var i = 0; i < s.length;) {
+      var c = s[i], e = c === '{' ? braceEnd(s, i) : c === '$' ? mathEnd(s, i) : -1;
+      if (e > 0) { each({ raw: s.slice(i, e) }); i = e; }
+      else if (escapes && c === '\\' && i + 1 < s.length) { each({ esc: s.slice(i, i + 2) }); i += 2; }
+      else { each({ ch: c }); i++; }
+    }
+  }
   function split(s, sep) {
     var out = [], cur = '', q = false;
-    for (var i = 0; i < s.length; i++) {
-      var c = s[i];
-      if (c === '\\' && i + 1 < s.length) { cur += c + s[++i]; continue; }
-      if (c === '"') q = !q;
-      if (c === sep && !q) { out.push(cur); cur = ''; continue; }
-      cur += c;
-    }
+    walk(s, true, function (t) {
+      if (t.raw || t.esc) { cur += t.raw || t.esc; return; }
+      if (t.ch === '"') q = !q;
+      if (t.ch === sep && !q) { out.push(cur); cur = ''; return; }
+      cur += t.ch;
+    });
     out.push(cur);
     return out.map(function (x) { return x.trim(); });
   }
   function unquote(v) {
     v = v.trim();
     if (v.length > 1 && v[0] === '"' && v[v.length - 1] === '"') v = v.slice(1, -1);
-    return v.replace(/\\(.)/g, '$1');
+    var out = '';
+    walk(v, true, function (t) { out += t.raw || (t.esc ? t.esc[1] : t.ch); });
+    return out;
   }
   function needsQuotes(v) { return /[;|"{}\\:]|^\s|\s$|^$/.test(v); }
-  function quoteAlways(v) { return '"' + String(v).replace(/(["\\])/g, '\\$1') + '"'; }
+  function quoteAlways(v) {
+    var out = '';
+    walk(String(v), false, function (t) { out += t.raw || (/["\\]/.test(t.ch) ? '\\' + t.ch : t.ch); });
+    return '"' + out + '"';
+  }
 
   // Read the tag's body into form values. `order` remembers the tag's own option order and how each was written, so
   // writing it back changes nothing a writer didn't change.
@@ -122,7 +159,8 @@
       { name: 'srcQuoted', label: 'Image path quoted', widget: 'hidden', required: false }
     ],
     // A figure is a block: a line of its own (the m flag tells Sveltia so).
-    pattern: /^\{figure ((?:[^{}\\\n]|\\.)*)\}$/m,
+    // Braces may nest two deep inside it: a citation, or maths such as \frac{a}{b}, in a caption.
+    pattern: /^\{figure ((?:[^{}\\\n]|\\.|\{(?:[^{}\\\n]|\\.|\{(?:[^{}\\\n]|\\.)*\})*\})*)\}$/m,
     fromBlock: function (match) { return parse(match[1]); },
     toBlock: function (data) { return build(data); },
     toPreview: function (data, getAsset) {

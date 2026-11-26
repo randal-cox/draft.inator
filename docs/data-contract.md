@@ -140,6 +140,10 @@ One line of its own (a block, not inline):
 
 - The same notation as citation markers: options separated by `|`, values quoted when they hold `;|"{}\:` or edge
   spaces, `\` escapes.
+- A value may hold whole `{…}` markers (up to two deep) and `$…$` maths (0.4.1). Inside them nothing is an escape,
+  and their quotes and pipes don't end the value, so a caption can cite a work, refer to an equation, or hold maths:
+  `caption:"Size against $\frac{a}{b}$ {cite guest-2006 | note:"Guest et al. 2006"}"`. A host renders a caption's
+  citations, maths, and `{ref …}`s as it does the article's, and counts its citations as cited.
 - Options the form doesn't show, and values the menus don't offer (`align:middle`), are kept as written, in place.
   Renderers should ignore options they don't know.
 - The image's provenance is in the tag, so every change to it shows in a diff. A host that keeps provenance records
@@ -198,5 +202,6 @@ and one change touches only that key's lines.
 
 
 - 0.4.1: replacing a work no longer carries the old work's options silently (above).
+- 0.4.1 (additive): a figure's values may hold whole `{…}` markers and `$…$` maths, kept as written.
 
 Additive only within 0.x where possible. A breaking change bumps the minor version and is listed in the roadmap.
