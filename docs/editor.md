@@ -167,8 +167,15 @@ mountEditor(el, { …, zotero: { manager } });
   (`reconcileZoteroItem`). A work the site already has is offered, with the evidence in plain words, as in the import
   review; anything cite.inator flags is shown before inserting. A new work gets a site-style id, is added to the works
   list, and goes to the site with the page (`importer.onRecords`).
-- **Remembering:** which Zotero item became which work is kept in this browser (`localStorage`), to mark "already
-  cited" and reuse the id. It's disposable: losing it never blocks a save.
+- **Remembering:** which Zotero item became which work is kept in this browser (`localStorage`, per site:
+  `zotero.bindingsScope`, default the page's host and path), to mark "already cited". It's a hint, never identity:
+  it's used only when cite.inator's own comparison finds that work among the item's candidates, and a stale one is
+  ignored and named (#53). Losing it never blocks a save.
+- **The site's part (`importer.onRecords`).** A new work goes to `onRecords(records)` first, which may return a
+  promise; only when it has succeeded does the editor change (the works list, the preview, the text). If it throws or
+  rejects, nothing changes, the dialog says so, and Insert can be tried again (#54). Undo takes the citation out of
+  the text but not the staged record out of the site: a site saves only the records its saved text cites (for
+  example, the compiler's returned `compiled.cache`), so an unused staged record is left behind.
 - The host must allow `https://api.zotero.org` in its Content Security Policy's `connect-src` for the editor's pages.
   Nothing else is contacted; the demo answers with a small made-up library instead (key
   `samplesamplesamplesample`).

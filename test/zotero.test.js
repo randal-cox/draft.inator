@@ -45,13 +45,29 @@ test('a chosen item gets a site-style id, and a work the site already has is off
   assert.ok(!JSON.stringify(q.selection.record).includes('OKAF2019'), 'Zotero\'s own key stays out of the record');
 });
 
-test('an item cite.inator flags (an http address) carries its review notes; a binding reuses the id', async () => {
+test('an item cite.inator flags (an http address) carries its review notes', async () => {
   const c = await connect(SAMPLE_KEY, { fetch });
   const [guest] = await searchZotero(c, 'guest', { fetch });
   const p = prepare(guest, manager, { siteCache, taken: [], bound: {} });
   assert.equal(p.selection.requiresReview, true);
   assert.ok(p.selection.diagnostics.length > 0);
-  const again = prepare(guest, manager, { siteCache, taken: [], bound: { [bindingKey(guest)]: 'guest-2006-enough' } });
-  assert.equal(again.selection.record.id, 'guest-2006-enough');
-  assert.equal(again.bound, 'guest-2006-enough');
+});
+
+test('a browser binding is a hint: reused only when cite.inator finds that work among the item\'s candidates (#53)', async () => {
+  const c = await connect(SAMPLE_KEY, { fetch });
+  const [okafor] = await searchZotero(c, 'okafor', { fetch });
+  // Stale: Okafor's binding points at Bell. Ignored, named, and never used as the id.
+  const stale = prepare(okafor, manager, { siteCache, taken: siteCache.records.map(r => r.id), bound: { [bindingKey(okafor)]: 'bell-1992-ritual' } });
+  assert.equal(stale.bound, null);
+  assert.equal(stale.staleBinding, 'bell-1992-ritual');
+  assert.equal(stale.selection.record.id, 'okafor-2019-masks');
+  assert.notEqual(stale.proposal.state, 'id-collision');
+  // Confirmed: Okafor was added earlier (its record is now among the site's works); the binding finds it.
+  const added = prepare(okafor, manager, { siteCache, bound: {} }).selection.record;
+  const withOkafor = { ...siteCache, records: [...siteCache.records, added] };
+  const again = prepare(okafor, manager, { siteCache: withOkafor, taken: withOkafor.records.map(r => r.id), bound: { [bindingKey(okafor)]: added.id } });
+  assert.equal(again.bound, added.id);
+  assert.equal(again.staleBinding, null);
+  // Bindings are kept per site, so two sites on one origin don't share them.
+  assert.notEqual(bindingKey(okafor, 'a.example/admin/'), bindingKey(okafor, 'b.example/admin/'));
 });

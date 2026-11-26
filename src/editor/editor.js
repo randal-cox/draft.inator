@@ -388,6 +388,7 @@ export function mountEditor(root, options = {}) {
       const kw = window.DRAFT_CITATION?.keyword || 'cite';
       openZotero({ el, root, getText: () => source.value, getSelection: () => [source.selectionStart, source.selectionEnd],
         replace, announce, focus: () => source.focus(), addWorks: addImportedWorks,
+        records: () => { const seen = new Map(); for (const r of [...(o.importer?.siteCache?.records || []), ...(o.citations?.cache?.records || [])]) seen.set(r.id, r); return [...seen.values()]; },
         // The works this page already cites, for "already cited here".
         cited: () => [...source.value.matchAll(new RegExp(`\\{${kw}\\s([^}]*)\\}`, 'g'))]
           .flatMap(m => m[1].split(';').map(p => p.trim().split(/[\s|]/)[0].replace(/^local:/, ''))) },

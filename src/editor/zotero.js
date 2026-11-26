@@ -29,7 +29,8 @@ export const bindings = {
   all: () => safe(() => JSON.parse(localStorage.getItem(BINDINGS)), {}) || {},
   set: (zkey, recordId) => safe(() => { const b = bindings.all(); b[zkey] = recordId; localStorage.setItem(BINDINGS, JSON.stringify(b)); })
 };
-export const bindingKey = item => `${item.library?.type || 'user'}:${item.library?.id}:${item.key}`;
+// A binding's key names the site too (scope), so two sites on one origin don't share them (issue #53).
+export const bindingKey = (item, scope = '') => `${scope ? scope + '|' : ''}${item.library?.type || 'user'}:${item.library?.id}:${item.key}`;
 
 const headers = key => ({ 'Zotero-API-Version': '3', 'Zotero-API-Key': key });
 function failure(r) {
@@ -85,14 +86,19 @@ export function describeItem(item) {
  * @param {{ siteCache?: object, taken?: string[], recordId?: Function }} [options]
  * @returns {{ selection: object, proposal: object|null, bound: string|null }}
  */
-export function prepare(item, manager, { siteCache = null, taken = [], recordId = siteStyleId, bound = bindings.all() } = {}) {
-  const was = bound[bindingKey(item)];
-  // A first conversion only to learn the authors, year, and title the id is made from; then the real one.
+export function prepare(item, manager, { siteCache = null, taken = [], recordId = siteStyleId, bound = bindings.all(), scope = '' } = {}) {
+  const hint = bound[bindingKey(item, scope)] || null;
+  // A first conversion only to learn the authors, year, and title the id is made from; then the real one. The id is
+  // always a fresh one: a browser binding is a hint, never identity (issue #53). It's used only when cite.inator's
+  // own comparison finds the work it points to among this item's candidates.
   const draft = manager.fromZotero(item, { recordId: 'draft-inator-provisional', transport: 'web' });
-  const id = was || recordId(draft.record, { taken });
+  const known = new Set([...taken, ...((siteCache?.records) || []).map(r => r.id)]);
+  let id = recordId(draft.record, { taken: [...known] });
+  for (let n = 2; known.has(id); n++) id = `${recordId(draft.record, { taken: [] })}-${n}`;
   const selection = manager.fromZotero(item, { recordId: id, transport: 'web' });
   const proposal = siteCache ? manager.reconcileZoteroItem(selection, siteCache) : null;
-  return { selection, proposal, bound: was || null };
+  const confirmed = hint && proposal?.candidates?.some(c => c.recordId === hint) ? hint : null;
+  return { selection, proposal, bound: confirmed, staleBinding: hint && !confirmed ? hint : null };
 }
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -104,6 +110,9 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
  */
 export function openZotero(editor, options) {
   const { el } = editor, fetchFn = options.fetch || globalThis.fetch;
+  const scope = options.bindingsScope ?? (typeof location !== 'undefined' ? location.host + location.pathname : '');
+  // The works to compare with: the site's, and any added while editing (so a work added earlier is recognised).
+  const knownCache = () => ({ schema: 'citation-inator.cache.v1', records: editor.records ? editor.records() : ((options.siteCache?.records) || []) });
   const opener = document.activeElement;
   const [selStart, selEnd] = editor.getSelection();
   const title = el('h2', { id: 'di-z-title', text: 'Cite from Zotero', tabindex: '-1' });
@@ -157,7 +166,7 @@ export function openZotero(editor, options) {
     const draw = () => {
       const b = bindings.all();
       list.replaceChildren(...items.map((it, i) => {
-        const d = describeItem(it), was = b[bindingKey(it)];
+        const d = describeItem(it), was = b[bindingKey(it, scope)];
         const li = el('li', { id: `di-z-opt-${i}`, role: 'option', 'aria-selected': 'false', 'data-i': String(i) }, [
           el('span', { class: 'di-z-label', text: d.label }), el('span', { class: 'di-z-title-text', text: ' · ' + d.title }),
           was && cited.includes(was) ? el('small', { class: 'di-z-cited', text: ' · already cited here' }) : null]);
@@ -186,14 +195,19 @@ export function openZotero(editor, options) {
   // ---------- Review and insert ----------
   function drawChoice(conn, item) {
     error.textContent = ''; busy(false, '');
-    const taken = [...new Set([...(window.DRAFT_WORKS || []).map(w => w.id), ...((options.siteCache?.records) || []).map(r => r.id)])];
+    const cache = knownCache();
+    const taken = [...new Set([...(window.DRAFT_WORKS || []).map(w => w.id), ...cache.records.map(r => r.id)])];
     let prepared;
-    try { prepared = prepare(item, options.manager, { siteCache: options.siteCache, taken, recordId: options.recordId || siteStyleId }); }
+    try { prepared = prepare(item, options.manager, { siteCache: cache, taken, recordId: options.recordId || siteStyleId, scope }); }
     catch (e) { error.textContent = 'cite.inator couldn\'t convert this item: ' + e.message; return; }
-    const { selection, proposal, bound } = prepared, d = describeItem(item);
+    const { selection, proposal, bound, staleBinding } = prepared, d = describeItem(item);
     const site = proposal?.candidates || [];
-    let use = bound && taken.includes(bound) ? bound : site.length ? undefined : selection.record.id;
+    // A confirmed binding preselects its work; otherwise a site candidate waits for the writer; a new work is the
+    // only choice when there's none. An id collision is never resolved for the writer.
+    let use = bound || (site.length ? undefined : proposal?.state === 'id-collision' ? undefined : selection.record.id);
     const parts = [el('h3', { text: `${d.label}: ${d.title}` })];
+    if (staleBinding) parts.push(el('p', { class: 'hint', role: 'note', text: `This Zotero item was linked to ${staleBinding} in this browser before, but ${staleBinding} doesn't match it, so that link is ignored.` }));
+    if (proposal?.state === 'id-collision') parts.push(el('p', { class: 'di-error', role: 'note', text: `The site already has a different work called ${selection.record.id}. Choose which work this is below.` }));
     if (selection.requiresReview || selection.diagnostics?.length) {
       parts.push(el('div', { class: 'di-z-review', role: 'note' }, [el('p', { text: 'Check before citing: cite.inator flagged this item\'s details.' }),
         el('ul', {}, (selection.diagnostics || []).map(x => el('li', { text: x.message || x.code })))]));
@@ -206,11 +220,10 @@ export function openZotero(editor, options) {
       choose.append(el('div', { class: 'di-import-choice' }, [r, el('label', { for: id }, [el('span', { text: label }), small ? el('small', { text: ' · ' + small }) : null])]));
     };
     for (const c of site) {
-      const rec = options.siteCache.records.find(r => r.id === c.recordId);
+      const rec = cache.records.find(r => r.id === c.recordId);
       radio(c.recordId, `The site's “${rec?.title || c.title || 'untitled work'}”`, siteEvidence(c, selection.record, rec));
     }
-    if (!(bound && taken.includes(bound))) radio(selection.record.id, site.length ? 'Add it as a new work (the site would then have two copies)' : `Add it to the site's works as ${selection.record.id}`);
-    else radio(bound, `${bound}, as cited before from this Zotero item`);
+    if (proposal?.state !== 'id-collision') radio(selection.record.id, site.length ? 'Add it as a new work (the site would then have two copies)' : `Add it to the site's works as ${selection.record.id}`);
     parts.push(choose);
     const loc = el('input', { type: 'text', id: 'di-z-loc', autocomplete: 'off', placeholder: 'such as 94, or pp. 4–6' });
     parts.push(el('label', { for: 'di-z-loc', text: 'Page or section (optional)' }), loc);
@@ -219,12 +232,23 @@ export function openZotero(editor, options) {
     parts.push(el('div', { class: 'di-actions' }, [back, insert]));
     body.replaceChildren(...parts);
     back.addEventListener('click', () => drawSearch(conn));
-    insert.addEventListener('click', () => {
+    insert.addEventListener('click', async () => {
       if (!use) { error.textContent = 'Choose which work it is first.'; return; }
       const isNew = use === selection.record.id && !taken.includes(use);
+      // The site takes the new work first (onRecords, which may return a promise). Only when it has does anything
+      // in the editor change, so a failure leaves the text, the works, and the preview exactly as they were (#54).
+      if (isNew && options.onRecords) {
+        insert.disabled = true; error.textContent = ''; busy(true, 'Adding the work to the site…');
+        try { await options.onRecords([selection.record], null); }
+        catch (e) {
+          insert.disabled = false; busy(false, '');
+          error.textContent = `The site couldn't take this work${e?.message ? ` (${e.message})` : ''}. Nothing was changed; try Insert again.`;
+          return;
+        }
+        busy(false, '');
+      }
       if (isNew) editor.addWorks([{ id: use, note: d.label, title: selection.record.title || d.title }], [selection.record]);
-      if (isNew) options.onRecords?.([selection.record], null);
-      bindings.set(bindingKey(item), use);
+      bindings.set(bindingKey(item, scope), use);
       const build = window.DRAFT_CITATION?.build;
       const marker = build ? build([{ work: use, locator: loc.value.trim() }]) : `{cite ${use}${loc.value.trim() ? ` | locator:"${loc.value.trim().replace(/"/g, '\\"')}"` : ''}}`;
       done();

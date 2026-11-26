@@ -6,12 +6,27 @@
   "type": "module",
   "license": "MIT",
   "author": "Randal Cox",
-  "repository": { "type": "git", "url": "git+https://github.com/randal-cox/draft.inator.git" },
-  "files": ["src", "tools", "vendor", "docs", "CHANGELOG.md", "LICENSE"],
-  "bin": { "draft-inator": "tools/cli.js" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/randal-cox/draft.inator.git"
+  },
+  "files": [
+    "src",
+    "tools",
+    "vendor",
+    "docs",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "bin": {
+    "draft-inator": "tools/cli.js"
+  },
   "scripts": {
     "test": "node --test test/*.test.js",
-    "demo": "node scripts/serve.js"
+    "demo": "node scripts/serve.js",
+    "test:browser": "node --test test/browser/run.mjs"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  }
 }
