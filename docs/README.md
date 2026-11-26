@@ -14,6 +14,7 @@ Start with whichever describes you.
 | **Reading past decisions** | [`docs/decisions/`](decisions/) |
 | **Planning the full editor** | [What a full article editor needs](plan-full-editor.md) |
 | **Exploring scholarly writing** | [A scholarly writing environment ("write.inator")](explore-scholarly-writing.md) |
+| **Combining imports** | [The combined import fixture: citations, equations, figures, and references in one Word file](import-fixture.md) |
 | **Deciding what comes next** | [Product requirements](prd.md), [roadmap](roadmap.md), [where it came from](origin.md) |
 
 Changes are listed in the [changelog](../CHANGELOG.md).
