@@ -102,8 +102,8 @@ cite.inator's marker grammar (0.5.1), shown with the default keyword:
   chosen work is written bare, unless the bare id is a directive word (`endnote`, `list`, `nocite`, `evidence`,
   `credit`, `tags`), which is written `local:list`.
 - Options the form doesn't show (`label:`, fallback words, anything newer) are kept as written, in place.
-- **Changing the work an item cites** (0.4.1): in draft.inator's own form, the old work's page and other options are
-  set aside and shown, and kept only if the writer chooses "Keep them"; going back to the old work restores them. A
+- **Changing the work an item cites** (0.4.1): in draft.inator's own form, the old work's page, words before it, topics,
+  and other options are set aside and shown, and kept only if the writer chooses "Keep them"; going back to the old work restores them. A
   placeholder's `unresolved:` is never carried to the work that replaces it (that is what finishing it means). In
   Sveltia's form, which can't ask, the fields stay visible for the writer to clear; only `unresolved:` is dropped.
 - The marker's own option order is kept, and an option written quoted stays quoted.

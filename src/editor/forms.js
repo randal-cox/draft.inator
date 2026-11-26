@@ -111,7 +111,10 @@
                 item[sub.name] = v; item.held = null; redraw('Back to ' + bound.describe(v) + ', with its page and options.');
                 return;
               }
-              bound.fields.forEach(function (k) { if (item[k]) { held[k] = item[k]; item[k] = ''; } });
+              bound.fields.forEach(function (k) {
+                var v = item[k];
+                if (Array.isArray(v) ? v.length : v) { held[k] = v; item[k] = Array.isArray(v) ? [] : ''; }
+              });
               item[sub.name] = v;
               item.held = Object.keys(held).length ? { from: was, values: held } : null;
               redraw(item.held ? 'The page and options written for ' + bound.describe(was) + ' were set aside.' : '');
@@ -123,7 +126,7 @@
         });
         if (bound && item.held) {
           var h = item.held, what = Object.keys(h.values).map(function (k) {
-            return (bound.labels[k] || k) + ' ' + h.values[k]; }).join('; ');
+            return (bound.labels[k] || k) + ' ' + [].concat(h.values[k]).join(', '); }).join('; ');
           var keep = el('button', { type: 'button', class: 'quiet', text: 'Keep them for ' + bound.describe(item[bound.key]) });
           keep.addEventListener('click', function () {
             Object.keys(h.values).forEach(function (k) { item[k] = h.values[k]; });

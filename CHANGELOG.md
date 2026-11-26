@@ -13,6 +13,8 @@
   writer changes the work a citation points to, the old work's page and other options are set aside and shown, with
   **Keep them**; nothing moves by default, and going back restores them. Finishing a placeholder drops its
   `unresolved:`. Same-work edits keep every option, as before.
+  The words before it (`prefix:`) and the topics are set aside too (they can name or classify a source); how it
+  reads (`form:`) stays (cite.inator's policy, #40).
 
 ## 0.4.0 · 2026-11-25 · The live editor, citation import, and one keyword
 

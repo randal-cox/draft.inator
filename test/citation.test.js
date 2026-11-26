@@ -127,5 +127,5 @@ test('finishing a placeholder drops its unresolved:, and only that; a same-work 
   assert.equal(cite.toBlock(data), '{cite bell-1992-ritual | note:"Bell 1992" | label:"chapter" | locator:12}', 'new work: unresolved: dropped, the rest left to the writer');
   const again = cite.toBlock(cite.fromBlock(cite.toBlock(data).match(pattern)));
   assert.equal(again, cite.toBlock(data), 'a second pass changes nothing');
-  assert.equal(JSON.stringify(cite.bound.fields), '["locator","extra"]', 'the form sets these aside when the work changes');
+  assert.equal(JSON.stringify(cite.bound.fields), '["locator","prefix","tags","extra"]', 'the form sets these aside when the work changes');
 });
