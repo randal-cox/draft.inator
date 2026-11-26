@@ -69,6 +69,16 @@ as `{ref eq:sample-size}`, which reads "Eq. 1". Figures work the same way, with 
 (`fig:depth`) and `{ref fig:depth}`, which reads "Figure 1". Never type a number: move things around and every number
 and reference changes with them. A typo in the maths is marked in the preview with what's wrong.
 
+You don't have to know LaTeX: choose **Equation** in the toolbar. Type or build the equation with the buttons (a
+fraction, a square root, a sum, Greek letters), watch it beside you as it will read, and give it a label if you'll
+refer to it. To change one later, put the cursor in it and choose **Edit equation**.
+
+## Bring in a paper from Word or Google Docs
+
+In Google Docs, choose File › Download › Microsoft Word (.docx); in Word, save as .docx. Then choose **Open a file**
+in the editor. Your text, headings, italics, and equations come in; footnotes, tables, and images don't yet, and the
+editor says which were left behind. If the paper has citations like (Bell, 1992), the banner offers to import them.
+
 ## If something looks wrong
 
 | You see | It means | What to do |

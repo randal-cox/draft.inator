@@ -146,9 +146,40 @@ mountEditor(el, { …, math: { katex, macros: { '\\R': '\\mathbb{R}' }, refNames
 - Maths with a mistake shows its source, marked, with KaTeX's message; a reference to a missing label is marked too.
   The status line counts both ("2 to fix"), and lists them on hover.
 - `renderArticle` returns `equations` and `crossref` (the problems) alongside its other counts.
+- A displayed equation is indented from the left margin, with its number flush right, as typeset papers do it. A site
+  changes that with CSS: `--di-eq-indent` (default `2.5em`) and `--di-eq-align` (`left`, or `center`).
+- **The Equation dialog** (the toolbar's Equation, or Ctrl+M; Ctrl+E or Edit equation when the cursor is in maths):
+  LaTeX beside how it reads, live; a palette of structures (fractions, roots, sums, integrals, binomials, matrices,
+  cases, aligned lines), relations, and Greek letters, which wraps any selected LaTeX; on its own line or inside the
+  sentence; and a label, checked against the article's others. It writes plain Markdown maths and nothing else.
 - Try it: `demo/editor/?sample=equations`.
 
+## Opening a Word file
+
+**Open a file** in the toolbar brings in a Word file (`.docx`, as Word, Google Docs, and LibreOffice save it), or a
+Markdown or text file, as one undoable step. If the article already has text, it asks first: replace the article, or
+put the file in at the cursor. A message shows while it reads. From Word it keeps
+paragraphs, headings, italics and bold, lists, and links' text, and turns **Word's equations into LaTeX** (`$…$`
+inline, `$$…$$` displayed; Google Docs exports its equations the same way). An equation set on a line of its own
+inside an ordinary paragraph, as Google Docs does it (tabs to centre it, part of it typed as text, "(Eq 3)" at the end),
+becomes one displayed equation, and its number a label (`{#eq:3}`). An equation typed as plain text with a number is
+named, since it can't become maths on its own. What it can't carry (footnotes, tables,
+images, and any maths it doesn't recognise) is named in the result line, never dropped silently. Citations typed in
+the file then show in the banner, ready for Import citations. Unzipping uses the browser's own `DecompressionStream`;
+nothing is sent anywhere. Turn the button off with `openFiles: false`.
+
 ## Formatted citations in the preview
+
+The preview keeps to what's being written: click or move anywhere and the same passage is brought into view in the
+preview (centred, and briefly marked), matched by its words, or for equations and figures by their order; scroll the
+text and the preview shows the passage at its top; scroll the preview and the text follows. Where each paragraph sits
+in the text is measured in a hidden copy laid out the same way, so long wrapped lines don't throw it off. It stays in step in a long article, where tall equations,
+figures, and endnotes would put a simple proportional scroll out of step.
+
+Load cite.inator's citation panel (`vendor/citation-inator/citation-inspector.mjs` and `.css`) on the editor's page
+and hovering a citation in the preview opens the same panel readers get on the site (`citations.inspectorAttributes`
+changes its settings). Without it, each citation's reference shows as a plain tooltip. A long article's preview catches up just after typing pauses, dimmed while it does, so typing never waits
+for it; a short one is drawn at once.
 
 ```js
 import { compileHTML } from '/admin/draft-inator/citation-compiler.mjs';   // citation.inator 0.4.0

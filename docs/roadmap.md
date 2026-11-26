@@ -137,10 +137,12 @@ editor. Not started; nothing here is agreed beyond the split of work, and nothin
       automatically, by kind, in order, and renumbered when things move.
 - [x] `draft-inator check` for maths that doesn't parse, missing labels, and labels used twice.
 - [ ] Rendering the same way in a site's build (`crossref.js` with KaTeX in Node), starting with korazonresearch.org.
-- [ ] The Equation dialog: source and live render side by side, a palette (fractions, sums, integrals, Greek,
-      matrices), the site's macros, a label field; completion for `\commands` in the text.
-- [ ] Paste maths from Word, Google Docs (via .docx), Mathematica, and LibreOffice: MathML on the clipboard, and Word's
-      maths in a .docx, converted to LaTeX.
+- [x] The Equation dialog: source and live render side by side, a palette (fractions, sums, integrals, Greek,
+      matrices), the site's macros, a label field.
+- [ ] Completion for `\commands` in the text.
+- [x] Word's maths in a .docx (Word, Google Docs, LibreOffice) converted to LaTeX, with Open a file.
+- [ ] Paste maths: MathML on the clipboard (Word, Mathematica, LibreOffice) converted to LaTeX.
+- [ ] Footnotes and tables from a .docx; PDF through cite.inator's file reader.
 - [ ] Numbered tables (`label:tab:name`).
 
 ## Republish elsewhere: Substack first (Randal, 25 Nov 2026; planned, not started)

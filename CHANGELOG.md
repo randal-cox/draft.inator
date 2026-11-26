@@ -8,6 +8,26 @@
   "Eq. 3" or "Figure 2". Files hold labels, never numbers, so moving things renumbers them and every reference.
   Mistakes and missing labels are marked in the preview and counted in the status line. `draft-inator check` fails a
   pull request on them. Demo: `demo/editor/?sample=equations`.
+- **The Equation dialog** (Ctrl+M): LaTeX beside how it reads, a palette of structures, relations, and Greek
+  letters, inline or displayed, and a label checked against the article's others; Ctrl+E edits the maths the cursor
+  is in. It writes plain Markdown maths.
+- **Open a Word file** (from Word or Google Docs, `.docx`): paragraphs, headings, emphasis, lists, and Word's equations
+  as LaTeX; footnotes, tables, and images are named, not dropped silently. No dependencies: the browser unzips.
+- **Opening a paper, from Randal's try with a real one:** it asks whether to replace the article or insert at the
+  cursor; a message shows while it reads; Google Docs' equation lines (with "(Eq 3)") come in as displayed, labelled
+  equations. A long article's preview now catches up after typing pauses instead of on every keystroke (a 32,000-character
+  paper took about 3 seconds per change; now 0.3 seconds to open and 4 ms per keystroke). Citations in the preview
+  show their reference on hover. A small spinner shows while a file is brought in ("Bringing in BEST.docx…", held
+  long enough to be seen) and while a long preview catches up ("Updating the preview…"); still for reduced motion.
+- **The preview follows the cursor** (Randal): click or type, and the same passage comes into view in the preview,
+  matched by its words (equations and figures by their order); scrolling the text brings the passage at its top. A
+  long paper no longer drifts out of step.
+- **From Randal's second try:** the citation panel readers get on the site now opens on hover in the preview (load
+  `citation-inspector.mjs` and `.css` from the vendored cite.inator 0.5.1); scrolling the preview scrolls the text too,
+  both measured paragraph by paragraph; "Bringing in …" stays until the preview has caught up; a keystroke no longer
+  searches the preview or the whole article (1 ms in a 32,000-character paper).
+- **Displayed equations are indented, with their numbers flush right** (Randal): `--di-eq-indent` and `--di-eq-align`
+  change it.
 - **`draft-inator migrate` names each line to check** (`file:line:column`); 0.4.0 printed `undefined:undefined`.
 - **Replacing a work doesn't carry the old work's options** (Theandra's point on #40; a bug in 0.4.0). When a
   writer changes the work a citation points to, the old work's page and other options are set aside and shown, with

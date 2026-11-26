@@ -13,6 +13,7 @@ tests need nothing installed:
 | Source | The release tarball `cite-inator-0.5.1.tgz`, `package/dist/` (bundle file names unchanged from 0.4.0) |
 | Tarball SHA-256 | `31d726ee52e54e5d6226900c8caae03a12abdb7db363a8328e3921bdd142edcf` (matches the release's `SHA256SUMS`) |
 | Bundle SHA-256 | `citation-tools.mjs` `810e40a50ad1033d697abb3adfde2e6754caf1017a20c77636be3a6b57dbb256`; `citation-import.mjs` `e76f4891fa7641c0d2d9d24d1c380fe3dbc715f8e03179f8f99ec2417adf7716`; `citation-compiler.mjs` `f07ed16d3ad7cbfd8765340a3fb333ac84f6a898e0b8b2f2b73e322c3c4dcaab` |
+| Citation panel | `citation-inspector.mjs` and `citation-inspector.css` from the same 0.5.1 tarball, unchanged (the panel readers get on the site, for the editor's preview) |
 | Licence | MIT (`LICENSE`); bundled parse5, marked, and entities notices in `THIRD_PARTY_LICENSES.txt` and the file headers |
 | Tools exports | `describeCitation`, `annotateMarkers` (with `noteContext`), `collectMarkerTags`, `createSiteOccurrenceIndex`, `markerKind`, `formatRecordId` |
 

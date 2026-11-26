@@ -143,7 +143,10 @@ export function renderArticle(text, options = {}) {
   if (compiler) {
     try {
       const r = compiler.compileHTML(html, compiler.cache, { citationStyle: compiler.citationStyle || 'chicago-author-date', citationKeyword: kw, namespace: 'di-preview' });
-      html = r.html; formatted = true; diagnostics = r.diagnostics || [];
+      // Each citation's reference on hover, as on the site (whose inspector panel isn't loaded in the preview).
+      html = options.hoverTitles === false ? r.html
+        : r.html.replace(/(<a class="citation-cite"[^>]*?) data-ci-bibliography="([^"]*)"/g, (m, a, bib) => (/ title="/.test(a) ? m : `${a} title="${bib}" data-ci-bibliography="${bib}"`));
+      formatted = true; diagnostics = r.diagnostics || [];
     } catch (e) {
       // The compiler stopped: show the notes instead, and say why, rather than a blank preview.
       return { ...renderArticle(text, { ...options, citations: null }), compileError: e.message };
@@ -253,7 +256,9 @@ export function mountEditor(root, options = {}) {
       tb('italic', [el('i', { text: 'I' })], 'Italic (Ctrl+I)', { 'aria-label': 'Italic' }), tb('link', 'Link', 'Link (Ctrl+K)'), tb('code', 'Code', 'Code')]),
     el('div', { class: 'di-group' }, [tb('ul', '• List', 'Bulleted list'), tb('ol', '1. List', 'Numbered list'), tb('quote', 'Quote', 'Quotation')]),
     el('div', { class: 'di-group di-blocks' }, [cite && tb('citation', 'Citation', 'Insert a citation'), figure && tb('figure', 'Figure', 'Insert a figure'),
-      (cite || figure) && editButton, (o.importer || o.showImport) && tb('import', 'Import citations',
+      o.math?.katex && tb('equation', 'Equation', 'Insert an equation, or edit the one the cursor is in (Ctrl+M)'),
+      (cite || figure) && editButton, o.openFiles !== false && tb('open', 'Open a file', 'Bring in a Word file (.docx, from Word or Google Docs), with its equations, or a Markdown or text file'),
+      (o.importer || o.showImport) && tb('import', 'Import citations',
         o.importer ? 'Find citations such as (Bell, 1992) and convert them' : 'Coming with citation.inator\'s importer', { disabled: !o.importer })])
   ]);
   const source = el('textarea', { class: 'di-source', spellcheck: 'true', 'aria-label': 'The article, in Markdown' });
@@ -263,7 +268,9 @@ export function mountEditor(root, options = {}) {
   readPane.append(note);
   const panes = el('div', { class: 'di-panes' }, [el('div', { class: 'di-pane di-write' }, [source]), readPane]);
   const counts = el('span'), saved = el('span'), live = el('span', { class: 'di-sr', role: 'status', 'aria-live': 'polite' });
-  const status = el('div', { class: 'di-status' }, [counts, saved, live]);
+  // A small working sign: the preview catching up with a long article, or a file being brought in.
+  const updating = el('span', { class: 'di-busy-note', hidden: true }, [el('span', { class: 'di-spinner', 'aria-hidden': 'true' }), document.createTextNode('Updating the preview…')]);
+  const status = el('div', { class: 'di-status' }, [counts, updating, saved, live]);
   const exitPlain = el('button', { type: 'button', class: 'di-exit-plain', text: 'Leave plain (Esc)', hidden: true });
   const recoverText = el('span'), recoverButton = el('button', { type: 'button', class: 'di-primary', text: 'Restore them' });
   const discardButton = el('button', { type: 'button', class: 'di-quiet', text: 'Discard' });
@@ -319,10 +326,32 @@ export function mountEditor(root, options = {}) {
   const blockAt = (text, at) => blocks(text).find(b => at >= b.start && at <= b.end);
   // An upload lives only in the browser it was made in; elsewhere renderArticle says so instead of a broken image.
   const imageURL = p => F.assets[p] || (SAMPLES.has(p) || !p.startsWith(o.publicFolder + '/') || !o.storageKey ? p : null);
+  // A long paper takes a while to draw (a 30,000-character article with citations and equations, about a second or
+  // two), so the preview catches up just after typing pauses, with a quiet cue; a short one is drawn at once.
+  let renderTimer = null, renderCost = 0;
+  const rendered = [];   // waiting for the preview to catch up (opening a file)
+  const caughtUp = (limit = 8000) => (preview.classList.contains('di-updating') ? new Promise(r => { rendered.push(r); setTimeout(r, limit); }) : Promise.resolve());
+  function renderSoon() {
+    clearTimeout(renderTimer);
+    if (renderCost < 60 && source.value.length < 12000) { render(); return; }
+    preview.classList.add('di-updating'); preview.setAttribute('aria-busy', 'true'); updating.hidden = false;
+    renderTimer = setTimeout(render, Math.min(900, 150 + renderCost / 2));
+  }
   function render() {
-    const r = renderArticle(source.value, { render: o.render, imageURL, blocks: o.blocks, citations: o.citations,
+    clearTimeout(renderTimer);
+    const started = performance.now();
+    // cite.inator's citation panel, as on the site, when the host has loaded it (citation-inspector.mjs and .css);
+    // otherwise each citation's reference shows as a plain tooltip.
+    const inspector = !!(o.citations && window.customElements?.get('citation-inspector'));
+    const r = renderArticle(source.value, { render: o.render, imageURL, blocks: o.blocks, citations: o.citations, hoverTitles: !inspector,
       math: o.math?.katex || null, mathMacros: o.math?.macros, refNames: o.math?.refNames });
-    preview.innerHTML = r.html;
+    if (inspector && r.formatted) {
+      const panel = document.createElement('citation-inspector');
+      for (const [k, v] of Object.entries({ 'panel-title': 'Citation details', 'panel-icon': 'none', 'access-settings': 'off', 'access-layout': 'flat', activation: 'hover', ...(o.citations.inspectorAttributes || {}) })) panel.setAttribute(k, v);
+      panel.innerHTML = r.html;
+      preview.replaceChildren(panel);
+      try { panel.cache = o.citations.cache; } catch { /* the panel is a nicety: the formatted citations stand without it */ }
+    } else preview.innerHTML = r.html;
     note.hidden = r.formatted;
     if (r.compileError) { note.hidden = false; note.textContent = 'Citations show each work\'s note: the citation compiler stopped (' + r.compileError + ').'; }
     title.textContent = (panel && typeof panel.values().title === 'string' && panel.values().title) || r.title;
@@ -335,6 +364,10 @@ export function mountEditor(root, options = {}) {
       (unresolved ? ` · ${unresolved} unresolved` : '') + (fix.length ? ` · ${fix.length} to fix` : '');
     counts.title = fix.map(d => d.message).join('\n');
     counts.classList.toggle('di-counts-warn', unresolved > 0 || fix.length > 0);
+    preview.classList.remove('di-updating'); preview.removeAttribute('aria-busy'); updating.hidden = true;
+    renderCost = performance.now() - started;
+    for (const done of rendered.splice(0)) done();
+    if (document.activeElement === source) followCaret();
   }
 
   // ---------- Editing text ----------
@@ -370,6 +403,24 @@ export function mountEditor(root, options = {}) {
     }
     render();
   }
+  // Replace the article with an opened file, or put it in at the cursor? Resolves 'replace', 'insert', or null.
+  function askHow(name, equations) {
+    return new Promise(resolve => {
+      const replaceB = el('button', { type: 'button', class: 'di-primary', text: 'Replace the article' });
+      const insertB = el('button', { type: 'button', class: 'di-quiet', text: 'Insert at the cursor' });
+      const cancelB = el('button', { type: 'button', class: 'di-quiet', text: 'Cancel' });
+      const ask = el('dialog', { class: 'di-dialog di-ask', 'aria-labelledby': 'di-ask-title' }, [
+        el('h2', { id: 'di-ask-title', text: `Bring in ${name}` }),
+        el('p', { text: `It's ready${equations ? `, with ${equations} equation${equations === 1 ? '' : 's'}` : ''}. Replace this article with it, or put it in where the cursor is? Either way, Undo takes it out again.` }),
+        el('div', { class: 'di-actions' }, [cancelB, insertB, replaceB])]);
+      const done = v => { ask.close(); ask.remove(); resolve(v); };
+      replaceB.addEventListener('click', () => done('replace'));
+      insertB.addEventListener('click', () => done('insert'));
+      cancelB.addEventListener('click', () => done(null));
+      ask.addEventListener('cancel', e => { e.preventDefault(); done(null); });
+      root.append(ask); ask.showModal(); replaceB.focus();
+    });
+  }
   const COMMANDS = {
     bold: () => wrap('**', '**', 'bold text'),
     italic: () => wrap('*', '*', 'italic text'),
@@ -382,7 +433,56 @@ export function mountEditor(root, options = {}) {
     quote: () => prefixLines('> '),
     citation: () => openBlock('citation'),
     figure: () => openBlock('figure'),
-    edit: () => { const b = blockAt(source.value, source.selectionStart); if (b) openBlock(b.kind, b); },
+    equation: async () => {
+      const { openEquation } = await import('./equation.js');
+      openEquation({ el, root, getText: () => source.value, getSelection: () => [source.selectionStart, source.selectionEnd],
+        replace, announce, focus: () => source.focus() }, o.math);
+    },
+    // A Word file (or Markdown, or text) comes in at the cursor, as one undoable step; an empty article is replaced.
+    // Its typed citations then show in the banner, ready for Import citations.
+    open: () => {
+      const pick = el('input', { type: 'file', accept: '.docx,.md,.markdown,.txt,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain', hidden: true });
+      pick.addEventListener('change', async () => {
+        const file = pick.files[0]; pick.remove();
+        if (!file) return;
+        doneText.textContent = `Bringing in ${file.name}…`; doneBar.hidden = false; doneBar.classList.add('di-busy'); announce(doneText.textContent);
+        const shownAt = performance.now();
+        await new Promise(r => setTimeout(r, 30));   // let the message show before the work starts
+        let markdown, notes = [], equations = 0;
+        try {
+          if (/\.docx$/i.test(file.name)) {
+            const { docxToMarkdown } = await import('./docx.js');
+            ({ markdown, notes, equations } = await docxToMarkdown(await file.arrayBuffer()));
+          } else if (/\.(md|markdown|txt)$/i.test(file.name) || /^text\//.test(file.type)) markdown = await file.text();
+          else throw new Error('The editor opens Word (.docx), Markdown, and text files.');
+        } catch (e) { doneBar.classList.remove('di-busy'); doneText.textContent = `${file.name} couldn't be opened: ${e.message}`; doneBar.hidden = false; announce(doneText.textContent); return; }
+        doneBar.classList.remove('di-busy');   // waiting on the writer's choice, not on work
+        const empty = !source.value.trim();
+        // An article with text in it: ask whether the file replaces it or goes in at the cursor.
+        const how = empty ? 'replace' : await askHow(file.name, equations);
+        if (!how) { doneText.textContent = `${file.name} wasn't brought in.`; announce(doneText.textContent); return; }
+        doneBar.classList.add('di-busy');
+        const all = how === 'replace';
+        const at = all ? 0 : source.selectionStart, end = all ? source.value.length : source.selectionEnd;
+        // Its own paragraphs: a blank line before and after, unless the article already has one there.
+        doneText.textContent = `Bringing in ${file.name}…`;
+        const before = source.value.slice(0, at), after = source.value.slice(end);
+        markdown = markdown.replace(/\n+$/, '');
+        if (before && !/\n\n$/.test(before)) markdown = (/\n$/.test(before) ? '\n' : '\n\n') + markdown;
+        markdown += after ? (/^\n\n/.test(after) ? '' : /^\n/.test(after) ? '\n' : '\n\n') : '\n';
+        replace(at, end, markdown, [0, 0]);
+        // The work isn't done until the preview shows it; and long enough to be seen either way (a sign that flashes for
+        // a few milliseconds reads as a glitch, not as work).
+        await caughtUp();
+        await new Promise(r => setTimeout(r, Math.max(0, 350 - (performance.now() - shownAt))));
+        doneBar.classList.remove('di-busy');
+        doneText.textContent = `${file.name} brought in${equations ? `, with ${equations} equation${equations === 1 ? '' : 's'}` : ''}.` +
+          (notes.length ? ` Not carried over: ${notes.join('; ')}.` : '') + ' Undo takes it out again.';
+        doneBar.hidden = false; announce(doneText.textContent); checkTyped();
+      });
+      root.append(pick); pick.click();
+    },
+    edit: () => { const b = blockAt(source.value, source.selectionStart); if (b) openBlock(b.kind, b); else if (mathAt()) COMMANDS.equation(); },
     import: async () => {
       typed.reviewed = true;
       const { openImport } = await import('./importer.js');
@@ -395,10 +495,12 @@ export function mountEditor(root, options = {}) {
     }
   };
   toolbar.addEventListener('click', e => { const b = e.target.closest('button[data-cmd]'); if (b && !b.disabled && COMMANDS[b.dataset.cmd]) COMMANDS[b.dataset.cmd](); });
+  // Maths the cursor is in (with the maths option): the Edit button and Ctrl+E open it in the Equation dialog.
+  const mathAt = () => o.math?.katex && findMath(source.value).find(m => m.kind === 'math' && source.selectionStart >= m.start && source.selectionStart <= m.end);
   function updateEditButton() {
-    const b = blockAt(source.value, source.selectionStart);
-    editButton.disabled = !b;
-    editButton.textContent = b ? `Edit ${b.kind}` : 'Edit';
+    const b = blockAt(source.value, source.selectionStart), m = !b && mathAt();
+    editButton.disabled = !b && !m;
+    editButton.textContent = b ? `Edit ${b.kind}` : m ? 'Edit equation' : 'Edit';
   }
 
   // ---------- The block dialog ----------
@@ -498,7 +600,7 @@ export function mountEditor(root, options = {}) {
   });
   source.addEventListener('keydown', e => {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-    const cmd = { b: 'bold', i: 'italic', k: 'link', e: 'edit' }[e.key.toLowerCase()];
+    const cmd = { b: 'bold', i: 'italic', k: 'link', e: 'edit', ...(o.math?.katex && { m: 'equation' }) }[e.key.toLowerCase()];
     if (cmd) { e.preventDefault(); COMMANDS[cmd](); }
   });
 
@@ -534,12 +636,116 @@ export function mountEditor(root, options = {}) {
     announce('Back to the sample article.');
   });
 
-  // ---------- Scroll the preview with the writing ----------
-  source.addEventListener('scroll', () => {
+  // ---------- Keep the preview with the writing ----------
+  // The preview shows the paragraph being written: where the cursor is (clicked, typed, or moved), centred, or, when
+  // the text is scrolled, the paragraph at the top of the text. Paragraphs are matched by their words, and equations
+  // and figures by their order, so a long article with tall equations, figures, and endnotes stays in step.
+  const words = t => (t.replace(/\{[^}]*\}|\$\$[\s\S]*?\$\$|\$[^$\n]*\$|<[^>]+>|\[([^\]]*)\]\([^)]*\)/g, ' $1 ')
+    .toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || []);
+  function previewTarget(at) {
+    const text = source.value;
+    const start = Math.max(0, text.lastIndexOf('\n\n', at - 1) + 2), stop = text.indexOf('\n\n', at);
+    const block = text.slice(start, stop < 0 ? text.length : stop);
+    const nth = (re, sel) => { const n = (text.slice(0, start).match(re) || []).length; return preview.querySelectorAll(sel)[n] || null; };
+    if (/^\s*\$\$/.test(block)) return nth(/(^|\n)\s*\$\$[\s\S]*?\$\$/g, '.di-equation');
+    if (/^\s*\{figure\b/.test(block)) return nth(/(^|\n)\s*\{figure\b/g, 'figure');
+    const want = words(block).slice(0, 8);
+    if (!want.length) return null;
+    // The element whose words start the same way; among several, the one nearest where it would be by position.
+    const els = [...preview.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, blockquote, figcaption, td, dt, dd')];
+    const fits = els.filter(e => { const w = words(e.textContent); return want.slice(0, 4).every((x, i) => w[i] === x); });
+    if (!fits.length) return null;
+    const guess = (at / Math.max(1, text.length)) * preview.scrollHeight;
+    return fits.sort((x, y) => Math.abs(x.offsetTop - guess) - Math.abs(y.offsetTop - guess))[0];
+  }
+  let followTimer, followQuietUntil = 0, caretMovedAt = 0, previewQuietUntil = 0;
+  function follow(at, where) {
     const l = root.dataset.layout;
     if (l === 'write' || l === 'preview') return;
-    const max = source.scrollHeight - source.clientHeight;
-    if (max > 0) readPane.scrollTop = (source.scrollTop / max) * (readPane.scrollHeight - readPane.clientHeight);
+    const t = previewTarget(at);
+    if (!t) return;
+    const pane = readPane.getBoundingClientRect(), r = t.getBoundingClientRect();
+    if (where === 'center' && r.top >= pane.top + 24 && r.bottom <= pane.bottom - 24) return;   // already in view: leave it
+    const offset = where === 'center' ? (pane.height - Math.min(r.height, pane.height)) / 2 : 16;
+    followQuietUntil = Date.now() + 400; previewQuietUntil = Date.now() + 250;
+    readPane.scrollTop += r.top - pane.top - offset;
+    if (where === 'center') { t.classList.remove('di-here'); void t.offsetWidth; t.classList.add('di-here'); }
+  }
+  const followCaret = () => { caretMovedAt = Date.now(); clearTimeout(followTimer); followTimer = setTimeout(() => follow(source.selectionStart, 'center'), 120); };
+  // The cursor moved by clicking or by moving keys: follow it. Typing is followed once the preview has caught up
+  // (render), so a keystroke doesn't search the preview.
+  const MOVES = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End']);
+  source.addEventListener('mousedown', followCaret);
+  source.addEventListener('click', followCaret);
+  source.addEventListener('keyup', e => { if (MOVES.has(e.key) || e.ctrlKey || e.metaKey) followCaret(); });
+  source.addEventListener('input', () => { caretMovedAt = Date.now(); });
+
+  // Where each paragraph of the text sits, measured in a hidden copy of the text pane laid out the same way (same
+  // width, font, and wrapping), so scrolling maps to the right paragraph even when long lines wrap.
+  let layoutCache = null;
+  const mirror = el('div', { class: 'di-mirror', 'aria-hidden': 'true' });
+  function paragraphs() {
+    const text = source.value, width = source.clientWidth;
+    if (layoutCache && layoutCache.text === text && layoutCache.width === width) return layoutCache.list;
+    const cs = getComputedStyle(source);
+    for (const k of ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'borderTopWidth', 'borderLeftWidth', 'borderRightWidth', 'tabSize', 'boxSizing']) mirror.style[k] = cs[k];
+    mirror.style.width = source.offsetWidth + 'px';
+    if (!mirror.isConnected) root.append(mirror);
+    const starts = [0]; for (const m of text.matchAll(/\n[ \t]*\n+/g)) starts.push(m.index + m[0].length);
+    const frag = document.createDocumentFragment(), marks = [];
+    starts.forEach((at, i) => { const mark = el('span'); marks.push(mark); frag.append(mark, document.createTextNode(text.slice(at, starts[i + 1] ?? text.length))); });
+    mirror.replaceChildren(frag);
+    const top0 = marks[0].offsetTop;
+    const list = starts.map((at, i) => ({ at, y: marks[i].offsetTop - top0 }));
+    mirror.replaceChildren();
+    layoutCache = { text, width, list };
+    return list;
+  }
+  source.addEventListener('scroll', () => {
+    // Scrolling the cursor into view (after a click, typing, or a jump) is the cursor's doing: it's followed already.
+    if (Date.now() < followQuietUntil || Date.now() - caretMovedAt < 500 || document.activeElement === source && source.selectionStart !== source.selectionEnd) return;
+    clearTimeout(followTimer);
+    followTimer = setTimeout(() => {
+      if (source.scrollTop <= 0) { previewQuietUntil = Date.now() + 250; readPane.scrollTop = 0; return; }
+      // The paragraph at the top of the text.
+      const list = paragraphs();
+      let top = list[0];
+      for (const p of list) { if (p.y <= source.scrollTop + 4) top = p; else break; }
+      follow(top.at + 1, 'top');
+    }, 60);
+  });
+  // And the other way: scrolling the preview brings the same paragraph to the top of the text.
+  let previewTimer;
+  readPane.addEventListener('scroll', () => {
+    if (Date.now() < previewQuietUntil) return;
+    const l = root.dataset.layout;
+    if (l === 'write' || l === 'preview') return;
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      if (readPane.scrollTop <= 0) { followQuietUntil = Date.now() + 400; source.scrollTop = 0; return; }
+      const paneTop = readPane.getBoundingClientRect().top;
+      const blocks = [...preview.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, blockquote, figure, .di-equation')];
+      const first = blocks.find(b => b.getBoundingClientRect().bottom > paneTop + 8);
+      if (!first) return;
+      const list = paragraphs(), text = source.value;
+      let at = null;
+      const nth = (sel, re) => { const i = [...preview.querySelectorAll(sel)].indexOf(first); const m = [...text.matchAll(re)][i]; return m ? m.index : null; };
+      if (first.matches('.di-equation')) at = nth('.di-equation', /(^|\n)[ \t]*\$\$[\s\S]*?\$\$/g);
+      else if (first.matches('figure')) at = nth('figure', /(^|\n)[ \t]*\{figure\b/g);
+      else {
+        const want = words(first.textContent).slice(0, 4);
+        if (want.length) {
+          const guess = (readPane.scrollTop / Math.max(1, readPane.scrollHeight)) * text.length;
+          const hits = list.filter((p, i) => { const w = words(text.slice(p.at, list[i + 1]?.at ?? text.length)); return want.every((x, k) => w[k] === x); });
+          if (hits.length) at = hits.sort((x, y) => Math.abs(x.at - guess) - Math.abs(y.at - guess))[0].at;
+        }
+      }
+      if (at == null) return;
+      let target = list[0];
+      for (const p of list) { if (p.at <= at + 1) target = p; else break; }
+      followQuietUntil = Date.now() + 400;
+      source.scrollTop = Math.max(0, target.y - 8);
+    }, 60);
   });
 
   // ---------- Uploads kept in this browser ----------
@@ -620,7 +826,12 @@ export function mountEditor(root, options = {}) {
       if (/^Not saved: .*typed by hand/.test(saved.textContent)) saved.textContent = '';   // no stale refusal beside a working Save
     }
   }
-  const checkTypedSoon = () => { clearTimeout(typedTimer); typedTimer = setTimeout(checkTyped, 600); };
+  // Looking for typed citations reads the whole article; in a long one, wait for a real pause, then use idle time.
+  const checkTypedSoon = () => {
+    clearTimeout(typedTimer);
+    const long = source.value.length > 12000;
+    typedTimer = setTimeout(() => (long && window.requestIdleCallback ? requestIdleCallback(() => checkTyped(), { timeout: 2000 }) : checkTyped()), long ? 1500 : 600);
+  };
   typedReview.addEventListener('click', () => COMMANDS.import());
   // Save without importing: each typed citation cite.inator can hold becomes an unresolved placeholder, a flagged
   // citation that keeps the words typed and is finished later (cite.inator 0.5.1). One undoable step, reported with
@@ -650,8 +861,9 @@ export function mountEditor(root, options = {}) {
 
   // ---------- Start ----------
   let timer;
+  let editTimer;
   function changed() {
-    render(); updateEditButton(); checkTypedSoon();
+    renderSoon(); clearTimeout(editTimer); editTimer = setTimeout(updateEditButton, 120); checkTypedSoon();
     if (!o.storageKey) return;
     clearTimeout(timer);
     timer = setTimeout(() => {
@@ -660,7 +872,7 @@ export function mountEditor(root, options = {}) {
     }, 400);
   }
   source.addEventListener('input', changed);
-  for (const ev of ['click', 'keyup', 'select']) source.addEventListener(ev, updateEditButton);
+  for (const ev of ['click', 'keyup', 'select']) source.addEventListener(ev, () => { clearTimeout(editTimer); editTimer = setTimeout(updateEditButton, 120); });
 
   const ready = (async () => {
     const given = typeof o.text === 'function' ? await o.text() : o.text || '';
