@@ -92,7 +92,7 @@ test('a kept draft is offered, never loaded unasked', async () => {
 test('with citation.inator\'s compiler and a cache, the preview has formatted citations and endnotes', async () => {
   const { compileHTML } = await import('../vendor/citation-inator/citation-compiler.mjs');
   const cache = JSON.parse(fs.readFileSync(root + 'examples/sample-site/citations.json', 'utf8'));
-  const text = 'Practice *first* {cite bell-1992-ritual | note:"Bell 1992" | locator:12}.\n\n{figure /uploads/a.png | alt:"A"}\n\nCode: `{cite bell-1992-ritual}`';
+  const text = 'Practice *first* {cite bell-1992-ritual | cue:"Bell 1992" | locator:12}.\n\n{figure /uploads/a.png | alt:"A"}\n\nCode: `{cite bell-1992-ritual}`';
   const withCode = m => md(m).replace(/`([^`]+)`/g, '<code>$1</code>');   // as marked does
   const r = renderArticle(text, { render: withCode, citations: { compileHTML, cache } });
   assert.equal(r.formatted, true);
@@ -107,4 +107,17 @@ test('if the compiler stops, the preview shows notes and says why', () => {
   assert.equal(r.formatted, false);
   assert.equal(r.compileError, 'boom');
   assert.match(r.html, /<a class="cite"/);
+});
+
+// cite.inator 0.6 (#55): what readers get from cue: and comment:.
+test('readers see an unresolved cue, flagged; a resolved work replaces its cue; comments never reach readers', async () => {
+  const { compileMarkdown } = await import('../vendor/citation-inator/citation-compiler.mjs');
+  const cache = JSON.parse(fs.readFileSync(root + 'examples/sample-site/citations.json', 'utf8'));
+  const text = 'A {cite missing-cox | cue:"Cox, 1995" | comment:"secret one"} and {cite bell-1992-ritual | cue:"Zed 2099" | comment:"secret two"}.';
+  const r = compileMarkdown(text, cache, { citationStyle: 'chicago-author-date' });
+  assert.match(r.html, /aria-description="Unresolved"[^>]*>Cox, 1995</, 'the unresolved cue is the provisional citation, flagged');
+  assert.match(r.html, />Bell 1992</, 'a resolved work is formatted from its record');
+  assert.ok(!r.html.includes('Zed 2099'), 'its cue is not shown');
+  assert.ok(!/secret/.test(r.html + JSON.stringify(r.citationDescriptions || {}) + JSON.stringify(r.occurrences || {})), 'comments are in no reader output');
+  assert.ok(r.diagnostics.some(d => d.code === 'citation-unresolved-placeholder' && d.identifier === 'local:missing-cox'), 'still unresolved: the cue resolved nothing');
 });

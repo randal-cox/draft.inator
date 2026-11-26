@@ -1,4 +1,45 @@
-/*! cite-inator import v0.5.1 | MIT | See THIRD_PARTY_LICENSES.txt */
+/*! cite-inator import v0.6.0-preview.7 | MIT | See THIRD_PARTY_LICENSES.txt */
+
+// src/import-opaque.mjs
+function normalizeOpaqueRanges(source, opaque = []) {
+  if (typeof source !== "string" || !Array.isArray(opaque) || opaque.length > 1e4) throw new TypeError("Supply at most 10000 opaque source ranges.");
+  const splitsPair = (index) => index > 0 && index < source.length && /[\uD800-\uDBFF]/.test(source[index - 1]) && /[\uDC00-\uDFFF]/.test(source[index]);
+  const ordered = opaque.map((range) => {
+    if (!range || !Number.isSafeInteger(range.start) || !Number.isSafeInteger(range.end) || range.start < 0 || range.end <= range.start || range.end > source.length || splitsPair(range.start) || splitsPair(range.end)) throw new TypeError("Opaque ranges need valid UTF-16 start/end boundaries within the supplied source.");
+    return { start: range.start, end: range.end };
+  }).sort((a, b2) => a.start - b2.start || a.end - b2.end);
+  const result = [];
+  for (const range of ordered) {
+    const last = result.at(-1);
+    if (last && range.start <= last.end) last.end = Math.max(last.end, range.end);
+    else result.push(range);
+  }
+  return result;
+}
+function intersectsOpaque(start, end, opaque) {
+  return opaque.some((range) => start < range.end && end > range.start);
+}
+function maskOpaqueRanges(source, opaque) {
+  let cursor = 0, text = "";
+  for (const range of opaque) {
+    text += source.slice(cursor, range.start) + source.slice(range.start, range.end).replace(/[^\r\n]/g, " ");
+    cursor = range.end;
+  }
+  return text + source.slice(cursor);
+}
+
+// src/title-parts.mjs
+function normalizeTitleParts(parts, title) {
+  if (!Array.isArray(parts) || !parts.length) return [];
+  if (!parts.every((p) => p && typeof p.text === "string" && (!p.emphasis || ["italic", "bold"].includes(p.emphasis)))) return [];
+  if (parts.map((p) => p.text).join("") !== title) return [];
+  return parts.map(({ text, emphasis }) => ({ text, ...emphasis && { emphasis } }));
+}
+function titleRuns(record, field, emphasis) {
+  const title = record[field] || "", parts = normalizeTitleParts(record[field + "Parts"], title);
+  const runs = parts.length ? parts.map((p) => ({ text: p.text, ...p.emphasis === "bold" && emphasis === "italic" ? { emphasis: "italic", strong: true } : p.emphasis === "italic" && emphasis === "italic" ? {} : p.emphasis || emphasis ? { emphasis: p.emphasis || emphasis } : {} })) : [{ text: title, ...emphasis && { emphasis } }];
+  return runs.map((p) => ({ ...p, titleField: field }));
+}
 
 // src/records.mjs
 var CACHE_SCHEMA = "citation-inator.cache.v1";
@@ -132,7 +173,7 @@ function normalizeTextParts(parts) {
   return (Array.isArray(parts) ? parts : []).flatMap((part) => {
     if (typeof part?.text !== "string" || !part.text) return [];
     const href = httpsURL(part.href);
-    return [{ text: part.text, ...["italic", "bold"].includes(part.emphasis) && { emphasis: part.emphasis }, ...href && { href } }];
+    return [{ text: part.text, ...part.strong === true && { strong: true }, ...["italic", "bold"].includes(part.emphasis) && { emphasis: part.emphasis }, ...href && { href } }];
   });
 }
 function fullAuthorName(author, inverted = false) {
@@ -161,7 +202,7 @@ function normalizeRecord(input) {
     const authority = cleanText(item?.authority);
     return label && value && authority ? [{ label, value, authority }] : [];
   });
-  const authors2 = array(input.authors).flatMap((author) => {
+  const people = (value) => array(value).flatMap((author) => {
     const literal = cleanText(author?.literal);
     const family = cleanText(author?.family);
     const given = cleanText(author?.given);
@@ -170,6 +211,7 @@ function normalizeRecord(input) {
     const id = cleanText(author?.id);
     return literal ? [{ literal, ...short && { short } }] : family ? [{ family, ...given && { given }, ...suffix && { suffix }, ...id && { id } }] : [];
   });
+  const authors2 = people(input.authors), editors = people(input.editors), translators = people(input.translators);
   const locations = array(input.locations).flatMap((location) => {
     const url = httpsURL(location?.url);
     const provider = cleanText(location?.provider);
@@ -204,7 +246,7 @@ function normalizeRecord(input) {
   const optional = ["inlineAuthor", "jurisdiction", "number", "session", "legalCitation"];
   const originalIssued = dateParts(input.originalIssued);
   const state = ["resolved", "partial", "unresolved"].includes(input.state) ? input.state : "unresolved";
-  const textFields = ["containerTitle", "publisher", "volume", "issue", "pages", "articleNumber", "edition", "publisherPlace", "containerAbbreviation", "apaTitle", "original", "note", "citationText", "unresolvedText", "medium", "dimensions", "holdingInstitution", "accession", "platform", "rightsHolder", "creatorAttribution", "displayDate"];
+  const textFields = ["containerTitle", "publisher", "volume", "issue", "pages", "articleNumber", "edition", "publisherPlace", "containerAbbreviation", "apaTitle", "original", "note", "citationText", "unresolvedText", "releaseVersion", "medium", "dimensions", "holdingInstitution", "accession", "platform", "rightsHolder", "creatorAttribution", "displayDate"];
   return {
     id: input.id.trim(),
     type: kinds.has(input.type) ? input.type : "document",
@@ -219,7 +261,13 @@ function normalizeRecord(input) {
       })
     },
     title,
+    ...Object.fromEntries(["title", "containerTitle"].flatMap((field) => {
+      const parts = normalizeTitleParts(input[field + "Parts"], cleanText(input[field]));
+      return parts.length ? [[field + "Parts", parts]] : [];
+    })),
     authors: authors2,
+    ...editors.length && { editors },
+    ...translators.length && { translators },
     identifiers: [...identifiers.values()],
     locations,
     provenance,
@@ -8149,7 +8197,7 @@ function parseFragment(fragmentContext, html, options) {
 // package.json
 var package_default = {
   name: "cite-inator",
-  version: "0.5.1",
+  version: "0.6.0-preview.7",
   description: "Portable citations, endnotes, and source inspection",
   type: "module",
   license: "MIT",
@@ -8183,7 +8231,12 @@ var package_default = {
     "./import-files-browser": "./dist/citation-import-files.mjs",
     "./compiler-browser": "./dist/citation-compiler.mjs",
     "./i18n": "./src/i18n.mjs",
-    "./pubmed": "./src/pubmed.mjs"
+    "./pubmed": "./src/pubmed.mjs",
+    "./zotero": "./src/zotero.mjs",
+    "./zotero-browser": "./dist/citation-manager.mjs",
+    "./bibliography": "./src/bibliography-export.mjs",
+    "./library": "./src/library-tools.mjs",
+    "./library-browser": "./dist/citation-library.mjs"
   },
   bin: {
     "cite-inator": "./scripts/compile.mjs",
@@ -8206,19 +8259,24 @@ var package_default = {
     "dist/citation-import-files.mjs",
     "dist/citation-pdf.worker.mjs",
     "scripts/import.mjs",
-    "dist/citation-compiler.mjs"
+    "dist/citation-compiler.mjs",
+    "dist/citation-manager.mjs",
+    "dist/citation-library.mjs",
+    "scripts/library-workflow-example.mjs"
   ],
   scripts: {
     build: "node scripts/build.mjs",
     test: "node --test test/*.test.mjs",
-    "test:browser": "node test/browser.mjs",
+    "test:browser": "node test/browser.mjs && node test/zotero-browser.mjs && node test/library-browser.mjs && node test/import-composition-browser.mjs",
     start: "node scripts/serve.mjs",
     prepack: "npm run build",
     "checkin:check": "node scripts/checkin.mjs --staged",
     "milestone:check": "npm test && npm run build && npm run test:browser && npm run test:learn && node scripts/checkin.mjs",
     "hooks:install": "git config --local core.hooksPath .githooks",
     "build:learn": "npm run build && node scripts/build-learning.mjs",
-    "test:learn": "node scripts/build-learning.mjs && node test/learning-browser.mjs"
+    "test:learn": "node scripts/build-learning.mjs && node test/learning-browser.mjs && node test/bibliography-workspace-browser.mjs && node test/responsive-review-browser.mjs",
+    "test:zotero": "node --test test/zotero.test.mjs && node test/zotero-browser.mjs",
+    "example:library": "node scripts/library-workflow-example.mjs"
   },
   devDependencies: {
     "axe-core": "4.14.0",
@@ -8227,6 +8285,9 @@ var package_default = {
     "playwright-core": "1.65.1"
   },
   dependencies: {
+    "@citation-js/core": "0.9.0",
+    "@citation-js/plugin-bibtex": "0.9.0",
+    "@citation-js/plugin-ris": "0.9.0",
     "@noble/hashes": "2.4.0",
     "@xmldom/xmldom": "0.9.12",
     fflate: "0.8.3",
@@ -9120,6 +9181,35 @@ function numberedAuthors(raw) {
 }
 function numberedFields(text, fields, propose, diagnostics) {
   const flat = text.replace(/\s/gu, " "), start = /^\s*[1-9]\d{0,3}\.\s+/u.exec(flat)?.[0].length ?? 0;
+  const parenthesized = new RegExp("^(.+?)\\s+\\((" + year2 + ")\\)\\s+(.+)$", "u").exec(flat.slice(start));
+  if (parenthesized) {
+    const authorText2 = parenthesized[1], people2 = numberedAuthors(authorText2) || (() => {
+      const authors2 = parseOrganizationAuthor(authorText2);
+      return authors2 ? { authors: authors2, authorsComplete: true } : null;
+    })();
+    propose("authorText", authorText2, start, start + authorText2.length, "numbered-parenthesized-byline");
+    if (people2) {
+      Object.assign(fields, people2);
+      propose("authors", people2.authors, start, start + authorText2.length, "numbered-parenthesized-authors");
+    } else diagnostics.push({ code: "import-reference-byline-unparsed" });
+    const yearAt = start + parenthesized[0].indexOf("(" + parenthesized[2] + ")") + 1;
+    propose("issued", [Number(parenthesized[2])], yearAt, yearAt + 4, "numbered-parenthesized-date");
+    const tail = parenthesized[3], after2 = start + parenthesized[0].length - tail.length;
+    const journal = /[.!?]\s+([^!?]{2,150}?)\s+(\d+)(?:\s*\(([^)]+)\))?\s*:\s*([a-z]?\d+(?:[-–][a-z]?\d+)?)(?=\.|\s|$)/iu.exec(tail);
+    const titleEnd = journal ? journal.index : /[.!?](?=\s|$)/u.exec(tail)?.index;
+    if (titleEnd !== void 0 && titleEnd > 0) propose("title", tail.slice(0, titleEnd).trim(), after2, after2 + titleEnd, "numbered-parenthesized-title");
+    else diagnostics.push({ code: "import-reference-fields-unsupported" });
+    if (journal) {
+      const containerStart = after2 + journal.index + journal[0].indexOf(journal[1]);
+      propose("containerTitle", journal[1], containerStart, containerStart + journal[1].length, "numbered-parenthesized-journal");
+      fields.type = "article-journal";
+      fields.volume = journal[2];
+      if (journal[3]) fields.issue = journal[3];
+      if (/^e/i.test(journal[4])) fields.articleNumber = journal[4];
+      else fields.pages = journal[4];
+    }
+    return;
+  }
   const byline = /^(.+?)\.\s+/u.exec(flat.slice(start));
   if (!byline) {
     diagnostics.push({ code: "import-reference-fields-unsupported" });
@@ -9203,70 +9293,6 @@ function parseReferences(entries, options = {}) {
   return { schema: "citation-inator.import-references.v1", entries: entries.map((text) => parseReference(text, options)) };
 }
 
-// src/tag-declarations.mjs
-function applyTagDeclarations(blocks2, index, { tagCatalogue = [], listItemTags = {} } = {}, diagnostics = []) {
-  if (!Array.isArray(tagCatalogue) || !listItemTags || typeof listItemTags !== "object" || Array.isArray(listItemTags)) return { tagCatalogue, listItemTags };
-  const catalogue = tagCatalogue.map((tag) => ({ ...tag, id: normalizeTags([tag?.id])[0], label: cleanText(tag?.label) })), overrides = { ...listItemTags };
-  const assigned = /* @__PURE__ */ new Map();
-  for (const token of blocks2.flat()) {
-    if (token.type !== "tags") continue;
-    const identifier = token.items[0].identifier, key = canonicalIdentifierKey(identifier);
-    const record = identifier.scheme === "local" ? index.byId.get(identifier.value) : index.byIdentifier.get(key);
-    if (!record || record.state === "unresolved") diagnostics.push({ state: "unresolved", code: "citation-unresolved", identifier: key });
-    if (!record) continue;
-    const previous = assigned.get(record.id) || /* @__PURE__ */ new Set();
-    for (const definition of token.definitions) {
-      const configured = catalogue.find((tag) => tag.id === definition.id);
-      if (configured && configured.label !== definition.label) throw new TypeError(`Conflicting label for tag ${definition.id}. Use one label throughout the document.`);
-      if (!configured) catalogue.push(definition);
-      previous.add(definition.id);
-    }
-    assigned.set(record.id, previous);
-  }
-  for (const [id, tags] of assigned) {
-    const prior = index.byId.get(id);
-    const next = normalizeRecord({ ...prior, tags: normalizeTags([...prior.tags || [], ...tags]), provenance: [...prior.provenance, { provider: "Document author", note: JSON.stringify({ tags: [...tags], priorTags: prior.tags || [] }) }] });
-    index.byId.set(id, next);
-    for (const identifier of next.identifiers) index.byIdentifier.set(canonicalIdentifierKey(identifier), next);
-    if (Object.hasOwn(overrides, id)) {
-      if (!Array.isArray(overrides[id])) throw new TypeError("Supply listItemTags values as arrays of topic IDs.");
-      overrides[id] = normalizeTags([...overrides[id], ...tags]);
-    }
-  }
-  return { tagCatalogue: catalogue, listItemTags: overrides };
-}
-
-// src/notation-options.mjs
-function optionSpans(source) {
-  const spans = [];
-  let start = 0, quoted = false;
-  for (let i = 0; i < source.length; i++) {
-    if (source[i] === "\\") {
-      i++;
-      continue;
-    }
-    if (source[i] === '"') {
-      quoted = !quoted;
-      continue;
-    }
-    if (quoted) continue;
-    if (source[i] === "|") {
-      spans.push({ start, end: i });
-      start = i + 1;
-    } else if (/[ \t]/.test(source[i])) {
-      const following = /^[ \t]+(?=[a-z0-9][a-z0-9-]*:|isolated(?:[ \t|]|$))/.exec(source.slice(i));
-      if (following && source.slice(start, i).trim() && !source.slice(start, i).trimEnd().endsWith(";")) {
-        spans.push({ start, end: i });
-        start = i + following[0].length;
-        i = start - 1;
-      }
-    }
-  }
-  spans.push({ start, end: source.length });
-  return spans;
-}
-var optionParts = (source) => optionSpans(source).map(({ start, end }) => source.slice(start, end).trim());
-
 // src/author-fields.mjs
 var authorFields = /* @__PURE__ */ new Set(["original-year", "edition-year", "reference", "attribution", "display-date", "medium", "dimensions", "institution", "accession", "rights", "photographer", "uploader", "pdf", "read-url", "access", "checked"]);
 var recordFields = { "original-year": "originalIssued", "edition-year": "issued", attribution: "creatorAttribution", "display-date": "displayDate", medium: "medium", dimensions: "dimensions", institution: "holdingInstitution", accession: "accession" };
@@ -9333,6 +9359,144 @@ function applyAuthorFields(blocks2, index, { suffixScope }) {
     index.byId.set(id, normalized);
     for (const identifier of normalized.identifiers) index.byIdentifier.set(canonicalIdentifierKey(identifier), normalized);
   }
+}
+
+// src/option-policy.mjs
+var policy = (action, category) => Object.freeze({ action, category });
+var CITATION_OPTION_POLICIES = Object.freeze(Object.fromEntries([
+  ["form", policy("retain", "presentation")],
+  ["isolated", policy("retain", "presentation")],
+  ["cue", policy("recompute", "editor")],
+  ["comment", policy("review", "source")],
+  ["unresolved", policy("replace-fallback", "source")],
+  ...[.../* @__PURE__ */ new Set(["locator", "label", "prefix", "tags", ...authorFields])].map((name2) => [name2, policy("review", "source")])
+]));
+
+// src/tag-declarations.mjs
+function applyTagDeclarations(blocks2, index, { tagCatalogue = [], listItemTags = {} } = {}, diagnostics = []) {
+  if (!Array.isArray(tagCatalogue) || !listItemTags || typeof listItemTags !== "object" || Array.isArray(listItemTags)) return { tagCatalogue, listItemTags };
+  const catalogue = tagCatalogue.map((tag) => ({ ...tag, id: normalizeTags([tag?.id])[0], label: cleanText(tag?.label) })), overrides = { ...listItemTags };
+  const assigned = /* @__PURE__ */ new Map();
+  for (const token of blocks2.flat()) {
+    if (token.type !== "tags") continue;
+    const identifier = token.items[0].identifier, key = canonicalIdentifierKey(identifier);
+    const record = identifier.scheme === "local" ? index.byId.get(identifier.value) : index.byIdentifier.get(key);
+    if (!record || record.state === "unresolved") diagnostics.push({ state: "unresolved", code: "citation-unresolved", identifier: key });
+    if (!record) continue;
+    const previous = assigned.get(record.id) || /* @__PURE__ */ new Set();
+    for (const definition of token.definitions) {
+      const configured = catalogue.find((tag) => tag.id === definition.id);
+      if (configured && configured.label !== definition.label) throw new TypeError(`Conflicting label for tag ${definition.id}. Use one label throughout the document.`);
+      if (!configured) catalogue.push(definition);
+      previous.add(definition.id);
+    }
+    assigned.set(record.id, previous);
+  }
+  for (const [id, tags] of assigned) {
+    const prior = index.byId.get(id);
+    const next = normalizeRecord({ ...prior, tags: normalizeTags([...prior.tags || [], ...tags]), provenance: [...prior.provenance, { provider: "Document author", note: JSON.stringify({ tags: [...tags], priorTags: prior.tags || [] }) }] });
+    index.byId.set(id, next);
+    for (const identifier of next.identifiers) index.byIdentifier.set(canonicalIdentifierKey(identifier), next);
+    if (Object.hasOwn(overrides, id)) {
+      if (!Array.isArray(overrides[id])) throw new TypeError("Supply listItemTags values as arrays of topic IDs.");
+      overrides[id] = normalizeTags([...overrides[id], ...tags]);
+    }
+  }
+  return { tagCatalogue: catalogue, listItemTags: overrides };
+}
+
+// src/notation-options.mjs
+function optionSpans(source) {
+  const spans = [];
+  let start = 0, quoted = false;
+  for (let i = 0; i < source.length; i++) {
+    if (source[i] === "\\") {
+      i++;
+      continue;
+    }
+    if (source[i] === '"') {
+      quoted = !quoted;
+      continue;
+    }
+    if (quoted) continue;
+    if (source[i] === "|") {
+      spans.push({ start, end: i });
+      start = i + 1;
+    } else if (/[ \t\r\n]/.test(source[i])) {
+      const following = /^[ \t\r\n]+(?=[a-z0-9][a-z0-9-]*:|isolated(?:[ \t\r\n|]|$))/.exec(source.slice(i));
+      if (following && source.slice(start, i).trim() && !source.slice(start, i).trimEnd().endsWith(";")) {
+        spans.push({ start, end: i });
+        start = i + following[0].length;
+        i = start - 1;
+      }
+    }
+  }
+  spans.push({ start, end: source.length });
+  return spans;
+}
+var optionParts = (source) => optionSpans(source).map(({ start, end }) => source.slice(start, end).trim());
+function stripSourceComments(source, { fields = ["comment"] } = {}) {
+  const edits = [];
+  let quoted = false, seen = /* @__PURE__ */ new Set(), valid = true;
+  for (let i = 0; i < source.length; i++) {
+    if (source[i] === "\\") {
+      i++;
+      continue;
+    }
+    if (source[i] === '"') {
+      quoted = !quoted;
+      continue;
+    }
+    if (quoted) continue;
+    if (source[i] === ";") {
+      seen.clear();
+      continue;
+    }
+    const field = fields.find((name2) => source.startsWith(name2 + ":", i));
+    if (!field || i > 0 && !/[\s|;{]/u.test(source[i - 1])) continue;
+    if (seen.has(field)) valid = false;
+    seen.add(field);
+    let value = i + field.length + 1;
+    while (/\s/u.test(source[value] || "") && value < source.length) value++;
+    let end = value;
+    if (source[value] === '"') {
+      end = value + 1;
+      for (; end < source.length; end++) {
+        if (source[end] === "\\") {
+          end++;
+          continue;
+        }
+        if (source[end] === '"') {
+          end++;
+          break;
+        }
+      }
+      if (end > source.length || source[end - 1] !== '"') {
+        valid = false;
+        end = source.length;
+      }
+    } else {
+      valid = false;
+      end = source.length;
+    }
+    let start = i, prior = i;
+    while (prior > 0 && /\s/u.test(source[prior - 1])) prior--;
+    if (source[prior - 1] === "|") start = prior - 1;
+    else {
+      let next = end;
+      while (next < source.length && /\s/u.test(source[next])) next++;
+      if (source[next] === "|") end = next + 1;
+    }
+    edits.push({ start, end });
+    i = end - 1;
+  }
+  let text = "", cursor = 0;
+  for (const edit of edits) {
+    text += source.slice(cursor, Math.max(cursor, edit.start));
+    cursor = Math.max(cursor, edit.end);
+  }
+  text += source.slice(cursor);
+  return { text, valid, hasComments: edits.length > 0, ranges: edits.map(({ start, end }) => ({ start, end })) };
 }
 
 // src/i18n.mjs
@@ -9681,7 +9845,7 @@ var parentheticalForms = /* @__PURE__ */ new Set(["parenthetical", "suppress-aut
 var annotationNames = { evidence: "Citation evidence", credit: "Citation credit" };
 var split = (value, separator) => {
   const parts = [""];
-  for (const [token] of value.matchAll(/\\.|"[^"\\]*(?:\\.[^"\\]*)*"|./gu)) {
+  for (const [token] of value.matchAll(/\\.|"[^"\\]*(?:\\.[^"\\]*)*"|./gsu)) {
     if (token === separator) parts.push("");
     else parts[parts.length - 1] += token;
   }
@@ -9728,11 +9892,12 @@ function parseItem(text) {
       if (unresolvedText !== void 0 || !match) return null;
       unresolvedText = unescape(match[1]);
       if (!unresolvedText.trim()) return null;
-    } else if (option.startsWith("note:")) {
-      const match = /^note:\s*"((?:\\.|[^"\\])*)"$/.exec(option);
+    } else if (option.startsWith("cue:")) {
+      const match = /^cue:\s*"((?:\\.|[^"\\])*)"$/.exec(option);
       if (editorNote !== void 0 || !match) return null;
       editorNote = unescape(match[1]);
-    } else if (option.startsWith("tags:")) {
+    } else if (option.startsWith("note:")) return null;
+    else if (option.startsWith("tags:")) {
       const tags = option.slice(5).trim().split(",").map((tag) => tag.trim());
       if (markerTags !== void 0 || !tags.every((tag) => /^[a-z0-9][a-z0-9-]{0,63}$/.test(tag))) return null;
       markerTags = [...new Set(tags)];
@@ -9777,28 +9942,71 @@ function parseEndnotes(body, raw) {
   }
   return token;
 }
-function directivePattern(citationKeyword) {
+function* directiveMatches(source, citationKeyword) {
   validateKeyword(citationKeyword);
-  return new RegExp(String.raw`\\[\\{}]|\{(${citationKeyword})[ \t]+((?:\\[^\n]|"[^"\\\n]*(?:\\.[^"\\\n]*)*"|[^"{}\\\n])+)\}`, "g");
+  for (let i = 0; i < source.length; i++) {
+    if (source[i] === "\\" && /[\\{}]/u.test(source[i + 1] || "")) {
+      yield Object.assign([source.slice(i, i + 2)], { index: i });
+      i++;
+      continue;
+    }
+    if (source[i] !== "{") continue;
+    let keywordStart = i + 1;
+    while (/\s/u.test(source[keywordStart] || "")) keywordStart++;
+    if (!source.startsWith(citationKeyword, keywordStart)) continue;
+    const prefix2 = keywordStart + citationKeyword.length;
+    if (prefix2 < source.length && !/[\s}]/u.test(source[prefix2])) continue;
+    let quoted = false, end = source.length, complete = false;
+    for (let j2 = prefix2; j2 < source.length; j2++) {
+      if (source[j2] === "\\") {
+        j2++;
+        continue;
+      }
+      if (source[j2] === '"') quoted = !quoted;
+      else if (!quoted && source[j2] === "}") {
+        end = j2 + 1;
+        complete = true;
+        break;
+      }
+    }
+    yield Object.assign([source.slice(i, end), citationKeyword, source.slice(prefix2, complete ? end - 1 : end)], { index: i, incomplete: !complete });
+    i = end - 1;
+  }
 }
+var readerMarker = (source) => stripSourceComments(source, { fields: ["comment", "cue", "note"] }).text;
 function malformedSpans(source, citationKeyword) {
-  const starts = new RegExp(`\\{${citationKeyword}(?=[\\s}]|$)`, "g"), spans = [];
+  const starts = new RegExp(`\\{\\s*${citationKeyword}(?=[\\s}]|$)`, "g"), spans = [];
   for (const match of source.matchAll(starts)) {
     if (spans.length && match.index < spans.at(-1).end) continue;
-    const tail = source.slice(match.index), boundary = /[}\r\n]/.exec(tail);
-    const end = boundary ? match.index + boundary.index + (boundary[0] === "}" ? 1 : 0) : source.length;
+    let end = source.length, quoted = false;
+    for (let i = match.index + 1; i < source.length; i++) {
+      if (source[i] === "\\") {
+        i++;
+        continue;
+      }
+      if (source[i] === '"') quoted = !quoted;
+      if (!quoted && source[i] === "}") {
+        end = i + 1;
+        break;
+      }
+    }
     spans.push({ start: match.index, end, raw: source.slice(match.index, end) });
   }
   return spans;
 }
-function scanCitationMarkers(source, { citationKeyword = "cite" } = {}) {
+function scanCitationMarkers(source, { citationKeyword = "cite", firstOnly = false } = {}) {
   if (typeof source !== "string") throw new TypeError("Supply source text.");
-  const matches = [...source.matchAll(directivePattern(citationKeyword))], markers = [];
+  const markers = [];
+  function* matches() {
+    yield* directiveMatches(source, citationKeyword);
+    yield { index: source.length, 0: "" };
+  }
   let cursor = 0;
-  for (const match of [...matches, { index: source.length, 0: "" }]) {
+  for (const match of matches()) {
     for (const span of malformedSpans(source.slice(cursor, match.index), citationKeyword)) markers.push({ ...span, start: cursor + span.start, end: cursor + span.end, token: { type: "text", text: span.raw, raw: span.raw, malformed: true, incomplete: true } });
     if (match[0].startsWith("{")) markers.push({ start: match.index, end: match.index + match[0].length, raw: match[0], token: parseDirectives(match[0], { citationKeyword })[0] });
     cursor = match.index + match[0].length;
+    if (firstOnly && markers.length) break;
   }
   return markers;
 }
@@ -9822,7 +10030,7 @@ function formatRecordId(id, { citationKeyword = "cite", identifierForm = "minima
   return identifierForm === "minimal" && unambiguous && !reserved ? escaped : "local:" + escaped;
 }
 function parseDirectives(source, { citationKeyword = "cite" } = {}) {
-  const directive = directivePattern(citationKeyword);
+  validateKeyword(citationKeyword);
   const tokens = [];
   const appendText = (value) => {
     let at = 0;
@@ -9834,15 +10042,18 @@ function parseDirectives(source, { citationKeyword = "cite" } = {}) {
     if (at < value.length) tokens.push({ type: "text", text: value.slice(at) });
   };
   let cursor = 0;
-  for (const match of source.matchAll(directive)) {
+  for (const match of directiveMatches(source, citationKeyword)) {
     if (match.index > cursor) appendText(source.slice(cursor, match.index));
     const raw = match[0];
     cursor = match.index + raw.length;
-    if (raw.startsWith("\\")) tokens.push({ type: "text", text: raw.slice(1) });
-    else if (match[1] === citationKeyword && /^endnote(?:[ \t]+(?=[a-z][a-z0-9-]*:)|[ \t]*\||$)/.test(match[2].trim())) {
-      tokens.push(parseEndnotes(match[2], raw));
-    } else if (/^tags[ \t]/.test(match[2].trim()) && normalizeIdentifier(unescape(optionParts(match[2].trim().slice(5))[0]))) {
-      const [key, ...values] = optionParts(match[2].trim().slice(5));
+    const commentResult = stripSourceComments(match[2] || "");
+    const bodyText = commentResult.text;
+    if (raw.startsWith("{") && (match.incomplete || !commentResult.valid)) tokens.push({ type: "text", text: raw, malformed: true, ...match.incomplete && { incomplete: true } });
+    else if (raw.startsWith("\\")) tokens.push({ type: "text", text: raw.slice(1) });
+    else if (match[1] === citationKeyword && /^endnote(?:\s+(?=[a-z][a-z0-9-]*:)|\s*\||$)/.test(bodyText.trim())) {
+      tokens.push(parseEndnotes(bodyText, raw));
+    } else if (/^tags\s/.test(bodyText.trim()) && normalizeIdentifier(unescape(optionParts(bodyText.trim().slice(5))[0]))) {
+      const [key, ...values] = optionParts(bodyText.trim().slice(5));
       const identifier = normalizeIdentifier(unescape(key));
       const definitions = values.map((value) => {
         const field = /^([a-z0-9][a-z0-9-]{0,63}):\s*"((?:\\.|[^"\\])+)"$/.exec(value);
@@ -9850,8 +10061,8 @@ function parseDirectives(source, { citationKeyword = "cite" } = {}) {
       });
       if (identifier && definitions.length && definitions.every((value) => value?.label) && new Set(definitions.map((value) => value.id)).size === definitions.length) tokens.push({ type: "tags", items: [{ identifier }], definitions, raw });
       else tokens.push({ type: "text", text: raw, malformed: true });
-    } else if (match[1] === citationKeyword && /^(?:list|nocite)[ \t]/.test(match[2].trim())) {
-      const [, type, body] = /^(list|nocite)\s+(.+)$/.exec(match[2].trim()) || [];
+    } else if (match[1] === citationKeyword && /^(?:list|nocite)\s/.test(bodyText.trim())) {
+      const [, type, body] = /^(list|nocite)\s+([\s\S]+)$/.exec(bodyText.trim()) || [];
       const [keys, ...options] = optionParts(body || "");
       const sort = options[0]?.match(/^sort:(author|year)$/)?.[1];
       const listOptions = {};
@@ -9877,10 +10088,10 @@ function parseDirectives(source, { citationKeyword = "cite" } = {}) {
           raw
         });
       } else tokens.push({ type: "text", text: raw, malformed: true });
-    } else if (match[1] === citationKeyword && Object.hasOwn(annotationNames, match[2].trim())) {
-      tokens.push({ type: "annotation", name: match[2].trim(), raw });
+    } else if (match[1] === citationKeyword && Object.hasOwn(annotationNames, bodyText.trim())) {
+      tokens.push({ type: "annotation", name: bodyText.trim(), raw });
     } else {
-      const items = split(match[2], ";").map(parseItem);
+      const items = split(bodyText, ";").map(parseItem);
       if (items.every(Boolean) && (items.length === 1 || items.every((item) => parentheticalForms.has(item.form)) || items.every((item) => item.form === "narrative"))) {
         tokens.push({ type: "citation", items, raw });
       } else tokens.push({ type: "text", text: raw, malformed: true });
@@ -9890,7 +10101,12 @@ function parseDirectives(source, { citationKeyword = "cite" } = {}) {
   return tokens;
 }
 var name = (author) => author.literal || author.family;
-var sortName = (record) => (record.type === "legislation" ? record.title : record.authors.map(name).join("")) || record.title || record.original;
+var citationAuthors = (record) => record.authors.length ? record.authors : record.type === "book" ? record.editors || [] : [];
+var editorOnly = (record) => record.type === "book" && !record.authors.length && Boolean(record.editors?.length);
+var joinPeople = (values, last = "and") => values.length < 2 ? values[0] || "" : values.length === 2 ? values[0] + " " + last + " " + values[1] : values.slice(0, -1).join(", ") + ", " + last + " " + values.at(-1);
+var roleNames = (people) => joinPeople(people.map((person) => fullAuthorName(person)));
+var editionText = (value) => /^\d+$/.test(value) ? value + ([11, 12, 13].includes(Number(value) % 100) ? "th" : { 1: "st", 2: "nd", 3: "rd" }[Number(value) % 10] || "th") + " ed." : /\bed(?:ition)?\.?$/i.test(value) ? value : value + " ed.";
+var sortName = (record) => (record.type === "legislation" ? record.title : citationAuthors(record).map(name).join("")) || record.title || record.original;
 var compare = (a, b2) => {
   const left = a.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
   const right = b2.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
@@ -9918,35 +10134,43 @@ function citationYear(record, suffix, style, bibliography = false, reprintYear =
 }
 var suffixAt = (index) => index < 26 ? String.fromCharCode(97 + index) : suffixAt(Math.floor(index / 26) - 1) + suffixAt(index % 26);
 function authorLabel(record, narrative = false) {
-  const names = record.authors.map(name);
+  const names = citationAuthors(record).map(name);
   if (!names.length) return titleFor(record);
   if (names.length === 1) return names[0];
   if (names.length === 2) return names.join(narrative ? " and " : " & ");
   return `${names[0]} et al.`;
 }
 var hasDefaultCitationText = (record, suffix) => record.citationText && (!suffix || record.citationText.includes(` (${yearFor(record)}).`));
-function defaultBibliography(record, suffix = "") {
-  if (record.state === "unresolved") return titleFor(record);
+function defaultBibliographyParts(record, suffix = "") {
+  if (record.state === "unresolved") return [{ text: titleFor(record) }];
   const year4 = yearFor(record);
-  if (hasDefaultCitationText(record, suffix)) {
-    return record.citationText.replace(` (${year4}).`, ` (${year4}${suffix}).`);
-  }
-  const names = record.authors.map((author) => {
+  if (hasDefaultCitationText(record, suffix)) return [{ text: record.citationText.replace(` (${year4}).`, ` (${year4}${suffix}).`) }];
+  const names = citationAuthors(record).map((author) => {
     if (author.literal) return author.literal;
-    const initials2 = author.given?.match(/\p{L}[\p{L}\p{M}]*/gu)?.map((part) => `${[...part][0]}.`).join(" ");
+    const initials2 = author.given?.match(/\p{L}[\p{L}\p{M}]*/gu)?.map((p) => `${[...p][0]}.`).join(" ");
     return [author.family, initials2, author.suffix].filter(Boolean).join(", ");
   });
   const authors2 = names.length > 1 ? `${names.slice(0, -1).join(", ")}, & ${names.at(-1)}` : names[0];
-  const journal = [record.containerTitle, record.volume + (record.issue ? `(${record.issue})` : ""), record.pages || record.articleNumber].filter(Boolean).join(", ");
-  const source = record.identifiers.find((id) => id.scheme === "doi");
-  const details = [journal || record.publisher, identifierURL(source)].filter(Boolean);
-  return [
-    authors2 ? `${authors2} (${year4}${suffix}). ${titleFor(record)}.` : `${titleFor(record)}. (${year4}${suffix}).`,
-    ...details.map((item) => item.startsWith("https://") ? item : `${item}.`)
-  ].join(" ");
+  const parts = [], add = (text) => parts.push({ text });
+  if (authors2) add(`${authors2} (${year4}${suffix}). `);
+  parts.push(...titleRuns({ ...record, title: titleFor(record) }, "title", ["book", "report", "thesis"].includes(record.type) ? "italic" : void 0));
+  add(".");
+  if (!authors2) add(` (${year4}${suffix}).`);
+  const hasJournal = Boolean(record.containerTitle || record.volume || record.pages || record.articleNumber);
+  if (hasJournal) {
+    add(" ");
+    if (record.containerTitle) parts.push(...titleRuns(record, "containerTitle", "italic"));
+    const rest = [record.volume + (record.issue ? `(${record.issue})` : ""), record.pages || record.articleNumber].filter(Boolean);
+    if (rest.length) add((record.containerTitle ? ", " : "") + rest.join(", "));
+    add(".");
+  } else if (record.publisher) add(` ${record.publisher}.`);
+  const url = identifierURL(record.identifiers.find((id) => id.scheme === "doi"));
+  if (url) add(" " + url);
+  return parts;
 }
 function chicagoBibliography(record, suffix) {
-  const { authors: authors2, type, containerTitle, publisher, edition } = record;
+  const { type, containerTitle, publisher, edition } = record;
+  const authors2 = citationAuthors(record);
   if (type === "legislation") {
     const citation = [record.legalCitation || [record.number, record.session].filter(Boolean).join(", "), record.jurisdiction].filter(Boolean);
     const url2 = identifierURL(record.identifiers.find((item) => item.scheme === "url"));
@@ -9954,29 +10178,38 @@ function chicagoBibliography(record, suffix) {
   }
   const parts = [];
   const add = (text, emphasis) => parts.push(emphasis ? { text, emphasis } : { text });
+  const addTitle = (field, emphasis) => parts.push(...titleRuns(record, field, emphasis));
   if (authors2.length) {
     const names = authors2.slice(0, authors2.length > 6 ? 3 : 6).map((author, index) => fullAuthorName(author, index === 0));
     const head = names.slice(0, -1).join(", ");
-    const byline = names.length === 1 ? names[0] : authors2.length > 6 ? `${names.join(", ")}, et al` : `${head}${names.length > 2 ? "," : ""} and ${names.at(-1)}`;
+    let byline = names.length === 1 ? names[0] : authors2.length > 6 ? `${names.join(", ")}, et al` : `${head}${names.length > 2 ? "," : ""} and ${names.at(-1)}`;
+    if (editorOnly(record)) byline += authors2.length === 1 ? ", ed." : ", eds.";
     add(`${byline}${/[.?!]$/.test(byline) ? "" : "."} ${citationYear(record, suffix, "chicago-author-date", true)}. `);
   }
   const title = titleFor(record);
   const quoted = ["article-journal", "article", "chapter", "webpage", "thesis"].includes(type);
-  if (quoted) add(`\u201C${title}${/[.?!]$/.test(title) ? "" : "."}\u201D`);
-  else {
-    add(title, "italic");
+  if (quoted) {
+    add("\u201C");
+    addTitle("title");
+    add(`${/[.?!]$/.test(title) ? "" : "."}\u201D`);
+  } else {
+    addTitle("title", "italic");
     if (!/[.?!]$/.test(title)) add(".");
   }
   if (!authors2.length) add(` ${citationYear(record, suffix, "chicago-author-date", true)}.`);
   if (containerTitle) {
     add(type === "chapter" ? " In " : " ");
-    add(containerTitle, "italic");
+    addTitle("containerTitle", "italic");
+    if (type === "chapter" && record.editors?.length) add(`, edited by ${roleNames(record.editors)}`);
     if (record.volume) add(` ${record.volume}`);
     if (record.issue) add(` (${record.issue})`);
     if (record.pages || record.articleNumber) add(`${type === "chapter" ? ", " : ": "}${record.pages || record.articleNumber}`);
     add(".");
   }
-  if (edition) add(` ${edition.replace(/\.$/, "")}.`);
+  if (record.releaseVersion) add(` Version ${record.releaseVersion}.`);
+  if (record.translators?.length) add(` Translated by ${roleNames(record.translators)}.`);
+  if (type !== "chapter" && !editorOnly(record) && record.editors?.length) add(` Edited by ${roleNames(record.editors)}.`);
+  if (edition) add(` ${editionText(edition).replace(/\.$/, "")}.`);
   if (publisher) add(` ${publisher.replace(/\.$/, "")}.`);
   const url = identifierURL(record.identifiers.find((item) => item.scheme === "doi" || item.scheme === "url"));
   if (url) add(` ${url}`);
@@ -9992,7 +10225,9 @@ function webpageReferenceURL(record) {
 function styledBibliography(record, suffix, style) {
   const parts = [];
   const add = (text, emphasis) => parts.push(emphasis ? { text, emphasis } : { text });
-  const { authors: authors2, containerTitle, volume, issue, publisher, publisherPlace, edition } = record;
+  const addTitle = (field, emphasis) => parts.push(...titleRuns(style === "apa" && record.apaTitle && field === "title" ? { ...record, title: record.apaTitle, titleParts: [] } : record, field, emphasis));
+  const { containerTitle, volume, issue, publisher, publisherPlace, edition } = record;
+  const authors2 = citationAuthors(record);
   const title = style === "apa" && record.apaTitle || titleFor(record);
   const year4 = citationYear(record, suffix, style, true);
   const pages = record.pages || record.articleNumber;
@@ -10007,11 +10242,17 @@ function styledBibliography(record, suffix, style) {
     const ordinal = { II: "2nd", III: "3rd", IV: "4th", V: "5th", VI: "6th", VII: "7th", VIII: "8th", IX: "9th", X: "10th" };
     const names2 = authors2.slice(0, 6).map((author) => author.literal || [author.family, initials2(author.given, ""), Object.hasOwn(ordinal, author.suffix) ? ordinal[author.suffix] : author.suffix?.replace(/\.$/, "")].filter(Boolean).join(" "));
     if (names2.length) add(`${names2.join(", ")}${authors2.length > 6 ? ", et al" : ""}. `);
-    add(period(title));
+    addTitle("title");
+    if (!/[.?!]$/.test(title)) add(".");
     if (containerTitle) {
       const journal = period(record.containerAbbreviation || containerTitle);
       const issueText = issue ? `(${issue})` : "";
-      add(` ${journal} ${year4}${volume || issue ? `;${volume}${issueText}` : ""}${pages ? `:${pages}` : ""}.`);
+      if (record.containerTitleParts?.length && !record.containerAbbreviation) {
+        add(" ");
+        addTitle("containerTitle");
+        if (!/[.?!]$/.test(containerTitle)) add(".");
+        add(` ${year4}${volume || issue ? `;${volume}${issueText}` : ""}${pages ? `:${pages}` : ""}.`);
+      } else add(` ${journal} ${year4}${volume || issue ? `;${volume}${issueText}` : ""}${pages ? `:${pages}` : ""}.`);
     } else {
       if (edition) add(` ${period(edition)}`);
       add(` ${publisherPlace || "[place unknown]"}: ${publisher || "[publisher unknown]"}; ${year4}.`);
@@ -10027,12 +10268,14 @@ function styledBibliography(record, suffix, style) {
       add(`${byline}${authors2.length > 2 ? ", et al" : authors2.length === 2 ? `, and ${fullAuthorName(authors2[1])}` : ""}. `);
     }
     if (containerTitle) {
-      add(`\u201C${period(title)}\u201D `);
-      add(containerTitle, "italic");
+      add("\u201C");
+      addTitle("title");
+      add(`${/[.?!]$/.test(title) ? "" : "."}\u201D `);
+      addTitle("containerTitle", "italic");
       const details = [volume && `vol. ${volume}`, issue && `no. ${issue}`, record.issued && year4, locator, url].filter(Boolean);
       add(details.length ? period(`, ${details.join(", ")}`) : ".");
     } else {
-      add(title, "italic");
+      addTitle("title", "italic");
       const details = [edition, publisher, record.issued && year4, url].filter(Boolean);
       add(details.length ? `. ${period(details.join(", "))}` : ".");
     }
@@ -10043,26 +10286,62 @@ function styledBibliography(record, suffix, style) {
   if (names.length) {
     const tail = names.at(-1);
     const byline = apa && names.length > 20 ? `${names.slice(0, 19).join(", ")}, \u2026 ${tail}` : names.length === 1 ? tail : `${names.slice(0, -1).join(", ")}${apa || webpage ? ", &" : " and"} ${tail}`;
-    add(apa || webpage ? `${period(byline)} (${year4}). ` : `${byline} (${year4}) `);
+    const role = editorOnly(record) ? authors2.length === 1 ? " (Ed.)." : " (Eds.)." : "";
+    add(apa || webpage ? `${role ? byline + role : period(byline)} (${year4}). ` : `${byline} (${year4}) `);
   }
   if (webpage) {
-    add(title, "italic");
+    addTitle("title", "italic");
     if (!/[.?!]$/.test(title)) add(".");
     if (!names.length) add(` (${year4}).`);
     const site = containerTitle || publisher;
     const sameAsAuthor = site && authors2.length === 1 && authors2[0].literal && compare(authors2[0].literal, site) === 0;
     if (site && !sameAsAuthor) add(` ${period(site)}`);
+  } else if (apa && record.type === "chapter" && containerTitle) {
+    addTitle("title");
+    add(`${/[.?!]$/.test(title) ? "" : "."}${!names.length ? ` (${year4}).` : ""} `);
+    if (record.translators?.length) {
+      const translated = record.translators.map((person) => person.literal || [person.given && `${initials2(person.given)}.`, person.family].filter(Boolean).join(" "));
+      add(`(${joinPeople(translated, "&")}, Trans.). `);
+    }
+    add("In ");
+    if (record.editors?.length) {
+      const names2 = record.editors.map((person) => person.literal || [person.given && `${initials2(person.given)}.`, person.family].filter(Boolean).join(" "));
+      add(`${joinPeople(names2, "&")} (${names2.length === 1 ? "Ed." : "Eds."}), `);
+    }
+    addTitle("containerTitle", "italic");
+    const details = [edition && editionText(edition), pages && `pp. ${pages}`].filter(Boolean);
+    if (details.length) add(` (${details.join(", ")})`);
+    add(".");
+    if (publisher) add(` ${period(publisher)}`);
   } else if (containerTitle) {
-    add(apa ? `${period(title)} ` : `\u2018${title}\u2019, `);
+    if (apa) {
+      addTitle("title");
+      add(`${/[.?!]$/.test(title) ? "" : "."} `);
+    } else {
+      add("\u2018");
+      addTitle("title");
+      add("\u2019, ");
+    }
     if (!names.length) add(`(${year4})${apa ? "." : ","} `);
-    add(apa && volume ? `${containerTitle}, ${volume}` : containerTitle, "italic");
+    if (!record.containerTitleParts?.length) add(apa && volume ? `${containerTitle}, ${volume}` : containerTitle, "italic");
+    else {
+      addTitle("containerTitle", "italic");
+      if (apa && volume) add(`, ${volume}`, "italic");
+    }
     if (!apa && volume) add(`, ${volume}`);
     if (issue) add(`${apa ? "" : " "}(${issue})`);
     if (pages) add(`, ${apa ? record.pages || `Article ${record.articleNumber}` : record.pages ? locator : `article ${record.articleNumber}`}`);
     add(".");
   } else {
-    add(title, "italic");
-    if (edition) add(apa ? ` (${edition})` : `. ${edition}`);
+    addTitle("title", "italic");
+    const apaRoleNames = (people) => joinPeople(people.map((person) => person.literal || [person.given && `${initials2(person.given)}.`, person.family].filter(Boolean).join(" ")), "&");
+    const titleDetails = apa ? [
+      !editorOnly(record) && record.editors?.length && `${apaRoleNames(record.editors)}, ${record.editors.length === 1 ? "Ed." : "Eds."}`,
+      record.translators?.length && `${apaRoleNames(record.translators)}, Trans.`,
+      record.releaseVersion && "Version " + record.releaseVersion,
+      edition && editionText(edition)
+    ].filter(Boolean) : [edition, record.releaseVersion && "Version " + record.releaseVersion].filter(Boolean);
+    if (titleDetails.length) add(apa ? ` (${titleDetails.join("; ")})` : `. ${titleDetails.join("; ")}`);
     if (!/[.?!]$/.test(edition || title)) add(".");
     if (!names.length) add(` (${year4}).`);
     if (publisher) add(` ${!apa && publisherPlace ? `${publisherPlace}: ` : ""}${period(publisher)}`);
@@ -10078,11 +10357,11 @@ function mediaBibliography(record, suffix, style) {
     if (text) parts.push({ text });
   };
   const title = titleFor(record);
-  const creators = record.authors.map((author, index) => fullAuthorName(author, style === "chicago-author-date" && index === 0));
+  const creators = citationAuthors(record).map((author, index) => fullAuthorName(author, style === "chicago-author-date" && index === 0));
   const creator = [record.creatorAttribution, creators.join(" and ")].filter(Boolean).join(" ");
   const year4 = citationYear(record, suffix, style, true);
   if (creator) add(style === "chicago-author-date" ? `${creator}. ${year4}. ` : `${creator}. (${year4}). `);
-  parts.push({ text: title, emphasis: "italic" });
+  parts.push(...titleRuns(record, "title", "italic"));
   if (!/[.?!]$/.test(title)) add(".");
   if (!creator) add(style === "chicago-author-date" ? ` ${year4}.` : ` (${year4}).`);
   if (record.medium) add(` ${record.medium.replace(/\.$/, "")}.`);
@@ -10100,10 +10379,10 @@ function bibliographyParts(record, suffix, style) {
     if (!suffix || style === "mla" || style === "vancouver") return record.citationParts;
     const year4 = String(yearFor(record));
     const marker = style === "chicago-author-date" ? `${year4}.` : `(${year4})`;
-    const text2 = record.citationParts.map((part) => part.text).join("");
-    const at2 = text2.indexOf(marker);
-    if (at2 >= 0) {
-      const insertion = at2 + marker.indexOf(year4) + year4.length;
+    const text = record.citationParts.map((part) => part.text).join("");
+    const at = text.indexOf(marker);
+    if (at >= 0) {
+      const insertion = at + marker.indexOf(year4) + year4.length;
       let offset = 0;
       return record.citationParts.map((part) => {
         const local = insertion - offset;
@@ -10119,30 +10398,25 @@ function bibliographyParts(record, suffix, style) {
   if (style !== "default" || record.type === "webpage" && !hasDefaultCitationText(record, suffix)) {
     return styledBibliography(record, suffix, style);
   }
-  const text = defaultBibliography(record, suffix) + (hasReprintDate(record) ? ` (Original work published ${originalYear(record)})` : "");
-  const title = record.containerTitle || (["book", "report", "thesis"].includes(record.type) ? record.title : "");
-  const at = title ? text.toLowerCase().lastIndexOf(title.toLowerCase()) : -1;
-  return at < 0 ? [{ text }] : [
-    { text: text.slice(0, at) },
-    { text: text.slice(at, at + title.length), emphasis: "italic" },
-    { text: text.slice(at + title.length) }
-  ];
+  const parts = defaultBibliographyParts(record, suffix);
+  if (hasReprintDate(record)) parts.push({ text: ` (Original work published ${originalYear(record)})` });
+  return parts;
 }
 var nameKey = (value) => (value || "").normalize("NFKC").toLowerCase();
 var identity = (author) => author.id ? JSON.stringify([author.id]) : JSON.stringify([author.literal, author.family, author.given, author.suffix].map(nameKey));
 function styleAuthor(record, style, narrative = false, shared = /* @__PURE__ */ new Map()) {
   if (record.inlineAuthor) return record.inlineAuthor;
   if (record.type === "legislation") return titleFor(record);
-  if (style === "chicago-author-date" && record.authors.length) {
-    const names = record.authors.map((author) => {
+  if (style === "chicago-author-date" && citationAuthors(record).length) {
+    const names = citationAuthors(record).map((author) => {
       if (author.literal) return author.short || author.literal;
       const initials2 = author.given?.match(/\p{L}[\p{L}\p{M}]*/gu)?.map((word) => `${[...word][0]}.`).join(" ");
       return shared.get(nameKey(author.family))?.has(identity(author)) && initials2 ? `${initials2} ${author.family}` : author.family;
     });
     return names.length > 2 ? `${names[0]} et al.` : names.join(" and ");
   }
-  if (style === "harvard" && record.authors.length === 3) {
-    const [first, second, third] = record.authors.map(name);
+  if (style === "harvard" && citationAuthors(record).length === 3) {
+    const [first, second, third] = citationAuthors(record).map(name);
     return `${first}, ${second} and ${third}`;
   }
   return authorLabel(record, narrative || ["chicago-author-date", "harvard", "mla"].includes(style));
@@ -10154,7 +10428,10 @@ function pageLocator(item, style) {
   }
   return location ? `, ${location}` : "";
 }
+var provisionalCue = (record, item) => record.state !== "resolved" ? (item.editorNote || "").replace(/\s+/gu, " ").trim() : "";
 function inlineText({ record, suffix, number, titleLabel, chicagoAuthor }, item, style, reprintYear, messages = createCitationMessages()) {
+  const cue = provisionalCue(record, item);
+  if (cue) return `${item.prefix ? item.prefix + " " : ""}${cue}${pageLocator(item, style)}`;
   if (record.state !== "resolved" && (item.unresolvedText || record.unresolvedText)) return item.unresolvedText || record.unresolvedText;
   if (item.label) return item.label;
   const qualify = (text) => `${item.prefix ? item.prefix + " " : ""}${text}`;
@@ -10166,7 +10443,7 @@ function inlineText({ record, suffix, number, titleLabel, chicagoAuthor }, item,
     const location = [titleLabel, item.locator].filter(Boolean).join(" ");
     if (item.form === "suppress-author") return qualify(location || shortTitle(record));
     if (item.form === "narrative") return qualify(location ? `${author} (${location})` : author);
-    if (titleLabel) author = record.authors.length ? `${author}, ${titleLabel}` : titleLabel;
+    if (titleLabel) author = citationAuthors(record).length ? `${author}, ${titleLabel}` : titleLabel;
     return qualify([author, item.form !== "author-only" && item.locator].filter(Boolean).join(" "));
   }
   const locator = pageLocator(item, style);
@@ -10224,7 +10501,7 @@ function occurrenceContext(block, index, item, record, messages) {
   const compact = (text) => text.replace(/\s+/g, " ").trim();
   const before = compact(leadingContext + nearby(-1));
   const after = compact(nearby(1) + trailingContext);
-  const citation = item.label || (record.state === "unresolved" ? messages.text("ui.unresolved") : authorLabel(record));
+  const citation = provisionalCue(record, item) || item.label || (record.state === "unresolved" ? messages.text("ui.unresolved") : authorLabel(record));
   const lead = before.length > 72 ? `\u2026${before.slice(-72).replace(/^\S+\s+/, "")}` : before;
   const tail = after.length > 36 ? `${after.slice(0, 36).replace(/\s+\S*$/, "")}\u2026` : after;
   return [lead, `[${citation}]`, tail].filter(Boolean).join(" ").replace(/\s+([.,;:!?])/g, "$1");
@@ -10253,9 +10530,22 @@ function annotationContent(name2, namespace, records, part, messages) {
   }
   return `<section ${part("annotation-content")} id="${namespace}-${name2}" tabindex="-1" aria-label="${escapeHTML(annotationTitle)}"><h2>${escapeHTML(annotationTitle)}</h2><div data-ci-annotation-body>${content}</div></section>`;
 }
+function splitCitationParagraphs(source, options = {}) {
+  const markers = scanCitationMarkers(source, options);
+  const paragraphs = [];
+  let cursor = 0, index = 0;
+  for (const match of source.matchAll(/\r?\n(?:[ \t]*\r?\n)+/g)) {
+    while (markers[index] && markers[index].end <= match.index) index++;
+    if (markers[index] && markers[index].start <= match.index && markers[index].end > match.index) continue;
+    paragraphs.push(source.slice(cursor, match.index));
+    cursor = match.index + match[0].length;
+  }
+  paragraphs.push(source.slice(cursor));
+  return paragraphs;
+}
 function compileCitations(source, cache, options = {}) {
   const { citationKeyword } = options;
-  const paragraphs = Array.isArray(source) ? source : typeof source === "string" ? source.trim().split(/\r?\n(?:[ \t]*\r?\n)+/) : null;
+  const paragraphs = Array.isArray(source) ? source : typeof source === "string" ? splitCitationParagraphs(source.trim(), { citationKeyword }) : null;
   if (!paragraphs || !paragraphs.every((paragraph) => typeof paragraph === "string")) throw new TypeError("Supply text or an array of paragraphs.");
   const blocks2 = paragraphs.map((block) => parseDirectives(block, { citationKeyword }));
   return compileCitationBlocks(blocks2, cache, options);
@@ -10267,9 +10557,10 @@ function safeFallback(value) {
   if (value.startsWith("//") || /^[a-z][a-z0-9+.-]*:/i.test(value)) return "";
   return value;
 }
-function renderBibliographyPart({ text, emphasis, href }, record) {
+function renderBibliographyPart({ text, emphasis, href, strong }, record) {
   const escaped = escapeHTML(text);
   let formatted = emphasis === "italic" ? `<em>${escaped}</em>` : emphasis === "bold" ? `<strong>${escaped}</strong>` : escaped;
+  if (strong) formatted = `<strong>${formatted}</strong>`;
   const value = href ? `<a href="${escapeHTML(href)}" target="_blank" rel="noopener noreferrer">${formatted}</a>` : formatted;
   return value;
 }
@@ -10353,8 +10644,8 @@ function compileBlocks(blocks2, cache, {
       continue;
     }
     for (const [indexInBlock, token] of block.entries()) {
-      if (token.malformed) diagnostics.push({ state: "malformed", code: "citation-malformed", source: token.text });
-      if (token.misplaced) diagnostics.push({ state: "misplaced-directive", source: token.text });
+      if (token.malformed) diagnostics.push({ state: "malformed", code: "citation-malformed", source: readerMarker(token.text) });
+      if (token.misplaced) diagnostics.push({ state: "misplaced-directive", source: readerMarker(token.text) });
       if (!["citation", "list", "nocite"].includes(token.type)) continue;
       if (token.type === "list" && block.some((other) => other !== token && (other.type !== "text" || other.text.trim()))) continue;
       if (token.type === "list" && token.tags) token.items = token.items.filter((item) => {
@@ -10385,7 +10676,8 @@ function compileBlocks(blocks2, cache, {
           }
           record = missing.get(key);
         }
-        if (record.state === "unresolved" || record.state !== "resolved" && (item.unresolvedText || record.unresolvedText)) diagnostics.push({ state: "unresolved", code: item.unresolvedText || record.unresolvedText ? "citation-unresolved-placeholder" : "citation-unresolved", identifier: key, ...item.unresolvedText || record.unresolvedText ? { recordId: record.id, original: item.unresolvedText || record.unresolvedText } : {} });
+        if (record.state === "unresolved" || provisionalCue(record, item) || record.state !== "resolved" && (item.unresolvedText || record.unresolvedText)) diagnostics.push({ state: "unresolved", code: provisionalCue(record, item) || item.unresolvedText || record.unresolvedText ? "citation-unresolved-placeholder" : "citation-unresolved", identifier: key, ...provisionalCue(record, item) || item.unresolvedText || record.unresolvedText ? { recordId: record.id, original: provisionalCue(record, item) || item.unresolvedText || record.unresolvedText } : {} });
+        if ((record.editors?.length || record.translators?.length) && !["apa", "chicago-author-date"].includes(citationStyle) && !used.has(record.id)) diagnostics.push({ state: "review", code: "citation-creator-role-style-review-required", recordId: record.id, citationStyle });
         if (!used.has(record.id)) used.set(record.id, { record, occurrences: [], suffix: "" });
         const entry = used.get(record.id);
         item.entry = entry;
@@ -10420,7 +10712,7 @@ function compileBlocks(blocks2, cache, {
     const surnames = /* @__PURE__ */ new Map();
     for (const { record } of numbering) {
       if (record.inlineAuthor || record.type === "legislation" || record.state === "unresolved") continue;
-      const byline = record.authors.slice(0, record.authors.length > 2 ? 1 : 2);
+      const byline = citationAuthors(record).slice(0, citationAuthors(record).length > 2 ? 1 : 2);
       const bylineKey = JSON.stringify(byline.map(identity));
       for (const author of byline) {
         if (!author.family || !author.given) continue;
@@ -10461,7 +10753,7 @@ function compileBlocks(blocks2, cache, {
         const { record } = entry;
         const full = titleFor(record);
         const short = shortTitle(record);
-        if (record.authors.length) entry.titleLabel = titleCounts.get(short.toLowerCase()) > 1 ? full : short;
+        if (citationAuthors(record).length) entry.titleLabel = titleCounts.get(short.toLowerCase()) > 1 ? full : short;
         if (fullCounts.get(full.toLowerCase()) < 2) continue;
         const identifier = record.identifiers.find((item) => ["isbn", "doi"].includes(item.scheme)) || record.identifiers[0];
         if (identifier) {
@@ -10510,8 +10802,8 @@ function compileBlocks(blocks2, cache, {
     items: token.items.map((item) => ({
       recordId: item.entry.record.id,
       identifier: canonicalIdentifierKey(item.identifier),
-      state: item.entry.record.state !== "resolved" && (item.unresolvedText || item.entry.record.unresolvedText) ? "unresolved" : item.entry.record.state,
-      text: item.entry.record.state !== "resolved" && (item.unresolvedText || item.entry.record.unresolvedText) ? item.unresolvedText || item.entry.record.unresolvedText : inlineText(item.entry, { form: "parenthetical" }, citationStyle, reprintYear, messages).replace(/\s+/g, " ").trim(),
+      state: item.entry.record.state !== "resolved" && (provisionalCue(item.entry.record, item) || item.unresolvedText || item.entry.record.unresolvedText) ? "unresolved" : item.entry.record.state,
+      text: provisionalCue(item.entry.record, item) ? inlineText(item.entry, item, citationStyle, reprintYear, messages) : item.entry.record.state !== "resolved" && (item.unresolvedText || item.entry.record.unresolvedText) ? item.unresolvedText || item.entry.record.unresolvedText : inlineText(item.entry, { form: "parenthetical" }, citationStyle, reprintYear, messages).replace(/\s+/g, " ").trim(),
       anchorId: item.occurrence,
       context: item.entry.occurrences.find((value) => value.id === item.occurrence)?.context || ""
     }))
@@ -10548,33 +10840,41 @@ function compileBlocks(blocks2, cache, {
     const { record } = item.entry;
     const parts = bibliography(item.entry);
     const text = parts.map((part2) => part2.text).join("");
-    const formatting = parts.some((part2) => part2.emphasis || part2.href) ? ` data-ci-bibliography-parts="${escapeHTML(JSON.stringify(parts))}"` : "";
+    const formatting = parts.some((part2) => part2.emphasis || part2.href || part2.strong) ? ` data-ci-bibliography-parts="${escapeHTML(JSON.stringify(parts))}"` : "";
     const tags = features.tags(record, item.list);
     const visibleTags = !inspectLabel && inlineTags === "marker" ? features.tags({ ...record, tags: item.markerTags || [] }) : tags;
     const usage = features.occurrences(record.id);
     const metadata = (tags.length ? ` data-ci-tags="${escapeHTML(JSON.stringify(tags))}"` : "") + (usage.length ? ` data-ci-site-occurrences="${escapeHTML(JSON.stringify(usage))}"` : "") + (siteOrigin ? ` data-ci-site-origin="${escapeHTML(siteOrigin)}"` : "");
     const fallback = isolatedHref && safeFallback(isolatedHref.replaceAll("{id}", encodeURIComponent(record.id))) || record.identifiers.map(identifierURL).find(Boolean) || record.locations[0]?.url;
     const href = item.occurrence ? "#" + noteID(record, item.scope) : fallback;
-    const placeholder = record.state !== "resolved" && Boolean(item.unresolvedText || record.unresolvedText);
+    const placeholder = record.state !== "resolved" && Boolean(provisionalCue(record, item) || item.unresolvedText || record.unresolvedText);
     const unresolvedAttributes = placeholder ? ` data-ci-state="unresolved-placeholder" aria-description="${escapeHTML(messages.text("ui.unresolvedBadge"))}"` : "";
     return `<a ${part("cite")}${unresolvedAttributes}${item.occurrence ? ` id="${item.occurrence}"` : ""}${href ? ` href="${escapeHTML(href)}"` : ""} data-ci-record="${record.id}"${inspectLabel ? ` data-ci-inspect-label="${escapeHTML(inspectLabel)}" aria-label="${escapeHTML(inspectLabel)}"` : ""} data-ci-bibliography="${escapeHTML(text)}"${formatting}${metadata} dir="auto">${escapeHTML(label)}</a>${inlineTags && !inspectLabel ? tagsHTML(visibleTags) : ""}`;
   };
   function titleOffset(parts, record, suffix) {
     const title = record.apaTitle && citationStyle === "apa" ? record.apaTitle : titleFor(record);
     let offset = 0;
+    for (const p of parts) {
+      if (p.titleField === "title") {
+        const marked = parts.filter((p2) => p2.titleField === "title");
+        return { start: offset, length: marked.reduce((n, p2) => n + p2.text.length, 0) };
+      }
+      offset += p.text.length;
+    }
+    offset = 0;
     const generatedDefault = citationStyle === "default" && !record.citationParts?.length && !["artwork", "image", "webpage"].includes(record.type);
     for (const [index2, part2] of parts.entries()) {
       const plain = part2.text.trim().replace(/^[“‘]/, "").replace(/[”’]$/, "");
-      if (!generatedDefault && !(record.authors.length && index2 === 0) && (plain === title || plain === title + ".")) {
+      if (!generatedDefault && !(citationAuthors(record).length && index2 === 0) && (plain === title || plain === title + ".")) {
         return { start: offset + part2.text.indexOf(title), length: title.length };
       }
       offset += part2.text.length;
     }
     const text = parts.map((part2) => part2.text).join("");
     const year4 = String(yearFor(record)) + suffixFor(yearFor(record), suffix, citationStyle);
-    const afterYear = record.authors.length ? text.indexOf(`(${year4}). `) : -1;
+    const afterYear = citationAuthors(record).length ? text.indexOf(`(${year4}). `) : -1;
     const start = text.indexOf(title, afterYear < 0 ? 0 : afterYear + year4.length + 4);
-    return start >= 0 && (afterYear >= 0 || !record.authors.length || text.indexOf(title, start + title.length) < 0) ? { start, length: title.length } : null;
+    return start >= 0 && (afterYear >= 0 || !citationAuthors(record).length || text.indexOf(title, start + title.length) < 0) ? { start, length: title.length } : null;
   }
   let nextInspectMask = 0;
   function referencesHTML(items, scope2, list = false, marker = {}) {
@@ -10587,7 +10887,7 @@ function compileBlocks(blocks2, cache, {
       const text = formatted.map((value) => renderBibliographyPart(value, record)).join("");
       const title2 = titleOffset(formatted, record, item.entry.suffix);
       const titleAttributes = title2 ? ` data-ci-title-start="${title2.start}" data-ci-title-length="${title2.length}"` : "";
-      const status = [record.state === "unresolved" || record.state !== "resolved" && record.unresolvedText ? messages.text("ui.unresolvedBadge") : "", record.integrity?.state].filter(Boolean).join(" \xB7 ");
+      const status = [record.state === "unresolved" || provisionalCue(record, item) || record.state !== "resolved" && record.unresolvedText ? messages.text("ui.unresolvedBadge") : "", record.integrity?.state].filter(Boolean).join(" \xB7 ");
       const links = destinations(record, part, messages);
       const backlinks = (local?.get(record.id) || []).map(({ id, context }, index2) => {
         const letter = suffixAt(index2);
@@ -10641,6 +10941,10 @@ function compileBlocks(blocks2, cache, {
       emittedNotes = true;
       return referencesHTML(scopeItems(marker.scope ?? 0), marker.scope ?? 0, false, marker);
     }
+    if (marker && !scoped && emittedNotes) {
+      diagnostics.push({ state: "duplicate-endnotes", code: "citation-duplicate-endnotes", source: readerMarker(marker.raw), message: "Only one full endnote list is needed. Use scope:since-last for separate section lists." });
+      return "";
+    }
     if (meaningful.length === 1 && meaningful[0].type === "list") {
       const token = meaningful[0];
       const items = [...token.items];
@@ -10652,12 +10956,12 @@ function compileBlocks(blocks2, cache, {
       return referencesHTML(items, 0, true, token);
     }
     const content = tokens.map((token) => {
-      if (token.type === "text") return escapeHTML(token.text);
+      if (token.type === "text") return escapeHTML(token.malformed || token.misplaced ? readerMarker(token.text) : token.text);
       if (token.type === "markup") return token.text;
       if (token.type === "nocite" || token.type === "tags") return "";
       if (token.type === "endnotes" || token.type === "list") {
-        diagnostics.push({ state: "misplaced-directive", source: token.raw });
-        return escapeHTML(token.raw);
+        diagnostics.push({ state: "misplaced-directive", source: readerMarker(token.raw) });
+        return escapeHTML(readerMarker(token.raw));
       }
       if (token.type === "annotation") {
         if (references === "isolated") return escapeHTML(messages.text("ui." + token.name));
@@ -10675,7 +10979,7 @@ function compileBlocks(blocks2, cache, {
         return separator + trigger(item, label2);
       }).join("");
       const { label, form } = token.items[0];
-      const verbatimPlaceholder = token.items.length === 1 && token.items[0].entry.record.state !== "resolved" && (token.items[0].unresolvedText || token.items[0].entry.record.unresolvedText);
+      const verbatimPlaceholder = token.items.length === 1 && !provisionalCue(token.items[0].entry.record, token.items[0]) && token.items[0].entry.record.state !== "resolved" && (token.items[0].unresolvedText || token.items[0].entry.record.unresolvedText);
       const parenthetical = !verbatimPlaceholder && (token.items.length > 1 && form !== "narrative" || !label && (citationStyle === "vancouver" || parentheticalForms.has(form)));
       return parenthetical ? `<span ${part("cluster")}>(${citations})</span>` : citations;
     }).join("");
@@ -10770,7 +11074,8 @@ function parseInTextCitations(text, options = {}) {
   if (![maxCitations, maxItems].every((value) => value === Infinity || Number.isSafeInteger(value) && value > 0)) throw new TypeError("Citation limits must be positive integers.");
   const limits = { maxCitations, maxItems };
   let itemCount = 0;
-  const protectedRanges = scanCitationMarkers(text, { citationKeyword });
+  const opaque = normalizeOpaqueRanges(text, options.opaque);
+  const protectedRanges = [...scanCitationMarkers(maskOpaqueRanges(text, opaque), { citationKeyword }), ...opaque];
   const citations = [], diagnostics = [];
   const source = text.slice(range.start, range.end);
   if (style === "vancouver") return detectNumeric(source, range.start, protectedRanges, style, limits);
@@ -10928,7 +11233,7 @@ function matchCitations(detection, references) {
         const candidates2 = records.filter((entry) => entry.referenceNumber === item.referenceNumber).map(({ record }) => ({
           recordId: record.id,
           title: record.title,
-          evidence: { referenceNumber: item.referenceNumber, identity: "document-local-label" }
+          evidence: { matchKind: "bibliography-entry", identifierVerification: "not-checked", referenceNumber: item.referenceNumber, identity: "document-local-label" }
         }));
         return { item, state: !candidates2.length ? "unmatched" : candidates2.length === 1 ? "unique" : "ambiguous", candidates: candidates2, requiresReview: true };
       }
@@ -10943,6 +11248,8 @@ function matchCitations(detection, references) {
         const missingSuffix = Boolean(item.sourceSuffix && !sourceSuffix), abbreviated = bylines.some((byline) => byline.authors.some((name2, index) => organizationAlias(name2, record.authors[index])));
         uncertain ||= abbreviated || missingSuffix || record.authorsComplete === false || item.undated && !undated;
         return [{ recordId: record.id, title: record.title, ...item.authorAlternatives && { authorStarts: bylines.map((byline) => byline.start) }, evidence: {
+          matchKind: "bibliography-entry",
+          identifierVerification: "not-checked",
           authors: abbreviated ? "possible-organization-abbreviation" : record.authorsComplete === false ? "incomplete-byline" : item.boundaryUncertain ? "uncertain-narrative-span" : "exact-normalized",
           year: yearField,
           suffix: missingSuffix ? "unknown-source-suffix" : item.sourceSuffix ? "exact-source-suffix" : "not-specified"
@@ -10956,6 +11263,11 @@ function matchCitations(detection, references) {
 // src/import-review.mjs
 var hash = importHash;
 var quote = (value) => '"' + String(value).replace(/[\\"{};|]/g, (character) => "\\" + character) + '"';
+var importCue = (item, original, form) => {
+  const names = Array.isArray(item.authors) ? item.authors.filter((name2) => typeof name2 === "string" && name2.trim()) : [];
+  if (names.length && (Number.isInteger(item.year) || item.undated)) return names.join(" & ") + (item.etAl ? " et al." : "") + (form === "narrative" ? " (" : ", ") + (item.undated ? "n.d." : item.year) + (item.sourceSuffix || "") + (form === "narrative" ? ")" : "");
+  return String(original).replace(/\s+/gu, " ").trim();
+};
 var digest = (sourceHash, matches) => hash(sourceHash + "\n" + JSON.stringify(matches));
 function createImportReview(source, matched) {
   if (typeof source !== "string" || matched?.schema !== "citation-inator.import-matches.v1" || !Array.isArray(matched.matches)) throw new TypeError("Supply original source and matched proposals.");
@@ -10968,13 +11280,22 @@ function createImportReview(source, matched) {
     matches
   };
 }
-function planImportEdits(source, review, { reviewId, decisions = [], citationKeyword = "cite", identifierForm = "minimal", existingRecordIds = [] } = {}) {
+function placeholderOriginal(match, itemIndex) {
+  const citation = match.citation, item = match.items[itemIndex].item, range = item.rawRange;
+  return match.items.length === 1 ? citation.raw : range && Number.isInteger(range.start) && Number.isInteger(range.end) && range.start >= 0 && range.end > range.start && citation.raw.slice(range.start, range.end) === item.rawText ? item.rawText : null;
+}
+function planImportEdits(source, review, { reviewId, decisions = [], citationKeyword = "cite", identifierForm = "minimal", existingRecordIds = [], referenceEntries = [] } = {}) {
   if (typeof source !== "string" || review?.schema !== "citation-inator.import-review.v1" || review.sourceHash !== hash(source) || review.sourceLength !== source.length) throw new Error("The source revision has changed; review again.");
   if (reviewId !== review.reviewId || review.reviewId !== digest(review.sourceHash, review.matches)) throw new Error("Review decisions belong to a different or changed snapshot.");
   scanCitationMarkers("", { citationKeyword });
   if (!["minimal", "explicit"].includes(identifierForm)) throw new TypeError("Use minimal or explicit identifierForm.");
   if (!Array.isArray(decisions)) throw new TypeError("Supply review decisions.");
   if (!Array.isArray(existingRecordIds) || existingRecordIds.some((id) => normalizeIdentifier("local:" + id)?.value !== id)) throw new TypeError("Supply valid existing record IDs.");
+  if (!Array.isArray(referenceEntries)) throw new TypeError("Supply source reference entries.");
+  const references = new Map(referenceEntries.map((entry) => {
+    if (typeof entry?.id !== "string" || !Number.isInteger(entry.start) || !Number.isInteger(entry.end) || entry.start < 0 || entry.end <= entry.start || entry.end > source.length) throw new TypeError("Supply source reference entries with valid ranges.");
+    return [entry.id, source.slice(entry.start, entry.end).trim()];
+  }));
   const taken = /* @__PURE__ */ new Set([...existingRecordIds, ...review.matches.flatMap((match) => match.items.flatMap((item) => item.candidates.map((candidate) => candidate.recordId)))]);
   const edits = [], outcomes = [], seen = /* @__PURE__ */ new Set(), placeholderRecords = [];
   for (const decision of decisions) {
@@ -10993,7 +11314,7 @@ function planImportEdits(source, review, { reviewId, decisions = [], citationKey
     if (decision.action === "placeholder" && targets.some((target) => target?.placeholder !== true)) throw new TypeError("Use accept with explicit targets for mixed citation groups.");
     const identities = targets.map((target, itemIndex) => {
       if (target?.placeholder === true) {
-        if (target.identifier !== void 0 || match.items[itemIndex].state !== "unmatched") throw new TypeError("Use placeholders only for unmatched citation items.");
+        if (target.identifier !== void 0) throw new TypeError("A placeholder cannot also select an identifier.");
         const base = "pending-" + hash(review.sourceHash + ":" + index + ":" + itemIndex).slice(0, 20);
         let id = target.recordId ?? base;
         if (target.recordId === void 0) {
@@ -11003,10 +11324,12 @@ function planImportEdits(source, review, { reviewId, decisions = [], citationKey
         if (typeof id !== "string" || normalizeIdentifier("local:" + id)?.value !== id || taken.has(id)) throw new TypeError("Placeholder IDs must be valid and distinct from existing records.");
         taken.add(id);
         const item = match.items[itemIndex].item;
-        const rawRange = item.rawRange;
-        const original = match.items.length === 1 ? citation.raw : rawRange && Number.isInteger(rawRange.start) && Number.isInteger(rawRange.end) && rawRange.start >= 0 && rawRange.end > rawRange.start && citation.raw.slice(rawRange.start, rawRange.end) === item.rawText ? item.rawText : null;
-        pending.push({ id, original, itemIndex });
-        return { scheme: "local", value: id, placeholder: true, original };
+        const original = placeholderOriginal(match, itemIndex);
+        const referenceTexts = [...new Set(match.items[itemIndex].candidates.map((candidate) => references.get(candidate.recordId)).filter(Boolean))];
+        const cue = importCue(item, original, citation.form);
+        const comment = "Original: " + original + " " + (referenceTexts.length ? "Bibliographic identity remains unconfirmed." : "No matching bibliography entry.");
+        pending.push({ id, original, itemIndex, referenceTexts, cue, comment });
+        return { scheme: "local", value: id, placeholder: true, original, cue, comment };
       }
       if (target && typeof target.recordId === "string" && target.identifier === void 0 && target.placeholder === void 0) {
         const id = target.recordId, identifier2 = normalizeIdentifier(id);
@@ -11029,7 +11352,7 @@ function planImportEdits(source, review, { reviewId, decisions = [], citationKey
     }
     const items = match.items.map((proposal, itemIndex) => {
       const identifier = identities[itemIndex], item = proposal.item;
-      return (identifier.scheme === "local" ? formatRecordId(identifier.value, { citationKeyword, identifierForm }) : (identifier.scheme + ":" + identifier.value).replace(/[\\"{};|]/g, (character) => "\\" + character)) + (identifier.placeholder ? " | unresolved:" + quote(identifier.original) : "") + (item.prefix ? " | prefix:" + quote(item.prefix) : "") + (item.locator ? " | locator:" + quote(item.locator) : "") + (citation.form === "narrative" ? " | form:narrative" : "");
+      return (identifier.scheme === "local" ? formatRecordId(identifier.value, { citationKeyword, identifierForm }) : (identifier.scheme + ":" + identifier.value).replace(/[\\"{};|]/g, (character) => "\\" + character)) + (identifier.placeholder ? " | cue:" + quote(identifier.cue) + " | comment:" + quote(identifier.comment) : "") + (item.prefix ? " | prefix:" + quote(item.prefix) : "") + (item.locator ? " | locator:" + quote(item.locator) : "") + (citation.form === "narrative" ? " | form:narrative" : "");
     });
     if (match.items.some((proposal) => proposal.item.boundaryUncertain)) {
       outcomes.push({ citationIndex: index, state: "accepted-needs-span", ...selection, code: "import-author-span-review-required" });
@@ -11049,7 +11372,7 @@ function planImportEdits(source, review, { reviewId, decisions = [], citationKey
     const text = `{${citationKeyword} ${items.join("; ")}}`;
     const token = scanCitationMarkers(text, { citationKeyword })[0]?.token;
     if (token?.type !== "citation" || token.items.length !== identities.length || token.items.some((item, index2) => item.identifier.scheme !== identities[index2].scheme || item.identifier.value !== identities[index2].value)) throw new Error("Could not encode accepted record identities.");
-    placeholderRecords.push(...pending.map((item) => normalizeRecord({ id: item.id, state: "unresolved", original: item.original, unresolvedText: item.original, provenance: [{ provider: "Import review", note: "Unmatched citation retained for editorial completion; no bibliographic identity has been inferred." }] })));
+    placeholderRecords.push(...pending.map((item) => normalizeRecord({ id: item.id, state: "unresolved", original: item.referenceTexts.length === 1 ? item.referenceTexts[0] : item.cue, provenance: [{ provider: "Import review", note: "Citation retained for editorial completion; no bibliographic identity has been inferred." }, ...item.referenceTexts.map((text2) => ({ provider: "Import review", note: "Unverified candidate reference; not an accepted identity: " + text2 }))] })));
     edits.push({ start, end, before: source.slice(start, end), text, citationIndex: index, ...selection });
     outcomes.push({ citationIndex: index, state: "accepted", ...selection, ...pending.length && { placeholderRecordIds: pending.map((item) => item.id), code: "import-unresolved-placeholder" } });
   }
@@ -12341,6 +12664,7 @@ var decodeEntity = (entity) => {
   const nodes = parseFragment(entity).childNodes;
   return nodes.length === 1 && nodes[0].nodeName === "#text" ? nodes[0].value : entity;
 };
+var isImportInlineFormatting = (token) => token.type === "html" && /^<\/?(?:sup|sub|em|strong|u|s)>$/u.test(token.raw);
 function protectedMarkers(source, citationKeyword) {
   let decoded = "", cursor = 0;
   const starts = [], ends = [];
@@ -12466,7 +12790,7 @@ function extractMarkdown(source, { result, append, boundary, includeURLLabels = 
   offsets.push(source.length);
   const location = (start, end) => ({ startOffset: offsets[start], endOffset: offsets[end] });
   const children = (token) => token.items || token.tokens || [];
-  const containsHTML = (token) => token.type === "html" || children(token).some(containsHTML);
+  const containsHTML = (token) => token.type === "html" && !isImportInlineFormatting(token) || children(token).some(containsHTML);
   const skipped = (start, end, reason) => {
     boundary();
     result.diagnostics.push({ code: "import-markdown-region-skipped", sourceStart: offsets[start], sourceEnd: offsets[end], reason });
@@ -12504,6 +12828,7 @@ function extractMarkdown(source, { result, append, boundary, includeURLLabels = 
         skipped(at, until, "raw-html-context");
         continue;
       }
+      if (isImportInlineFormatting(token)) continue;
       if (["code", "codespan", "image", "def", "hr", "br", "space"].includes(token.type)) {
         boundary();
         continue;
@@ -12569,7 +12894,7 @@ function markdownBlocks(source) {
     const at = normalized.indexOf(token.raw, cursor), until = at + token.raw.length;
     if (at < cursor) throw new Error("Cannot map Markdown blocks to source.");
     cursor = until;
-    const html = (item) => item.type === "html" || (item.tokens || item.items || []).some(html);
+    const html = (item) => item.type === "html" && !isImportInlineFormatting(item) || (item.tokens || item.items || []).some(html);
     const block = { eligible: !html(token), type: token.type, start: offsets[at], end: offsets[until], text: token.type === "heading" ? extractImportText(token.raw, { format: "markdown" }).text.trim() : token.text, depth: token.depth, ordered: token.ordered };
     if (token.type === "list") {
       let itemCursor = at;
@@ -12592,8 +12917,9 @@ function partitionImportDocument(source, { startLine = "auto", endLine = null, l
     while (blockIndex < blocks2.length && blocks2[blockIndex].end <= line2.start) blockIndex++;
     const block = blocks2[blockIndex];
     if (!block?.eligible) continue;
+    const headingText = line2.text.replace(/<\/?(?:sup|sub|em|strong|u|s)>/gu, "");
     if (block.type === "heading" && block.start === line2.start && /^(?:References|Bibliography|Works cited):?$/iu.test(block.text?.trim() || "")) headings.push({ line: line2.line, start: block.start, end: block.end, label: block.text.trim(), depth: block.depth });
-    else if (block.type === "paragraph" && heading.test(line2.text) && eligible.some((segment) => segment.sourceStart < line2.end && segment.sourceEnd > line2.start)) headings.push({ line: line2.line, start: line2.start, end: line2.end, label: line2.text.trim() });
+    else if (block.type === "paragraph" && heading.test(headingText) && eligible.some((segment) => segment.sourceStart < line2.end && segment.sourceEnd > line2.start)) headings.push({ line: line2.line, start: line2.start, end: line2.end, label: headingText.trim() });
     if (headings.length > 100) throw new RangeError("Too many bibliography heading candidates. Use a smaller document.");
   }
   let boundaryRequired = false, selected = null;
@@ -12611,10 +12937,10 @@ function partitionImportDocument(source, { startLine = "auto", endLine = null, l
   const start = selected?.start ?? source.length;
   let end = selected ? endLine === null ? source.length : lines[endLine - 1].end : source.length;
   if (selected && endLine === null) {
-    const next = blocks2.find((block) => block.start >= selected.end && (block.type === "heading" || block.type === "paragraph" && /^(?:Notes|Appendix|Appendices|Acknowledg(?:e)?ments|Supporting information)\s*$/iu.test(block.text || "")));
+    const next = blocks2.find((block) => block.start >= selected.end && (block.type === "heading" || block.type === "paragraph" && /^(?:Notes|Appendix|Appendices|Acknowledg(?:e)?ments|Supporting information)\s*$/iu.test((block.text || "").replace(/<\/?(?:sup|sub|em|strong|u|s)>/gu, ""))));
     if (next) end = next.start;
   }
-  const entriesStart = selected ? heading.test(selected.text ?? selected.label) ? selected.end : selected.start : source.length;
+  const entriesStart = selected ? heading.test(selected.label ?? selected.text) ? selected.end : selected.start : source.length;
   const bodyRanges = selected ? [{ start: 0, end: start }, ...end < source.length ? [{ start: end, end: source.length }] : []] : [{ start: 0, end: boundaryRequired ? headings[0].start : source.length }];
   return {
     schema: "citation-inator.import-document.v1",
@@ -12697,8 +13023,11 @@ function bibliographyEntries(source, document, style, limits) {
   const { entriesStart, end } = document.bibliography;
   const entries = [];
   const appendEntry = (entry) => {
-    const previous = entries.at(-1);
-    if (style === "vancouver" && previous && /^(?:1[5-9]\d{2}|20\d{2})\.$/u.test(source.slice(entry.start, entry.end).trim()) && /^\s*[1-9]\d{0,3}\.\s+\S/u.test(source.slice(previous.start, previous.end)) && !source.slice(previous.end, entry.start).trim()) previous.end = entry.end;
+    const previous = entries.at(-1), text = source.slice(entry.start, entry.end).trim(), prior = previous ? source.slice(previous.start, previous.end).trimEnd() : "";
+    const numericTail = /^\d{1,6}\.(?:\s+(?:https?:\/\/(?:dx\.)?doi\.org\/)?10\.\d{4,9}\/\S+)?$/u.test(text);
+    const wrappedPage = numericTail && /[-–]$/u.test(prior), wrappedDOI = /^\d{1,6}\.$/u.test(text) && /10\.\d{4,9}\/[^\s]*[.\/-]$/u.test(prior);
+    const wrappedYear = /^(?:1[5-9]\d{2}|20\d{2})\.$/u.test(text);
+    if (style === "vancouver" && previous && (wrappedYear || wrappedPage || wrappedDOI) && /^\s*[1-9]\d{0,3}\.\s+\S/u.test(prior) && !source.slice(previous.end, entry.start).trim()) previous.end = entry.end;
     else entries.push(entry);
   };
   for (const block of document.blocks.filter((block2) => block2.end > entriesStart && block2.start < end)) {
@@ -12706,7 +13035,7 @@ function bibliographyEntries(source, document, style, limits) {
       for (const item of block.items) if (item.start >= entriesStart && item.start < end) appendEntry({ start: item.start, end: Math.min(item.end, end) });
     } else if (block.type === "paragraph" && block.eligible) {
       const lines = document.lines.filter((line2) => line2.start >= Math.max(block.start, entriesStart) && line2.start < Math.min(block.end, end) && line2.text.trim());
-      const starts = (text) => style === "vancouver" ? /^\s*[1-9]\d{0,3}\.\s+/u.test(text) : style === "apa" ? /^(?:[^,\n]+,.*|[\p{L}\p{M} .&’'-]{1,150})\s*\((?:1[5-9]\d{2}|20\d{2}|n\.d\.)[a-z]?\)\.\s+/iu.test(text) : /^[^,\n]+,.*\.\s+(?:1[5-9]\d{2}|20\d{2})/u.test(text);
+      const starts = (text) => style === "vancouver" ? /^\s*[1-9]\d{0,3}\.\s+(?=[‘’“"']?\p{L})/u.test(text) : style === "apa" ? /^(?:[^,\n]+,.*|[\p{L}\p{M} .&’'-]{1,150})\s*\((?:1[5-9]\d{2}|20\d{2}|n\.d\.)[a-z]?\)\.\s+/iu.test(text) : /^[^,\n]+,.*\.\s+(?:1[5-9]\d{2}|20\d{2})/u.test(text);
       const boundaries = lines.filter((line2) => starts(referenceExtraction(line2.text, style).text.trim()));
       if (boundaries.length > 1) {
         const beginning = Math.max(block.start, entriesStart);
@@ -12759,17 +13088,22 @@ function bibliographyEntries(source, document, style, limits) {
     return { ...parsed, ...entry, line: line2, raw, id: "ref-" + digest2(raw).slice(0, 20), evidence };
   });
 }
-function analyzeImportDocument(source, { style = "auto", bibliography = {}, limits: overrides, citationKeyword = "cite" } = {}) {
-  const limits = normalizeImportLimits(overrides), document = partitionImportDocument(source, { ...bibliography, limits, citationKeyword });
+function analyzeImportDocument(source, { style = "auto", bibliography = {}, limits: overrides, citationKeyword = "cite", opaque: protectedRanges } = {}) {
+  const opaque = normalizeOpaqueRanges(source, protectedRanges), analysisSource = maskOpaqueRanges(source, opaque);
+  const limits = normalizeImportLimits(overrides), document = partitionImportDocument(analysisSource, { ...bibliography, limits, citationKeyword });
+  document.sourceHash = digest2(source);
   const parts = document.bodyRanges.filter((range) => range.end > range.start).map((range) => {
-    const extraction = extractImportText(source.slice(range.start, range.end), { format: "markdown", citationKeyword });
+    const extraction = extractImportText(analysisSource.slice(range.start, range.end), { format: "markdown", citationKeyword });
     return { range, extraction };
   });
   const visible = parts.map((part) => part.extraction.text).join("\n\n");
   const formatDetection = detectCitationFormat(visible, { limits }), formatChoiceRequired = style === "auto" && !formatDetection.style && visible.trim().length > 0;
   const effectiveStyle = style === "auto" ? formatDetection.style || "apa" : style;
   if (!["apa", "chicago-author-date", "vancouver"].includes(effectiveStyle)) throw new TypeError("Choose a supported citation format.");
-  const entries = bibliographyEntries(source, document, effectiveStyle, limits), seen = /* @__PURE__ */ new Set(), records = [];
+  const entries = bibliographyEntries(analysisSource, document, effectiveStyle, limits).map((entry) => {
+    if (!intersectsOpaque(entry.start, entry.end, opaque)) return entry;
+    return { ...entry, raw: source.slice(entry.start, entry.end), id: "ref-" + digest2(source.slice(entry.start, entry.end)).slice(0, 20), state: "unparsed", fields: {}, evidence: [], diagnostics: [...entry.diagnostics || [], { code: "import-reference-opaque-review-required", start: entry.start, end: entry.end }] };
+  }), seen = /* @__PURE__ */ new Set(), records = [];
   for (const entry of entries) {
     if (seen.has(entry.id)) continue;
     seen.add(entry.id);
@@ -12779,7 +13113,7 @@ function analyzeImportDocument(source, { style = "auto", bibliography = {}, limi
     record.identifiers = record.identifiers.filter((id) => !recovered.has(id.value));
     records.push({ ...record, ...identifierProposals.length && { identifierProposals }, ...entry.fields.referenceNumber && { referenceNumber: entry.fields.referenceNumber }, ...entry.fields.sourceSuffix && { sourceSuffix: entry.fields.sourceSuffix }, ...entry.fields.undated && { undated: true } });
   }
-  const citations = [], diagnostics = [];
+  const citations = [], diagnostics = entries.flatMap((entry) => entry.diagnostics.filter((item) => item.code === "import-reference-opaque-review-required"));
   const claims = /* @__PURE__ */ new Map();
   for (const record of records) for (const identifier of record.identifiers) {
     if (!["doi", "isbn"].includes(identifier.scheme)) continue;
@@ -12806,7 +13140,7 @@ function analyzeImportDocument(source, { style = "auto", bibliography = {}, limi
     for (const item of detected.citations) {
       if (effectiveStyle === "vancouver" && localFormat.ignoredNumericRanges.some((ignore) => item.start < ignore.end && item.end > ignore.start)) continue;
       const fragments = item.sourceFragments.map((fragment) => ({ ...fragment, sourceStart: fragment.sourceStart + range.start, sourceEnd: fragment.sourceEnd + range.start }));
-      if (!fragments.length) continue;
+      if (!fragments.length || intersectsOpaque(fragments[0].sourceStart, fragments.at(-1).sourceEnd, opaque)) continue;
       citations.push({ ...item, start: fragments[0].sourceStart, end: fragments.at(-1).sourceEnd, sourceFragments: fragments });
     }
   }
@@ -12829,6 +13163,94 @@ function createDocumentImporter(options = {}) {
   return { limits, analyze: (source) => analyzeImportDocument(source, { ...options, limits }) };
 }
 
+// src/import-classifier.mjs
+function classifyReview(result, { reviewId, decisions = [], recordDecisions = [], policy: policy2 = {} } = {}) {
+  const review = result?.review;
+  if (review?.schema !== "citation-inator.import-review.v1" || typeof review.reviewId !== "string" || !Array.isArray(review.matches) || review.matches.length > 1e4) throw TypeError("Supply a current import analysis result.");
+  if (!Array.isArray(decisions) || !Array.isArray(recordDecisions) || !policy2 || typeof policy2 !== "object" || Array.isArray(policy2) || Object.keys(policy2).some((key) => key !== "siteWorks")) throw TypeError("Supply decisions, record decisions and a siteWorks policy.");
+  if ((decisions.length || recordDecisions.length || reviewId !== void 0) && reviewId !== review.reviewId) throw Error("Decisions belong to a different review snapshot.");
+  const siteWorks = policy2.siteWorks ?? "offer";
+  if (!["offer", "prefer", "require"].includes(siteWorks)) throw TypeError("Use offer, prefer or require for siteWorks.");
+  const choices = /* @__PURE__ */ new Map(), siteChoices = /* @__PURE__ */ new Map(), sites = new Map((result.siteMatches || []).map((item) => [item.recordId, item]));
+  for (const choice of decisions) {
+    if (!Number.isInteger(choice?.citationIndex) || choice.citationIndex < 0 || choice.citationIndex >= review.matches.length || choices.has(choice.citationIndex) || !["accept", "placeholder", "reject", "defer"].includes(choice.action)) throw TypeError("Supply one valid current decision per citation group.");
+    choices.set(choice.citationIndex, choice);
+  }
+  for (const choice of recordDecisions) {
+    const match = sites.get(choice?.recordId);
+    if (!match || siteChoices.has(choice.recordId) || choice.siteRecordId !== null && !match.candidates.some((item) => item.recordId === choice.siteRecordId)) throw TypeError("Choose one current proposed site record or null for a new record.");
+    siteChoices.set(choice.recordId, choice.siteRecordId);
+  }
+  const attention = [], probable = [], groups = [], used = /* @__PURE__ */ new Set(), blockers = [];
+  const taken = /* @__PURE__ */ new Set([...(result.referenceRecords || []).map((item) => item.id), ...result.siteRecordIds || [], ...review.matches.flatMap((match) => match.items.flatMap((item) => item.candidates.map((candidate) => candidate.recordId))), ...[...sites.values()].flatMap((item) => item.candidates.map((candidate) => candidate.recordId))]);
+  if (result.document?.boundaryRequired) blockers.push({ code: "import-bibliography-boundary-required" });
+  if (result.formatChoiceRequired) blockers.push({ code: "import-citation-format-required" });
+  for (const [citationIndex, match] of review.matches.entries()) {
+    if (!Array.isArray(match.items) || !match.items.length || match.items.some((item) => !Array.isArray(item.candidates))) throw TypeError("Supply complete citation proposals.");
+    const suggestion = match.items.every((item) => item.state === "unique" && item.candidates.length === 1) ? match.items.map((item) => ({ recordId: item.candidates[0].recordId })) : null;
+    const choice = choices.get(citationIndex), targets = choice?.targets ?? choice?.recordIds?.map((recordId) => ({ recordId })) ?? (choice?.action === "placeholder" ? match.items.map(() => ({ placeholder: true })) : void 0);
+    let decided = choice?.action === "reject", valid = Boolean(Array.isArray(targets) && targets.length === match.items.length && !(choice?.action === "placeholder" && targets.some((target) => target?.placeholder !== true))), manual = false;
+    if (choice && ["accept", "placeholder"].includes(choice.action)) {
+      for (const [index, item] of match.items.entries()) {
+        const target = targets?.[index];
+        if (!target) {
+          valid = false;
+          continue;
+        }
+        if (target.placeholder === true && target.identifier === void 0) {
+          manual = true;
+          if (target.recordId !== void 0) {
+            if (typeof target.recordId !== "string" || normalizeIdentifier("local:" + target.recordId)?.value !== target.recordId || taken.has(target.recordId)) valid = false;
+            else taken.add(target.recordId);
+          }
+          continue;
+        }
+        const fields = ["recordId", "identifier", "placeholder"].filter((key) => target[key] !== void 0);
+        if (fields.length !== 1) {
+          valid = false;
+          continue;
+        }
+        if (target.recordId !== void 0) {
+          if (typeof target.recordId !== "string" || !item.candidates.some((candidate) => candidate.recordId === target.recordId)) valid = false;
+        } else if (target.placeholder !== void 0) {
+          if (target.placeholder !== true) valid = false;
+          manual = true;
+        } else {
+          if (!normalizeImportIdentifier(target.identifier)) valid = false;
+          manual = true;
+        }
+      }
+      if (valid) {
+        const uncertain = match.items.some((item) => item.item?.boundaryUncertain);
+        const fragments = match.citation.sourceFragments;
+        const unsafe = fragments && (!fragments.length || fragments.some((fragment, index) => fragment.exact !== true || fragment.link !== void 0 || index > 0 && fragment.sourceStart !== fragments[index - 1].sourceEnd));
+        const originals = targets.map((target, index) => target.placeholder ? placeholderOriginal(match, index) : void 0);
+        const unsafePlaceholder = originals.some((original) => original === null);
+        const multilinePlaceholder = originals.some((original) => typeof original === "string" && /[\r\n]/.test(original));
+        if (uncertain || unsafe || unsafePlaceholder || multilinePlaceholder) blockers.push({ code: multilinePlaceholder ? "import-placeholder-linebreak-review-required" : "import-source-span-review-required", citationIndex });
+        else decided = true;
+        for (const target of targets) if (target.recordId) used.add(target.recordId);
+      }
+    }
+    const queue = suggestion && !manual ? "probable" : "attention";
+    (queue === "probable" ? probable : attention).push(citationIndex);
+    if (!decided && !blockers.some((item) => item.citationIndex === citationIndex)) blockers.push({ code: "import-citation-decision-required", citationIndex });
+    groups.push({ citationIndex, queue, decided, action: choice?.action ?? "pending", suggestedTargets: suggestion, selectedRecordIds: valid && targets ? targets.flatMap((target) => target.recordId ? [target.recordId] : []) : [], evidence: match.items.map((item, index) => ({ itemIndex: index, bibliographyMatched: item.candidates.length > 0, identifierVerification: "not-checked" })) });
+  }
+  const site = [];
+  for (const match of sites.values()) {
+    if (!match.candidates.length) continue;
+    const only = match.candidates.length === 1 ? match.candidates[0] : null;
+    const clear = only && ![].concat(only.evidence || []).some((item) => item.assessment?.conflicts?.length);
+    const suggestedSiteRecordId = only && (clear || siteWorks !== "offer") ? only.recordId : null;
+    const chosen = siteChoices.get(match.recordId), required = used.has(match.recordId), decided = siteChoices.has(match.recordId) && !(siteWorks === "require" && chosen === null);
+    if (required && !decided) blockers.push({ code: siteWorks === "require" && chosen === null ? "import-site-reuse-required" : "import-site-decision-required", recordId: match.recordId });
+    site.push({ recordId: match.recordId, candidateRecordIds: match.candidates.map((item) => item.recordId), required, decided, ...siteChoices.has(match.recordId) && { siteRecordId: chosen }, suggestedSiteRecordId });
+  }
+  const count = (indexes) => ({ total: indexes.length, undecided: indexes.filter((index) => !groups[index].decided).length });
+  return { schema: "citation-inator.import-classification.v1", reviewId: review.reviewId, ...result.revision !== void 0 && { revision: result.revision }, attention, probable, site, groups, counts: { attention: count(attention), probable: count(probable), site: { total: site.length, required: site.filter((item) => item.required).length, undecided: site.filter((item) => item.required && !item.decided).length } }, blockers, canApply: blockers.length === 0 };
+}
+
 // src/import-api.mjs
 function processImportRequest(input) {
   const limits = normalizeImportLimits(input?.limits);
@@ -12838,23 +13260,25 @@ function processImportRequest(input) {
   scanCitationMarkers("", { citationKeyword });
   if (typeof namespace !== "string" || !/^[-A-Za-z0-9_]{1,80}$/u.test(namespace)) throw new TypeError("Use a namespace of up to 80 letters, digits, hyphens or underscores.");
   if (!["auto", "apa", "chicago-author-date", "vancouver"].includes(requestedStyle)) throw new TypeError("Choose APA, Chicago author\u2013date or Vancouver.");
+  const opaque = normalizeOpaqueRanges(source, input.opaque);
+  if (input.revision !== void 0 && !(typeof input.revision === "string" && input.revision.length > 0 && input.revision.length <= 200 || Number.isSafeInteger(input.revision) && input.revision >= 0)) throw new TypeError("Supply a nonempty revision string of at most 200 characters or a nonnegative integer.");
   const fullDocument = input.mode === "document";
   if (fullDocument && (input.records !== void 0 || input.referenceText !== void 0)) throw new TypeError("Full-document import derives references from the source.");
-  const model = fullDocument ? analyzeImportDocument(source, { style: requestedStyle, bibliography: input.bibliography, limits, citationKeyword }) : null;
+  const model = fullDocument ? analyzeImportDocument(source, { style: requestedStyle, bibliography: input.bibliography, limits, citationKeyword, opaque }) : null;
   const records = model?.records ?? input.records;
   if (!Array.isArray(records) || records.length > limits.references) throw new TypeError("Supply at most " + limits.references + " reference records.");
   if (input.referenceText !== void 0 && (typeof input.referenceText !== "string" || input.referenceText.length > limits.sourceCharacters)) throw new TypeError("Supply bounded reference text.");
-  const formatDetection = model?.formatDetection ?? detectCitationFormat(source, { limits }), formatChoiceRequired = model?.formatChoiceRequired ?? (requestedStyle === "auto" && !formatDetection.style);
+  const formatDetection = model?.formatDetection ?? detectCitationFormat(maskOpaqueRanges(source, opaque), { limits }), formatChoiceRequired = model?.formatChoiceRequired ?? (requestedStyle === "auto" && !formatDetection.style);
   const style = model?.effectiveStyle ?? (requestedStyle === "auto" ? formatDetection.style || "apa" : requestedStyle);
   const cache = makeCache(records);
   if (cache.records.some((record) => record.title.length > limits.titleCharacters || record.authors.length > limits.authorsPerRecord) || records.some((record) => JSON.stringify(record).length > limits.recordCharacters)) throw new TypeError("Use shorter reference records.");
   const recoveredProposals = new Map((model?.records || []).filter((record) => record.identifierProposals?.length).map((record) => [record.id, record.identifierProposals]));
   const site = importSiteContext(cache.records, input.siteCache, limits);
   const hostRecords = input.recordDecisions !== void 0 || input.siteCache !== void 0 || input.recordId !== void 0 || input.recordIds !== void 0;
-  const contextHash = importHash(JSON.stringify({ siteCache: input.siteCache ?? null, limits, mode: fullDocument ? "document" : "fixture", bibliography: input.bibliography ?? {}, records, style: requestedStyle, citationKeyword, namespace, referenceText: input.referenceText || "" }));
+  const contextHash = importHash(JSON.stringify({ opaque, revision: input.revision ?? null, siteCache: input.siteCache ?? null, limits, mode: fullDocument ? "document" : "fixture", bibliography: input.bibliography ?? {}, records, style: requestedStyle, citationKeyword, namespace, referenceText: input.referenceText || "" }));
   const detect = () => {
     if (model) return model.detection;
-    const result = parseInTextCitations(source, { style, maxCitations: limits.citationGroups, maxItems: limits.citedItems });
+    const result = parseInTextCitations(source, { style, citationKeyword, opaque, maxCitations: limits.citationGroups, maxItems: limits.citedItems });
     if (style === "vancouver") result.citations = result.citations.filter((item) => !formatDetection.ignoredNumericRanges.some((range) => item.start < range.end && item.end > range.start));
     return result;
   };
@@ -12873,7 +13297,7 @@ function processImportRequest(input) {
       if (entries.length > limits.references) throw new TypeError("Use at most " + limits.references + " explicitly separated entries.");
       parsedReferences = parseReferences(entries, { style });
     }
-    return { siteMatches: site.matches, review, document: model?.document, referenceEntries: model?.entries, formatDetection, formatChoiceRequired, effectiveStyle: style, diagnostics: matched.diagnostics, parsedReferences, referenceRecords: cache.records.map((record) => ({ id: record.id, type: record.type, authorsComplete: record.authorsComplete, title: record.title, authors: record.authors, issued: record.issued, originalIssued: record.originalIssued, publisher: record.publisher, publisherPlace: record.publisherPlace, containerTitle: record.containerTitle, volume: record.volume, issue: record.issue, pages: record.pages, articleNumber: record.articleNumber, identifiers: record.identifiers, ...recoveredProposals.has(record.id) && { identifierProposals: recoveredProposals.get(record.id) }, referenceNumber: records.find((input2) => input2.id === record.id)?.referenceNumber, undated: records.find((input2) => input2.id === record.id)?.undated === true })) };
+    return { ...input.revision !== void 0 && { revision: input.revision }, ...input.opaque !== void 0 && { opaque }, siteRecordIds: site.records.map((record) => record.id), siteMatches: site.matches, review, document: model?.document, referenceEntries: model?.entries, formatDetection, formatChoiceRequired, effectiveStyle: style, diagnostics: matched.diagnostics, parsedReferences, referenceRecords: cache.records.map((record) => ({ id: record.id, state: record.state, type: record.type, authorsComplete: record.authorsComplete, title: record.title, authors: record.authors, issued: record.issued, originalIssued: record.originalIssued, publisher: record.publisher, publisherPlace: record.publisherPlace, containerTitle: record.containerTitle, volume: record.volume, issue: record.issue, pages: record.pages, articleNumber: record.articleNumber, identifiers: record.identifiers, ...recoveredProposals.has(record.id) && { identifierProposals: recoveredProposals.get(record.id) }, referenceNumber: records.find((input2) => input2.id === record.id)?.referenceNumber, undated: records.find((input2) => input2.id === record.id)?.undated === true })) };
   }
   if (action !== "preview") throw new TypeError("Choose analyze or preview.");
   if (model?.document.boundaryRequired) throw new TypeError("Choose the bibliography boundary.");
@@ -12907,7 +13331,8 @@ function processImportRequest(input) {
     }
   }
   const existingRecordIds = [...records, ...site.records].map((record) => record.id);
-  const originalPlan = planImportEdits(source, input.review, { reviewId: input.reviewId, decisions: input.decisions, citationKeyword, identifierForm, existingRecordIds });
+  const referenceEntries = model?.entries || [];
+  const originalPlan = planImportEdits(source, input.review, { reviewId: input.reviewId, decisions: input.decisions, citationKeyword, identifierForm, existingRecordIds, referenceEntries });
   const sourceRecords = [...records.map((record) => enriched.get(record.id)?.record || normalizeRecord(record)), ...extra, ...originalPlan.placeholderRecords];
   if (originalPlan.placeholderRecords.some((record) => JSON.stringify(record).length > limits.recordCharacters)) throw new RangeError("A citation placeholder exceeds the configured record size; shorten the citation or raise the record limit.");
   if (sourceRecords.length > limits.references) throw new RangeError("Too many source and placeholder records; raise the configured reference limit or use a smaller document.");
@@ -12918,7 +13343,7 @@ function processImportRequest(input) {
     return { ...decision, ...targets && { targets: targets.map((target) => allocation?.mapping.has(target.recordId) ? { ...target, recordId: allocation.mapping.get(target.recordId) } : enriched.has(target.recordId) ? { identifier: enriched.get(target.recordId).identifier.scheme + ":" + enriched.get(target.recordId).identifier.value } : target) } };
   });
   const outputReview = allocation ? createImportReview(source, { schema: "citation-inator.import-matches.v1", matches: input.review.matches.map((match2) => ({ ...match2, items: match2.items.map((item) => ({ ...item, candidates: item.candidates.map((candidate) => ({ ...candidate, recordId: allocation.mapping.get(candidate.recordId) || candidate.recordId })) })) })) }) : input.review;
-  const plan = planImportEdits(source, outputReview, { reviewId: outputReview.reviewId, decisions, citationKeyword, identifierForm, existingRecordIds });
+  const plan = planImportEdits(source, outputReview, { reviewId: outputReview.reviewId, decisions, citationKeyword, identifierForm, existingRecordIds, referenceEntries: referenceEntries.map((entry) => ({ ...entry, id: allocation?.mapping.get(entry.id) || entry.id })) });
   const portable = [], owners = /* @__PURE__ */ new Map(), ids = /* @__PURE__ */ new Set();
   for (const rawRecord of allocation?.records || sourceRecords) {
     const record = normalizeRecord(rawRecord);
@@ -12933,18 +13358,23 @@ function processImportRequest(input) {
   }
   const completedCache = makeCache(portable);
   const output = applyImportEdits(source, plan);
-  const hasEndnotes = scanCitationMarkers(output.source, { citationKeyword }).some((marker) => markerKind(marker.raw, { citationKeyword }) === "endnote");
   const partialNumeric = style === "vancouver" && current.matches.some((match2, index) => !plan.edits.some((edit) => edit.citationIndex === index));
   const previewNotice = partialNumeric ? "Some original reference numbers remain. The reading preview is withheld until every numeric group is converted; the reviewed source remains available." : "";
-  const readingSource = model ? model.document.bodyRanges.map((range) => {
+  const readingSource = (model ? model.document.bodyRanges : [{ start: 0, end: source.length }]).map((range) => {
     let part = source.slice(range.start, range.end);
-    for (const edit of [...plan.edits].reverse()) if (edit.start >= range.start && edit.end <= range.end) part = part.slice(0, edit.start - range.start) + edit.text + part.slice(edit.end - range.start);
+    const changes = plan.edits.filter((edit) => edit.start >= range.start && edit.end <= range.end);
+    for (const area of opaque) {
+      const start = Math.max(area.start, range.start), end = Math.min(area.end, range.end);
+      if (start < end) changes.push({ start, end, text: source.slice(start, end).replace(/[\\{}]/g, "\\$&") });
+    }
+    for (const edit of changes.sort((a, b2) => b2.start - a.start)) part = part.slice(0, edit.start - range.start) + edit.text + part.slice(edit.end - range.start);
     return part;
-  }).join("\n\n") : output.source;
+  }).join("\n\n");
+  const hasEndnotes = scanCitationMarkers(readingSource, { citationKeyword }).some((marker) => markerKind(marker.raw, { citationKeyword }) === "endnote");
   const reader = compileCitations(readableImportSource(readingSource) + (hasEndnotes ? "" : `
 
 {${citationKeyword} endnote}`), completedCache, { citationStyle: style, namespace, citationKeyword });
-  return { ...allocation && { recordMap: Object.fromEntries(allocation.mapping), newRecordIds: allocation.newRecordIds, reusedRecordIds: allocation.reusedRecordIds }, source: output.source, changed: output.changed, outcomes: plan.outcomes, edits: plan.edits, html: partialNumeric ? "" : reader.html, previewNotice, cache: completedCache, diagnostics: reader.diagnostics };
+  return { ...input.revision !== void 0 && { revision: input.revision }, ...allocation && { recordMap: Object.fromEntries(allocation.mapping), newRecordIds: allocation.newRecordIds, reusedRecordIds: allocation.reusedRecordIds }, source: output.source, changed: output.changed, outcomes: plan.outcomes, edits: plan.edits, html: partialNumeric ? "" : reader.html, previewNotice, cache: completedCache, diagnostics: reader.diagnostics };
 }
 export {
   IMPORT_LIMITS,
@@ -12952,6 +13382,7 @@ export {
   applyImportEdits,
   assessImportCandidate,
   automaticCandidate,
+  classifyReview,
   compareIdentity,
   createBrowserEnrichment,
   createDocumentImporter,
@@ -12967,6 +13398,7 @@ export {
   mergeCompletion,
   normalizeImportIdentifier,
   normalizeImportLimits,
+  normalizeOpaqueRanges,
   parseInTextCitations,
   parseReference,
   parseReferences,

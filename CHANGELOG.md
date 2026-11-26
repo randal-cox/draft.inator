@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **`cue:` replaces `note:`** (cite.inator 0.6; Randal, 26 Nov 2026, #55). The Cite block writes `cue:`, reads an old
+  `note:` as the cue and saves it as `cue:`, and keeps a writer's `comment:` (set aside, like other work-bound
+  options, when the work changes). `draft-inator cues` (formerly `notes`, which still works) finds old `note:`
+  markers and, with `--write`, moves them with cite.inator's source-aware `migrateCitationCues`. **Upgrading:** with
+  cite.inator 0.6, a marker still written `note:` doesn't compile, so run `npx draft-inator cues --write` once.
 - **Equations and cross-references** (Randal, 25 Nov 2026). LaTeX maths between `$…$` and `$$…$$`, drawn by KaTeX
   0.16.11 (vendored, MIT) as MathML: no fonts, styles, or scripts, so it suits a strict security policy, and screen
   readers read it. Label a displayed equation with `{#eq:name}` and a figure with `label:fig:name`; `{ref …}` reads

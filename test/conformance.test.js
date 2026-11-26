@@ -14,11 +14,11 @@ const markers = [
   '{cite endnote-1}', '{cite endnotes-2}', '{cite credit-report}', '{cite evidence-base | locator:2}',
   '{cite nocite-2020}', '{cite endnote}', '{cite endnote | heading:"Notes"}', '{cite endnote }',
   '{cite list a; b}', '{cite list a | sort:year}', '{cite nocite a}', '{cite evidence}', '{cite credit}',
-  '{cite bell-1992-ritual | note:"Bell 1992" | tags:a,b}', '{cite 10.1177/1363460704040142 | prefix:"see"}',
+  '{cite bell-1992-ritual | cue:"Bell 1992" | tags:a,b}', '{cite 10.1177/1363460704040142 | prefix:"see"}',
   '{cite local:bell-1992-ritual}', '{cite local:list}', '{cite local:endnote}', '{cite local:evidence}',
   '{cite local:credit | locator:2}', '{cite local:nocite; bell-1992-ritual}',
   // cite.inator 0.5.1: fields separated by spaces, the tags directive, directives with space-separated options.
-  '{cite bell-1992-ritual locator:12}', '{cite bell-1992-ritual note:"Bell 1992" locator:12 prefix:"see"}',
+  '{cite bell-1992-ritual locator:12}', '{cite bell-1992-ritual cue:"Bell 1992" locator:12 prefix:"see"}',
   '{cite a; b locator:3}', '{cite tags bell-1992-ritual methods:"Methods"}', '{cite endnote heading:"Notes"}',
   '{cite local:tags}', '{cite tagsy-2001}'
 ];
@@ -59,5 +59,5 @@ test('a site that keeps the citation keyword: the block reads only {citation …
   const p = new RegExp('^' + captured.citation.pattern.source + '$');
   for (const m of ['{citation bell-1992-ritual}', '{citation endnote}', '{citation bell-1992-ritual locator:3}', '{cite bell-1992-ritual}', '{citation tags x m:"M"}'])
     assert.equal(p.test(m), markerKind(m, { citationKeyword: 'citation' }) === 'citation', m);
-  assert.equal(captured.citation.toBlock({ items: [{ work: 'x' }] }), '{citation x | note:"x"}');
+  assert.equal(captured.citation.toBlock({ items: [{ work: 'x' }] }), '{citation x | cue:"x"}');
 });

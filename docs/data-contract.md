@@ -87,16 +87,24 @@ keyword. The block reports the keyword it uses as `window.DRAFT_CITATION.keyword
 
 ### Cite
 
-cite.inator's marker grammar (0.5.1), shown with the default keyword:
+cite.inator's marker grammar (0.6), shown with the default keyword:
 
 ```
-{cite <id> | note:"Bell 1992" | locator:12 | prefix:"see also" | form:narrative | tags:a,b; <id2> | ...}
+{cite <id> | cue:"Bell 1992" | locator:12 | prefix:"see also" | form:narrative | tags:a,b; <id2> | ...}
 ```
 
 - Several works are separated by `;`, options by `|`; cite.inator 0.5.1 also reads options separated by whitespace
   alone (`{cite bell-1992-ritual locator:12}`). The block keeps the separators a marker was written with, and writes
   pipes in a new marker. Values with `;|"{}\:` or edge spaces are quoted; `\` escapes.
-- `note:` is always written and always quoted; it is refreshed from `DRAFT_WORKS` on every save.
+- `cue:` is always written and always quoted; it is refreshed from `DRAFT_WORKS[].note` on every save. A work
+  `DRAFT_WORKS` doesn't describe (an import placeholder) keeps the cue it has. Readers see a cue only while its work
+  is unresolved, flagged as such; once resolved, the formatted citation replaces it (cite.inator 0.6).
+- `note:` is what cite.inator called the cue before 0.6. The block reads it as the cue and writes it back as `cue:`;
+  `draft-inator cues --write` moves a whole site at once. If a marker has both, its `cue:` wins.
+- `comment:` (cite.inator 0.6) is the writer's own note in the source. The block keeps it as written, and when the
+  work changes it is set aside with the other work-bound options. It never reaches readers.
+- Space and line breaks may come before and after the keyword (`{\n  cite\n  bell-1992-ritual\n}`); the block keeps
+  a marker's layout.
 - A work's id may be written bare (`bell-1992-ritual`) or explicitly local (`local:bell-1992-ritual`); both are the
   same work, looked up in `DRAFT_WORKS` by the bare id. An unchanged work is written back in the form it had. A newly
   chosen work is written bare, unless the bare id is a directive word (`endnote`, `list`, `nocite`, `evidence`,
@@ -111,11 +119,12 @@ cite.inator's marker grammar (0.5.1), shown with the default keyword:
   `{cite evidence}`, and `{cite credit}` are not citations of a work, and the block leaves them alone. A work whose id only starts
   with one of those words (`list-2001`) is a citation. This follows citation.inator exactly and is tested against its
   `markerKind` (`test/conformance.test.js`).
-- A placeholder from an import, `{cite pending-… | unresolved:"(Rivera, 2020)"}`, is a citation of a staged work
-  and opens in the form like any other; its `unresolved:` option is kept as written.
+- A placeholder from an import, `{cite pending-… | cue:"Rivera, 2020" | comment:"Original: (Rivera, 2020). …"}`
+  (cite.inator 0.6; 0.5.1 wrote `unresolved:"(Rivera, 2020)"`), is a citation of a staged work and opens in the
+  form like any other; its options are kept as written.
 
-Guarantee (tested): reading a marker and writing it back changes nothing but its `note:`, and a second pass changes
-nothing.
+Guarantee (tested): reading a marker and writing it back changes nothing but its `cue:` (and an old `note:`'s name),
+and a second pass changes nothing.
 
 ### Figure (0.3)
 
@@ -198,5 +207,7 @@ and one change touches only that key's lines.
 
 
 - 0.4.1: replacing a work no longer carries the old work's options silently (above).
+- 0.6 (**breaking with cite.inator 0.6**, Randal's decision on #55): markers write `cue:` instead of `note:`; old
+  `note:` is read and moved. Run `draft-inator cues --write` once when upgrading. `DRAFT_WORKS[].note` keeps its name.
 
 Additive only within 0.x where possible. A breaking change bumps the minor version and is listed in the roadmap.

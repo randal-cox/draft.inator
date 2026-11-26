@@ -25,10 +25,12 @@ real editor, with both blocks, where nothing you do is published.
 The editor shows the citation as it will read, "(Bell 1992, 12)". The page's file holds a short marker instead:
 
 ```
-{cite bell-1992-ritual | note:"Bell 1992" | locator:12}
+{cite bell-1992-ritual | cue:"Bell 1992" | locator:12}
 ```
 
-You never need to type one, but you can read it. `note:` is there so anyone reading the file can tell what it cites.
+You never need to type one, but you can read it. `cue:` is there so anyone reading the file can tell what it cites (older pages say `note:`, which means the same
+and is updated when you save). You can add your own `comment:"…"` to a citation: it stays in the file and readers
+never see it.
 
 ## Change a citation
 

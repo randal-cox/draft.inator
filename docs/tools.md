@@ -5,7 +5,7 @@ The Cite block runs in the writer's browser. Three jobs need the whole site inst
 
 | Command | What it does | When to run it |
 |---|---|---|
-| `draft-inator notes` | Checks that every marker's `note:` is cite.inator's current description of the work | In every pull request (fails on a stale note); `--write` to fix |
+| `draft-inator cues` | Checks that every marker's `cue:` is cite.inator's current description of the work, and finds markers still written with the old `note:` (`notes` still works as the command's name) | In every pull request (fails on a stale cue or an old note:); `--write` to fix |
 | `draft-inator tags` | Totals the topics writers gave each work while citing it, plus a curator's additions and blocks | When you rebuild the citation records |
 | `draft-inator works` | Writes `works.js`, the list of works the Cite block offers (`docs/data-contract.md`) | Whenever the citation cache changes; `--check` in pull requests |
 | `draft-inator check` | Checks equations and cross-references: maths that parses, `{ref …}` to labels that exist, no label twice | In every pull request |
@@ -64,8 +64,8 @@ npx draft-inator notes --config draft-inator.json
 ```
 
 ```
-content/essays/ritual.md:4:93  add note:"Turner 1969"
-content/essays/ritual.md:5:42  note:"Bell 1991" → note:"Bell 1992"
+content/essays/ritual.md:4:93  add cue:"Turner 1969"
+content/essays/ritual.md:5:42  cue:"Bell 1991" → cue:"Bell 1992"
 content/essays/ritual.md  (citation-unresolved local:smith-2003-rites)
 2 stale or missing note(s). Run with --write to refresh them.
 ```
@@ -73,7 +73,8 @@ content/essays/ritual.md  (citation-unresolved local:smith-2003-rites)
 It exits with 1 when a note is stale or missing, so it can fail a pull request. With `--write` it saves the refreshed
 files. It uses cite.inator's `annotateMarkers`, which:
 
-- changes only `note:` options; every other byte of the file is kept;
+- changes only `cue:` options, and the name of an old `note:` (by cite.inator's own `migrateCitationCues`, which
+  never touches code, comments, or prose); every other byte of the file is kept;
 - leaves code, links, and raw HTML in Markdown alone;
 - leaves a citation of an unresolved work as it is and reports it (shown in parentheses). Those don't fail the check
   unless you add `--strict`.

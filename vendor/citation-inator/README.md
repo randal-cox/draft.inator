@@ -9,12 +9,11 @@ tests need nothing installed:
 
 | | |
 |---|---|
-| Version | **0.5.1** (tag `v0.5.1`, commit `1bbee6573fc0fdf10deca9fccd6e59ea175a7f6a`) |
-| Source | The release tarball `cite-inator-0.5.1.tgz`, `package/dist/` (bundle file names unchanged from 0.4.0) |
-| Tarball SHA-256 | `31d726ee52e54e5d6226900c8caae03a12abdb7db363a8328e3921bdd142edcf` (matches the release's `SHA256SUMS`) |
-| Bundle SHA-256 | `citation-tools.mjs` `810e40a50ad1033d697abb3adfde2e6754caf1017a20c77636be3a6b57dbb256`; `citation-import.mjs` `e76f4891fa7641c0d2d9d24d1c380fe3dbc715f8e03179f8f99ec2417adf7716`; `citation-compiler.mjs` `f07ed16d3ad7cbfd8765340a3fb333ac84f6a898e0b8b2f2b73e322c3c4dcaab` |
-| Licence | MIT (`LICENSE`); bundled parse5, marked, and entities notices in `THIRD_PARTY_LICENSES.txt` and the file headers |
-| Tools exports | `describeCitation`, `annotateMarkers` (with `noteContext`), `collectMarkerTags`, `createSiteOccurrenceIndex`, `markerKind`, `formatRecordId` |
+| Version | **0.6.0-preview.7**, for testing on the `feature/cue` branch only (commit `1f73d336bf666382c142ea170bfa06aae4d386de`, branch `codex/cite-0.6-zotero`). Not for `main` until 0.6 is released |
+| Source | `dist/` at that commit (tracked in citation.inator's repository) |
+| Bundle SHA-256 | `citation-tools.mjs` `58daa90ade9fd10c98ed5fff4f2cf265435214d4ad021a58747b208ac4f5fe5f`; `citation-import.mjs` `54c52eb4725b4d8fcfd17e5251671010cb3300d6a490137f03ced78e5ddc9c1a`; `citation-compiler.mjs` `4b786a235a9ab61f7ecaf61be0f38f17968f1ff51b76f91b180787c1a6830353` |
+| Licence | MIT (`LICENSE`); bundled notices in `THIRD_PARTY_LICENSES.txt` and the file headers |
+| Tools exports used | `describeCitation`, `annotateMarkers` (with `noteContext`), `collectMarkerTags`, `markerKind`, `formatRecordId`, `migrateCitationCues` |
 
 To update: download the release tarball, check it against the release's `SHA256SUMS`, and copy
 the three bundles from `package/dist/`, `LICENSE`, and `THIRD_PARTY_LICENSES.txt` from it;

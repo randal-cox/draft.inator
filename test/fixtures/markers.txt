@@ -6,7 +6,7 @@ Form first: {cite ainsworth-1978-patterns | form:narrative | locator:7}.
 Tags: {cite 10.1177/1363460704040142 | tags:ritual-theory,consent}.
 Unknown option kept: {cite bell-1992-ritual | label:"chapter" | locator:3}.
 Escaped quote: {cite turner-1969-ritual | prefix:"as \"liminal\" in"}.
-Old note refreshed: {cite bell-1992-ritual | note:"Bell 1991" | locator:2}.
+Old note refreshed: {cite bell-1992-ritual | cue:"Bell 1991" | locator:2}.
 Not a cite: {cite endnote} {cite list | tags:consent} {cite nocite bell-1992-ritual}.
-Unknown options apart: {cite bell-1992-ritual | note:"Bell 1992" | label:"chapter" | locator:3 | suppress-year-letter:yes}.
-Explicitly local: {cite local:bell-1992-ritual | locator:"p. 94"; local:list | note:"x"}.
+Unknown options apart: {cite bell-1992-ritual | cue:"Bell 1992" | label:"chapter" | locator:3 | suppress-year-letter:yes}.
+Explicitly local: {cite local:bell-1992-ritual | locator:"p. 94"; local:list | cue:"x"}.

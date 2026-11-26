@@ -1,7 +1,7 @@
 // The browser-safe heart of the build tools: no file system, only cite.inator's tools. The Node commands
 // (notes.js, tags.js, works.js) and the live demos (demo/) both run this, so the demos show the real behaviour.
-import { describeCitation, annotateMarkers, collectMarkerTags, markerKind } from '../vendor/citation-inator/citation-tools.mjs';
-export { describeCitation, annotateMarkers, collectMarkerTags, markerKind };
+import { describeCitation, annotateMarkers, collectMarkerTags, markerKind, migrateCitationCues } from '../vendor/citation-inator/citation-tools.mjs';
+export { describeCitation, annotateMarkers, collectMarkerTags, markerKind, migrateCitationCues };
 
 // The settings every tool must share. Notes written by the build and notes in works.js have to agree, so the
 // citation style lives in one place.
@@ -18,19 +18,27 @@ export function lineCol(source, offset) {
   return `${before.length}:${before[before.length - 1].length + 1}`;
 }
 
-// One file's notes: what is stale or missing, what cite.inator wants a person to see, and the refreshed text.
-// Notes describe the work alone ("Cox 1995"), as works.js and so the Cite block do, not the work in this article
-// ("Cox 1995a"); otherwise saving in the editor and the check would undo each other. A site that doesn't use the
-// block can set noteContext: "article".
-export function noteEdits(source, cache, settings = {}, format = 'text') {
-  const result = annotateMarkers(source, cache, { ...citationOptions(settings), noteContext: settings.noteContext || 'work', format });
+// One file's cues: markers still written with the old note: (before cite.inator 0.6), cues that are stale or
+// missing, what cite.inator wants a person to see, and the refreshed text. The old note: becomes cue: first, by
+// cite.inator's own source-aware migration (it changes only the field's name, and never touches code, comments, or
+// prose); then the cues are refreshed. Cues describe the work alone ("Cox 1995"), as works.js and so the Cite block
+// do, not the work in this article ("Cox 1995a"); otherwise saving in the editor and the check would undo each
+// other. A site that doesn't use the block can set noteContext: "article".
+export function cueEdits(source, cache, settings = {}, format = 'text') {
+  const migration = migrateCitationCues(source, { ...citationOptions(settings), format });
+  const migrated = migration.edits.map(e => ({ start: e.start, end: e.end, at: lineCol(source, e.start), was: 'note:', now: 'cue:', migrated: true }));
+  const result = annotateMarkers(migration.source, cache, { ...citationOptions(settings), noteContext: settings.noteContext || 'work', format });
+  const after = migration.source;
   return {
     source: result.source,
-    changed: result.changed,
-    stale: result.edits.map(e => ({ start: e.start, end: e.end, at: lineCol(source, e.start), was: source.slice(e.start, e.end), now: e.text })),
-    diagnostics: result.diagnostics.map(d => ({ ...d, ...(Number.isInteger(d.start) && { at: lineCol(source, d.start) }) }))
+    changed: migration.changed || result.changed,
+    migrated,
+    stale: result.edits.map(e => ({ start: e.start, end: e.end, at: lineCol(after, e.start), was: after.slice(e.start, e.end), now: e.text })),
+    diagnostics: [...migration.diagnostics.map(d => ({ ...d, ...(Number.isInteger(d.start) && { at: lineCol(source, d.start) }) })),
+      ...result.diagnostics.map(d => ({ ...d, ...(Number.isInteger(d.start) && { at: lineCol(after, d.start) }) }))]
   };
 }
+export const noteEdits = cueEdits;   // the name before cite.inator 0.6
 
 /**
  * Tag totals from marker tags, with a curator's additions and blocks.

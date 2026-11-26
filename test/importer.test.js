@@ -127,8 +127,10 @@ test('a citation with no reference kept as unresolved: a flagged marker, its rec
   const all = [...decisions, decisionFor(rivera, [PLACEHOLDER])];
   assert.deepEqual(decisionFor(rivera, [PLACEHOLDER]), { citationIndex: rivera, action: 'placeholder' });
   const pp = processImportRequest({ ...ctx, action: 'preview', review: a.review, reviewId: a.review.reviewId, decisions: all, recordId: siteStyleId });
-  const marker = pp.source.match(/\{cite [^}]*unresolved:[^}]*\}/)[0];
-  assert.match(marker, /unresolved:"\(Rivera, 2020\)"/);
+  // cite.inator 0.6: a placeholder carries a short cue and the original wording as a comment (no unresolved: copy).
+  const marker = pp.source.match(/\{cite pending-[^}]*\}/)[0];
+  assert.match(marker, /cue:"Rivera, 2020"/);
+  assert.match(marker, /comment:"Original: \(Rivera, 2020\)/);
   assert.equal(markerKind(marker), 'citation');
   const kept = worksToKeep(pp, all);
   const placeholder = kept.find(r => r.state === 'unresolved');
@@ -143,7 +145,7 @@ test('save without importing: citations with no reference become unresolved plac
   const r = planUnresolved(text, processImportRequest, { keyword: 'cite' });
   assert.equal(r.kept, 1); assert.equal(r.left, 1);
   const after = text.slice(0, r.plan.start) + r.plan.text + text.slice(r.plan.end);
-  assert.match(after, /\{cite pending-okafor-2019 \| unresolved:"\(Okafor, 2019\)"\}/);
+  assert.match(after, /\{cite pending-okafor-2019 \| cue:"Okafor, 2019" \| comment:"Original: \(Okafor, 2019\)[^"]*"\}/);
   assert.ok(after.includes('(Bell, 1992)'), 'a citation with a reference is left as typed');
   assert.equal(markerKind(after.match(/\{cite [^}]*\}/)[0]), 'citation');
   assert.deepEqual(r.records.map(x => [x.id, x.state]), [['pending-okafor-2019', 'unresolved']]);

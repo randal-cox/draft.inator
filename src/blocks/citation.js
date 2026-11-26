@@ -1,8 +1,11 @@
 /* draft.inator: the Cite block. In the text editor, a "Citation" button opens a form:
    one or more works, each with an optional page, prefix, form, and reference topics. It writes a citation.inator
-   marker, {cite id | note:"Bell 1992" | locator:12 | tags:ritual-theory; other-id}, with each note taken from
-   citation.inator's description of the work (window.DRAFT_WORKS, written by the host site's build; see docs/data-contract.md). Existing markers open in the same form;
-   any option the form doesn't show (a label, fallback words) is kept as it was. */
+   marker, {cite id | cue:"Bell 1992" | locator:12 | tags:ritual-theory; other-id}, with each cue taken from
+   citation.inator's description of the work (window.DRAFT_WORKS[].note, written by the host site's build; see
+   docs/data-contract.md). A cue tells anyone reading the file which work it is; readers see it only while the work is
+   unresolved (cite.inator 0.6). Markers written with the old note: (before cite.inator 0.6) open as cue: and are
+   saved that way. Existing markers open in the same form; any option the form doesn't show (a label, a comment:) is
+   kept as it was. */
 (function () {
   if (!window.CMS) return;
   var TOPICS = window.DRAFT_TOPICS || [];
@@ -15,7 +18,7 @@
   }
   index();
   var FORMS = ['parenthetical', 'narrative', 'author-only', 'suppress-author', 'suppress-year'];
-  var SHOWN = ['note', 'locator', 'prefix', 'form', 'tags'];
+  var SHOWN = ['cue', 'locator', 'prefix', 'form', 'tags'];
   // The one keyword this site writes and reads (cite.inator 0.5.1: one configured keyword, default cite; #33).
   var KEYWORD = /^[a-z][a-z-]*$/.test(window.DRAFT_CITATION_KEYWORD || '') ? window.DRAFT_CITATION_KEYWORD : 'cite';
 
@@ -78,13 +81,22 @@
   function parse(body) {
     return split(body, ';').filter(Boolean).map(function (part) {
       var sp = splitParts(part), bits = sp.parts;
-      var item = { work: bareId(bits[0]), written: bits[0], note: '', locator: '', prefix: '', form: '', tags: [], extra: [], order: [], seps: sp.seps.join('\u0000') };
+      var item = { work: bareId(bits[0]), written: bits[0], cue: '', locator: '', prefix: '', form: '', tags: [], extra: [], order: [], seps: sp.seps.join('\u0000') };
+      var hadCue = false;
       bits.slice(1).forEach(function (b) {
         var m = /^([a-z-]+):([\s\S]*)$/.exec(b);
-        if (m && SHOWN.indexOf(m[1]) >= 0) {
-          if (m[1] === 'tags') item.tags = unquote(m[2]).split(',').map(function (t) { return t.trim(); }).filter(Boolean);
-          else item[m[1]] = unquote(m[2]);   // note: is the block's to refresh; kept only for an unknown work (noteFor)
-          item.order.push(m[1] + (/^\s*"/.test(m[2]) ? '"' : ''));   // '"': it was written quoted, so keep it so
+        // note: is what cite.inator called the cue before 0.6. It was always the block's own field: it opens as the
+        // cue and is written back as cue:. If a marker has both, its cue: wins and the old note: is retired.
+        var key = m && (m[1] === 'note' ? 'cue' : m[1]);
+        if (m && m[1] === 'note' && hadCue) { item.order.push('retired'); return; }
+        if (m && SHOWN.indexOf(key) >= 0) {
+          if (key === 'tags') item.tags = unquote(m[2]).split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+          else item[key] = unquote(m[2]);   // cue: is the block's to refresh; kept only for an unknown work (cueFor)
+          if (key === 'cue') {
+            if (hadCue) { var was = item.order.join(',').replace(/(^|,)cue"?(?=,|$)/, '$1retired'); item.order = was ? was.split(',') : []; }
+            hadCue = true;
+          }
+          item.order.push(key + (/^\s*"/.test(m[2]) ? '"' : ''));   // '"': it was written quoted, so keep it so
         } else if (b) { item.extra.push(b); item.order.push('extra'); }   // one 'extra' per unknown option, in place
       });
       item.extra = item.extra.join(' | ');
@@ -93,12 +105,13 @@
     });
   }
 
-  // A work's note: the site's description of it. A work the site doesn't describe (an import placeholder, after a
+  // A work's cue: the site's description of it. A work the site doesn't describe (an import placeholder, after a
   // reload) keeps the words its marker already had, so (Cox, 1995) never turns into its id. Words belong to the work
   // they were written for: a changed work never inherits them.
-  function noteFor(it) {
+  function cueFor(it) {
     if (NOTE[it.work]) return NOTE[it.work];
-    if (it.note && it.written && bareId(it.written) === it.work) return it.note;
+    var own = it.cue || it.note;   // it.note: form data saved before cite.inator 0.6
+    if (own && it.written && bareId(it.written) === it.work) return own;
     return it.work;
   }
 
@@ -136,7 +149,7 @@
       var was = (it.order || '').split(',').filter(Boolean);
       function q(k, v) { return was.indexOf(k + '"') >= 0 ? quoteAlways(v) : quote(v); }
       var tags = it.tags || [], parts = {
-        note: 'note:' + quoteAlways(noteFor(it)),
+        cue: 'cue:' + quoteAlways(cueFor(it)),
         locator: it.locator ? 'locator:' + (/\s/.test(it.locator) ? quoteAlways(it.locator) : q('locator', it.locator)) : '',
         prefix: it.prefix ? 'prefix:' + q('prefix', it.prefix) : '',
         form: it.form ? 'form:' + it.form : '',
@@ -157,13 +170,13 @@
           else if (next === 0 && extras.length) { out.push(extras.join(' | ')); next = -1; }
         } else if (k in parts && !seen[k]) { seen[k] = true; if (parts[k]) out.push({ key: k, text: parts[k] }); }
       });
-      ['note', 'locator', 'prefix', 'form', 'tags'].forEach(function (k) {
+      ['cue', 'locator', 'prefix', 'form', 'tags'].forEach(function (k) {
         if (!seen[k] && parts[k]) out.push({ key: k, text: parts[k] });
       });
       if (!slots && extras.length) out.push(extras.join(' | '));
-      // A note the marker didn't have goes first.
-      if (was.indexOf('note') < 0 && was.indexOf('note"') < 0) {
-        var at = out.findIndex ? out.findIndex(function (o) { return o && o.key === 'note'; }) : -1;
+      // A cue the marker didn't have goes first.
+      if (was.indexOf('cue') < 0 && was.indexOf('cue"') < 0) {
+        var at = out.findIndex ? out.findIndex(function (o) { return o && o.key === 'cue'; }) : -1;
         if (at > 0) out.unshift(out.splice(at, 1)[0]);
       }
       // Separators: the marker's own, exactly, when it has the same number of parts as before (a refreshed note, say);
@@ -208,7 +221,7 @@
         { name: 'extra', label: 'Other options (kept as written)', widget: 'string', required: false },
         { name: 'order', label: 'Option order', widget: 'hidden', required: false },
         { name: 'written', label: 'The work as written', widget: 'hidden', required: false },
-        { name: 'note', label: 'The note as written', widget: 'hidden', required: false }
+        { name: 'cue', label: 'The cue as written', widget: 'hidden', required: false }
       ]
     }, { name: 'layout', label: 'Layout', widget: 'hidden', required: false }],
     // Directives are not citations of a work; leave them alone. Matches citation.inator 0.2.0's own test exactly
@@ -224,7 +237,7 @@
       describe: function (id) { return NOTE[id] || id; } },
     toPreview: function (data) {
       return '(' + (data.items || []).map(function (it) {
-        return (it.prefix ? it.prefix + ' ' : '') + noteFor(it) + (it.locator ? ', ' + it.locator : '');
+        return (it.prefix ? it.prefix + ' ' : '') + cueFor(it) + (it.locator ? ', ' + it.locator : '');
       }).join('; ') + ')';
     }
   });

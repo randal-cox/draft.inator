@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 // draft-inator: build-side tools for a site using draft.inator's blocks.
-//   draft-inator notes [--write] [--config draft-inator.json] [--cache citations.json] [--style S] [content…]
+//   draft-inator cues [--write] [--config draft-inator.json] [--cache citations.json] [--style S] [content…]
 //   draft-inator tags  [--out tags.json] [--curation curation.json] [--topics topics.json] [...]
 //   draft-inator works [--out works.js | --check] [--topics topics.json] [...]
 //   draft-inator migrate [--from citation] [--to cite] [--write] [content…]
 //   draft-inator check [content…]
-// With no --write, notes only checks: it exits 1 if any note is stale or missing. works --check exits 1 if the
+// With no --write, cues only checks: it exits 1 if any cue is stale or missing, or still written note:. (notes is
+// the same command's name before cite.inator 0.6.) works --check exits 1 if the
 // works file on disk differs from what the cache gives.
 import fs from 'node:fs';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { loadSettings, contentFiles } from './site.js';
-import { checkNotes, report } from './notes.js';
+import { checkCues, report } from './notes.js';
 import { totalTags, recordTags } from './tags.js';
 import { buildWorks, worksJs, topicsFrom } from './works.js';
 import { migrateText } from './migrate.js';
@@ -19,10 +20,11 @@ import { lineCol } from './core.js';
 import { checkText } from './check.js';
 import katex from '../vendor/katex/katex.mjs';
 
-const USAGE = `Usage: draft-inator <notes|tags|works|migrate|check> [options] [content folders or files]
+const USAGE = `Usage: draft-inator <cues|tags|works|migrate|check> [options] [content folders or files]
 
-  notes            Check every marker's note: against the citation cache (exit 1 if any is stale)
-    --write        Refresh stale notes in place instead
+  cues             Check every marker's cue: against the citation cache, and find markers still written with the
+                   old note: (exit 1 if any is stale or old). "notes" still works.
+    --write        Refresh stale cues, and move note: to cue:, in place instead
     --strict       Also fail on unresolved or malformed citations
   tags             Total the tags writers gave each work, with the curator's additions and blocks
     --out FILE     Write { work id: [tags] } as JSON (default: print the full report)
@@ -59,12 +61,12 @@ export function main(argv, { out = s => process.stdout.write(s + '\n'), err = s 
   try {
     const settings = loadSettings(v.config, { cache: v.cache, style: v.style, keyword: v.keyword, curation: v.curation,
       topics: v.topics, content: content.length ? content : undefined });
-    if (command === 'notes') {
+    if (command === 'cues' || command === 'notes') {
       if ((!settings.content || !settings.content.length)) throw new Error('Name the content folders (or set "content" in the settings).');
-      const result = checkNotes(settings, { write: v.write });
+      const result = checkCues(settings, { write: v.write });
       out(report(result, { write: v.write }));
       const unresolved = result.files.some(f => f.diagnostics.length);
-      return !v.write && (result.stale || (v.strict && unresolved)) ? 1 : 0;
+      return !v.write && (result.stale || result.migrated || (v.strict && unresolved)) ? 1 : 0;
     }
     if (command === 'tags') {
       const result = totalTags(settings);

@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
 import { loadSettings } from '../tools/site.js';
-import { checkNotes } from '../tools/notes.js';
+import { checkNotes, checkCues } from '../tools/notes.js';
 import { totalTags, recordTags } from '../tools/tags.js';
 import { buildWorks, worksJs, topicsFrom } from '../tools/works.js';
 import { main } from '../tools/cli.js';
@@ -19,7 +19,7 @@ function site() {
   return { dir, settings: loadSettings(path.join(dir, 'draft-inator.json')), read: f => fs.readFileSync(path.join(dir, 'content/essays', f), 'utf8') };
 }
 const quiet = () => { const lines = []; return { out: s => lines.push(s), err: s => lines.push(s), lines }; };
-const withoutNotes = s => s.replace(/ \| note:"(?:[^"\\]|\\.)*"/g, '');
+const withoutNotes = s => s.replace(/ \| cue:"(?:[^"\\]|\\.)*"/g, '');
 
 test('notes: check mode finds stale and missing notes and changes nothing', () => {
   const { settings, read } = site();
@@ -27,7 +27,7 @@ test('notes: check mode finds stale and missing notes and changes nothing', () =
   const result = checkNotes(settings);
   assert.equal(result.stale, 2);
   assert.deepEqual(result.files[0].stale.map(s => [s.was, s.now]),
-    [['', ' | note:"Turner 1969"'], ['note:"Bell 1991"', 'note:"Bell 1992"']]);
+    [['', ' | cue:"Turner 1969"'], ['cue:"Bell 1991"', 'cue:"Bell 1992"']]);
   assert.equal(read('ritual.md'), before);
 });
 
@@ -38,7 +38,7 @@ test('notes: writing changes nothing but notes, and a second pass changes nothin
   const after = read('ritual.md');
   assert.equal(withoutNotes(after), withoutNotes(before));
   assert.ok(after.includes('`{citation bell-1992-ritual}`'), 'code is left alone (the migration left it too)');
-  assert.ok(after.includes('{cite smith-2003-rites | note:"Smith 2003"}'), 'an unresolved work keeps its note');
+  assert.ok(after.includes('{cite smith-2003-rites | cue:"Smith 2003"}'), 'an unresolved work keeps its note');
   assert.ok(after.includes('{cite endnote}'));
   const again = checkNotes(settings, { write: true });
   assert.equal(again.stale, 0);
@@ -48,7 +48,7 @@ test('notes: writing changes nothing but notes, and a second pass changes nothin
 test('notes: unresolved works are reported, not rewritten', () => {
   const { settings } = site();
   const d = checkNotes(settings).files.flatMap(f => f.diagnostics);
-  assert.ok(d.some(x => x.code === 'citation-unresolved' && x.identifier === 'local:smith-2003-rites'));
+  assert.ok(d.some(x => /^citation-unresolved/.test(x.code) && x.identifier === 'local:smith-2003-rites'));
 });
 
 test('tags: totals from markers, with curator additions and blocks, all reported', () => {
@@ -62,8 +62,8 @@ test('tags: totals from markers, with curator additions and blocks, all reported
   assert.deepEqual(result.works['bell-1992-ritual'].counts, { attachment: 1, 'ritual-theory': 3 });
   assert.deepEqual(result.works['bell-1992-ritual'].added, ['consent']);
   assert.deepEqual(result.works['bell-1992-ritual'].blocked, ['attachment']);
-  // cite.inator 0.5.1's tools also report the sample's deliberately unresolved work, which is right.
-  assert.deepEqual(result.notes.map(n => n.replace(/^.*: /, '')), ['citation-unresolved local:smith-2003-rites']);
+  // cite.inator's tools also report the sample's deliberately unresolved work, which is right (0.6 names it a placeholder).
+  assert.deepEqual(result.notes.map(n => n.replace(/^.*: /, '')), ['citation-unresolved-placeholder local:smith-2003-rites']);
 });
 
 test('tags: unknown topics and stray curation are noted, never dropped silently', () => {
@@ -131,7 +131,7 @@ test('year letters: the notes check, works.js, and the Cite block all say "Cox 1
   const settings = { cache, style: 'chicago-author-date', content: [dir] };
   checkNotes(settings, { write: true });
   const written = fs.readFileSync(path.join(dir, 'page.md'), 'utf8');
-  assert.equal(written, 'Rites {cite cox-1995-rites | note:"Cox 1995"} and masks {cite cox-1995-masks | locator:4 | note:"Cox 1995"}.\n');
+  assert.equal(written, 'Rites {cite cox-1995-rites | cue:"Cox 1995"} and masks {cite cox-1995-masks | locator:4 | cue:"Cox 1995"}.\n');
   const { components } = loadBlock(path.join(here, '../src/blocks/citation.js'), buildWorks(settings).works);
   fs.writeFileSync(path.join(dir, 'page.md'), roundtrip(components.citation, written));
   assert.equal(checkNotes(settings).stale, 0, 'saving in the editor leaves nothing stale');
@@ -151,4 +151,17 @@ test('repeated cycles of editor save, notes --write, and check stay stable', () 
     assert.equal(checkNotes(settings).stale, 0, `cycle ${i + 1}: the check passes`);
     assert.equal(read('ritual.md'), settled, `cycle ${i + 1}: the file is byte-for-byte the same`);
   }
+});
+
+test('cues: old note: markers are found, moved to cue: only with --write, and a second run changes nothing', () => {
+  const { settings, dir } = site();
+  const file = path.join(dir, 'content', 'old.md');
+  fs.writeFileSync(file, 'Old {cite bell-1992-ritual | note:"Bell 1992" | locator:2}, and code `{cite bell-1992-ritual | note:"x"}`.\n');
+  const check = checkCues(settings);
+  assert.equal(check.migrated, 1, 'found, not changed');
+  assert.ok(fs.readFileSync(file, 'utf8').includes('note:"Bell 1992"'));
+  checkCues(settings, { write: true });
+  assert.equal(fs.readFileSync(file, 'utf8'), 'Old {cite bell-1992-ritual | cue:"Bell 1992" | locator:2}, and code `{cite bell-1992-ritual | note:"x"}`.\n', 'only the field name, and never in code');
+  const again = checkCues(settings, { write: true });
+  assert.equal(again.migrated, 0); assert.equal(again.written.length, 0, 'a second run changes nothing');
 });
