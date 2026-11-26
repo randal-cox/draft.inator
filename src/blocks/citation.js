@@ -173,9 +173,11 @@
     pattern: new RegExp('\\{' + KEYWORD + ' (?!\\s*(?:endnote(?:[\\s|}])|(?:list|nocite|tags)[ \\t]|(?:evidence|credit)(?:[\\s|}])))((?:[^{}\\\\]|\\\\.)*)\\}'),
     fromBlock: function (match) { return { items: parse(match[1]) }; },
     toBlock: function (data) { return build(data.items); },
-    // Options that belong to the work an item cites, not to the citation: when the work is changed in draft.inator's
-    // own form, they're set aside, shown, and kept only if the writer says so (forms.js).
-    bound: { key: 'work', fields: ['locator', 'extra'], labels: { locator: 'page', extra: 'other options' },
+    // Options that may belong to the work an item cites rather than to the citation: when the work is changed in
+    // draft.inator's own form, they're set aside, shown, and kept only if the writer says so (forms.js). The page,
+    // the words before it (which can name a source), the topics (which classify the work), and every option the form
+    // doesn't show, author fields included (cite.inator's policy on #40). How it reads (form:) stays.
+    bound: { key: 'work', fields: ['locator', 'prefix', 'tags', 'extra'], labels: { locator: 'page', prefix: 'words before it', tags: 'topics', extra: 'other options' },
       describe: function (id) { return NOTE[id] || id; } },
     toPreview: function (data) {
       return '(' + (data.items || []).map(function (it) {
