@@ -78,12 +78,12 @@
   function parse(body) {
     return split(body, ';').filter(Boolean).map(function (part) {
       var sp = splitParts(part), bits = sp.parts;
-      var item = { work: bareId(bits[0]), written: bits[0], locator: '', prefix: '', form: '', tags: [], extra: [], order: [], seps: sp.seps.join('\u0000') };
+      var item = { work: bareId(bits[0]), written: bits[0], note: '', locator: '', prefix: '', form: '', tags: [], extra: [], order: [], seps: sp.seps.join('\u0000') };
       bits.slice(1).forEach(function (b) {
         var m = /^([a-z-]+):([\s\S]*)$/.exec(b);
         if (m && SHOWN.indexOf(m[1]) >= 0) {
           if (m[1] === 'tags') item.tags = unquote(m[2]).split(',').map(function (t) { return t.trim(); }).filter(Boolean);
-          else if (m[1] !== 'note') item[m[1]] = unquote(m[2]);
+          else item[m[1]] = unquote(m[2]);   // note: is the block's to refresh; kept only for an unknown work (noteFor)
           item.order.push(m[1] + (/^\s*"/.test(m[2]) ? '"' : ''));   // '"': it was written quoted, so keep it so
         } else if (b) { item.extra.push(b); item.order.push('extra'); }   // one 'extra' per unknown option, in place
       });
@@ -93,12 +93,50 @@
     });
   }
 
-  function build(items, keyword) {
-    return '{' + (keyword || KEYWORD) + ' ' + (items || []).filter(function (it) { return it && it.work; }).map(function (it) {
+  // A work's note: the site's description of it. A work the site doesn't describe (an import placeholder, after a
+  // reload) keeps the words its marker already had, so (Cox, 1995) never turns into its id. Words belong to the work
+  // they were written for: a changed work never inherits them.
+  function noteFor(it) {
+    if (NOTE[it.work]) return NOTE[it.work];
+    if (it.note && it.written && bareId(it.written) === it.work) return it.note;
+    return it.work;
+  }
+
+  // A marker's layout, as written: what comes between "{" and the keyword, between the keyword and the first work,
+  // between works, and before "}". Multi-line markers keep their lines.
+  function layoutOf(full, body) {
+    var kw = new RegExp('^\\{(\\s*)' + KEYWORD + '(\\s+)').exec(full || '');
+    if (!kw) return '';
+    var open = kw[1], afterKw = kw[2], close = /(\s*)\}$/.exec(full)[1];
+    return [open, afterKw, close].concat(workSeps(body)).join('\u0000');
+  }
+  // The exact text between works (the ";" and the space or line break around it), when every part is a work.
+  function workSeps(body) {
+    var raw = [], cur = '', q = false;
+    for (var i = 0; i < body.length; i++) {
+      var c = body[i];
+      if (c === '\\' && i + 1 < body.length) { cur += c + body[++i]; continue; }
+      if (c === '"') q = !q;
+      if (c === ';' && !q) { raw.push(cur); cur = ''; continue; }
+      cur += c;
+    }
+    raw.push(cur);
+    if (raw.some(function (r) { return !r.trim(); })) return [];
+    var seps = [];
+    for (var k = 0; k + 1 < raw.length; k++) seps.push(/\s*$/.exec(raw[k])[0] + ';' + /^\s*/.exec(raw[k + 1])[0]);
+    return seps;
+  }
+
+  function build(items, keyword, layout) {
+    var lay = layout ? String(layout).split('\u0000') : [];
+    var open = lay[0] || '', afterKw = lay[1] || ' ', close = lay[2] || '', between = lay.slice(3);
+    var lineBreak = /\n/.test(afterKw) ? afterKw : '';   // a marker written on several lines: new fields go on new lines
+    var written = (items || []).filter(function (it) { return it && it.work; });
+    var works = written.map(function (it) {
       var was = (it.order || '').split(',').filter(Boolean);
       function q(k, v) { return was.indexOf(k + '"') >= 0 ? quoteAlways(v) : quote(v); }
       var tags = it.tags || [], parts = {
-        note: 'note:' + quoteAlways(NOTE[it.work] || it.work),
+        note: 'note:' + quoteAlways(noteFor(it)),
         locator: it.locator ? 'locator:' + (/\s/.test(it.locator) ? quoteAlways(it.locator) : q('locator', it.locator)) : '',
         prefix: it.prefix ? 'prefix:' + q('prefix', it.prefix) : '',
         form: it.form ? 'form:' + it.form : '',
@@ -133,10 +171,15 @@
       var all = [writeId(it)].concat(out.map(function (o) { return typeof o === 'string' ? o : o.text; }));
       var seps = it.seps ? String(it.seps).split('\u0000') : [];
       var spaced = seps.length && seps.every(function (x) { return x.indexOf('|') < 0; });
+      var onLines = seps.filter(function (x) { return /\n/.test(x); })[0] || lineBreak;
       return all.reduce(function (acc, p, k) {
-        return k === 0 ? p : acc + (seps.length === all.length - 1 ? seps[k - 1] : spaced ? ' ' : ' | ') + p;
+        return k === 0 ? p : acc + (seps.length === all.length - 1 ? seps[k - 1] : onLines || (spaced ? ' ' : ' | ')) + p;
       }, '');
-    }).join('; ') + '}';
+    });
+    var join = between.length === works.length - 1 ? null : (between.filter(function (x) { return /\n/.test(x); })[0] || between[0] || '; ');
+    return '{' + open + (keyword || KEYWORD) + afterKw + works.reduce(function (acc, w, k) {
+      return k === 0 ? w : acc + (join || between[k - 1]) + w;
+    }, '') + close + '}';
   }
 
   function addWorks(list) {
@@ -164,22 +207,24 @@
           options: TOPICS.map(function (t) { return { label: t.label, value: t.id }; }) },
         { name: 'extra', label: 'Other options (kept as written)', widget: 'string', required: false },
         { name: 'order', label: 'Option order', widget: 'hidden', required: false },
-        { name: 'written', label: 'The work as written', widget: 'hidden', required: false }
+        { name: 'written', label: 'The work as written', widget: 'hidden', required: false },
+        { name: 'note', label: 'The note as written', widget: 'hidden', required: false }
       ]
-    }],
+    }, { name: 'layout', label: 'Layout', widget: 'hidden', required: false }],
     // Directives are not citations of a work; leave them alone. Matches citation.inator 0.2.0's own test exactly
     // ({cite endnote}, {cite endnote | …}, {cite list …}, {cite nocite …}, {cite evidence},
     // {cite credit}), so a work whose id merely starts with one of those words (list-2001) still opens.
-    pattern: new RegExp('\\{' + KEYWORD + ' (?!\\s*(?:endnote(?:[\\s|}])|(?:list|nocite|tags)[ \\t]|(?:evidence|credit)(?:[\\s|}])))((?:[^{}\\\\]|\\\\.)*)\\}'),
-    fromBlock: function (match) { return { items: parse(match[1]) }; },
-    toBlock: function (data) { return build(data.items); },
+    // Space or line breaks may come before and after the keyword ({\n  cite\n  bell-1992-ritual\n}).
+    pattern: new RegExp('\\{\\s*' + KEYWORD + '\\s+(?!\\s*(?:endnote(?:[\\s|}])|(?:list|nocite|tags)\\s|(?:evidence|credit)(?:[\\s|}])))((?:[^{}\\\\]|\\\\.)*?)\\s*\\}'),
+    fromBlock: function (match) { return { items: parse(match[1]), layout: layoutOf(match[0], match[1]) }; },
+    toBlock: function (data) { return build(data.items, null, data.layout); },
     // Options that belong to the work an item cites, not to the citation: when the work is changed in draft.inator's
     // own form, they're set aside, shown, and kept only if the writer says so (forms.js).
     bound: { key: 'work', fields: ['locator', 'extra'], labels: { locator: 'page', extra: 'other options' },
       describe: function (id) { return NOTE[id] || id; } },
     toPreview: function (data) {
       return '(' + (data.items || []).map(function (it) {
-        return (it.prefix ? it.prefix + ' ' : '') + (NOTE[it.work] || it.work) + (it.locator ? ', ' + it.locator : '');
+        return (it.prefix ? it.prefix + ' ' : '') + noteFor(it) + (it.locator ? ', ' + it.locator : '');
       }).join('; ') + ')';
     }
   });

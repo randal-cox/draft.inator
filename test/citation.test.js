@@ -114,7 +114,7 @@ test('an import placeholder opens as a citation and keeps its unresolved: option
   const raw = '{cite pending-rivera-2020 | note:"(Rivera, 2020)" | unresolved:"(Rivera, 2020)"}';
   assert.ok(pattern.test(raw), 'a placeholder is a citation');
   const once = cite.toBlock(cite.fromBlock(raw.match(pattern)));
-  assert.match(once, /^\{cite pending-rivera-2020 \| note:"[^"]*" \| unresolved:"\(Rivera, 2020\)"\}$/);
+  assert.equal(once, raw, 'its words are kept: the site has no description of a placeholder');
   assert.equal(cite.toBlock(cite.fromBlock(once.match(pattern))), once, 'a second pass changes nothing');
 });
 
@@ -122,10 +122,53 @@ test('finishing a placeholder drops its unresolved:, and only that; a same-work 
   const pattern = new RegExp(cite.pattern.source);
   const raw = '{cite pending-rivera-2020 | unresolved:"(Rivera, 2020)" | label:"chapter" | locator:12}';
   const data = cite.fromBlock(raw.match(pattern));
-  assert.equal(cite.toBlock(data), '{cite pending-rivera-2020 | note:"pending-rivera-2020" | unresolved:"(Rivera, 2020)" | label:"chapter" | locator:12}', 'same work: kept');
+  assert.equal(cite.toBlock(data), '{cite pending-rivera-2020 | note:"pending-rivera-2020" | unresolved:"(Rivera, 2020)" | label:"chapter" | locator:12}', 'same work: kept (no words to keep, so its id)');
   data.items[0].work = 'bell-1992-ritual';
   assert.equal(cite.toBlock(data), '{cite bell-1992-ritual | note:"Bell 1992" | label:"chapter" | locator:12}', 'new work: unresolved: dropped, the rest left to the writer');
   const again = cite.toBlock(cite.fromBlock(cite.toBlock(data).match(pattern)));
   assert.equal(again, cite.toBlock(data), 'a second pass changes nothing');
   assert.equal(JSON.stringify(cite.bound.fields), '["locator","extra"]', 'the form sets these aside when the work changes');
+});
+
+test('a placeholder keeps its words after a reload; a new work never inherits them', () => {
+  const pattern = new RegExp(cite.pattern.source);
+  const raw = '{cite missing-cox | note:"Cox, 1995" | locator:"p. 42"}';
+  const data = cite.fromBlock(raw.match(pattern));
+  assert.equal(cite.toBlock(data), raw, 'the words stay: nothing describes missing-cox');
+  assert.equal(cite.toPreview(data), '(Cox, 1995, p. 42)');
+  data.items[0].work = 'bell-1992-ritual';
+  assert.match(cite.toBlock(data), /^\{cite bell-1992-ritual \| note:"Bell 1992"/, 'the site describes the new work');
+  data.items[0].work = 'other-unknown';
+  assert.match(cite.toBlock(data), /^\{cite other-unknown \| note:"other-unknown"/, 'the old words belong to the old work');
+  const known = cite.fromBlock('{cite bell-1992-ritual | note:"Bell 1991"}'.match(pattern));
+  assert.equal(cite.toBlock(known), '{cite bell-1992-ritual | note:"Bell 1992"}', 'a described work is still refreshed');
+});
+
+test('markers written on several lines open in the block and keep their lines', () => {
+  const pattern = new RegExp(cite.pattern.source);
+  const again = m => cite.toBlock(cite.fromBlock(m.match(pattern)));
+  const multi = '{\n  cite\n  bell-1992-ritual\n  note:"Bell 1992"\n  locator:"p. 2"\n}';
+  assert.ok(pattern.test(multi), 'space and line breaks around the keyword');
+  assert.equal(again(multi), multi, 'kept byte for byte');
+  assert.equal(again(again(multi)), multi, 'a second pass changes nothing');
+  assert.equal(again('{cite\n  bell-1992-ritual\n  locator:12\n}'), '{cite\n  bell-1992-ritual\n  note:"Bell 1992"\n  locator:12\n}', 'a new note goes on its own line');
+  const data = cite.fromBlock(multi.match(pattern));
+  data.items[0].prefix = 'see';
+  assert.equal(cite.toBlock(data), '{\n  cite\n  bell-1992-ritual\n  note:"Bell 1992"\n  locator:"p. 2"\n  prefix:see\n}', 'an added field goes on its own line');
+  const two = '{cite bell-1992-ritual | note:"Bell 1992";\n  turner-1969-ritual | note:"Turner 1969"}';
+  assert.equal(again(two), two, 'the break between works is kept');
+  const three = cite.fromBlock(two.match(pattern));
+  three.items.push({ work: 'bell-1992-ritual' });
+  assert.equal(cite.toBlock(three), '{cite bell-1992-ritual | note:"Bell 1992";\n  turner-1969-ritual | note:"Turner 1969";\n  bell-1992-ritual | note:"Bell 1992"}', 'an added work follows it');
+  assert.equal(again('{cite  bell-1992-ritual | note:"Bell 1992" }'), '{cite  bell-1992-ritual | note:"Bell 1992" }', 'odd spacing kept');
+  for (const d of ['{\n cite\n endnote\n}', '{cite\nlist tags:consent}', '{ cite nocite\n bell-1992-ritual}', '{cite\n  tags bell-1992-ritual methods:"M"}'])
+    assert.ok(!pattern.test(d), 'a directive on several lines is still left alone: ' + JSON.stringify(d));
+  assert.ok(!pattern.test('{citex bell-1992-ritual}') && !pattern.test('{cite}'), 'only the keyword, followed by a work');
+});
+
+test('several-line markers survive a whole page round trip', () => {
+  const page = 'Before {\n  cite\n  bell-1992-ritual\n  note:"Bell 1991"\n} and {cite turner-1969-ritual | locator:3} after.\n';
+  const once = roundtrip(cite, page);
+  assert.equal(once, 'Before {\n  cite\n  bell-1992-ritual\n  note:"Bell 1992"\n} and {cite turner-1969-ritual | note:"Turner 1969" | locator:3} after.\n');
+  assert.equal(roundtrip(cite, once), once);
 });
