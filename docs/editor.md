@@ -155,14 +155,22 @@ mountEditor(el, { …, math: { katex, macros: { '\\R': '\\mathbb{R}' }, refNames
 ## Opening a Word file
 
 **Open a file** in the toolbar brings in a Word file (`.docx`, as Word, Google Docs, and LibreOffice save it), or a
-Markdown or text file, at the cursor (or in place of an empty article), as one undoable step. From Word it keeps
+Markdown or text file, as one undoable step. If the article already has text, it asks first: replace the article, or
+put the file in at the cursor. A message shows while it reads. From Word it keeps
 paragraphs, headings, italics and bold, lists, and links' text, and turns **Word's equations into LaTeX** (`$…$`
-inline, `$$…$$` displayed; Google Docs exports its equations the same way). What it can't carry (footnotes, tables,
+inline, `$$…$$` displayed; Google Docs exports its equations the same way). An equation set on a line of its own
+inside an ordinary paragraph, as Google Docs does it (tabs to centre it, part of it typed as text, "(Eq 3)" at the end),
+becomes one displayed equation, and its number a label (`{#eq:3}`). An equation typed as plain text with a number is
+named, since it can't become maths on its own. What it can't carry (footnotes, tables,
 images, and any maths it doesn't recognise) is named in the result line, never dropped silently. Citations typed in
 the file then show in the banner, ready for Import citations. Unzipping uses the browser's own `DecompressionStream`;
 nothing is sent anywhere. Turn the button off with `openFiles: false`.
 
 ## Formatted citations in the preview
+
+Each formatted citation shows its reference on hover (its `title`), since the site's own citation panel isn't loaded
+in the editor. A long article's preview catches up just after typing pauses, dimmed while it does, so typing never waits
+for it; a short one is drawn at once.
 
 ```js
 import { compileHTML } from '/admin/draft-inator/citation-compiler.mjs';   // citation.inator 0.4.0

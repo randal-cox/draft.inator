@@ -143,7 +143,9 @@ export function renderArticle(text, options = {}) {
   if (compiler) {
     try {
       const r = compiler.compileHTML(html, compiler.cache, { citationStyle: compiler.citationStyle || 'chicago-author-date', citationKeyword: kw, namespace: 'di-preview' });
-      html = r.html; formatted = true; diagnostics = r.diagnostics || [];
+      // Each citation's reference on hover, as on the site (whose inspector panel isn't loaded in the preview).
+      html = r.html.replace(/(<a class="citation-cite"[^>]*?) data-ci-bibliography="([^"]*)"/g, (m, a, bib) => (/ title="/.test(a) ? m : `${a} title="${bib}" data-ci-bibliography="${bib}"`));
+      formatted = true; diagnostics = r.diagnostics || [];
     } catch (e) {
       // The compiler stopped: show the notes instead, and say why, rather than a blank preview.
       return { ...renderArticle(text, { ...options, citations: null }), compileError: e.message };
@@ -321,7 +323,18 @@ export function mountEditor(root, options = {}) {
   const blockAt = (text, at) => blocks(text).find(b => at >= b.start && at <= b.end);
   // An upload lives only in the browser it was made in; elsewhere renderArticle says so instead of a broken image.
   const imageURL = p => F.assets[p] || (SAMPLES.has(p) || !p.startsWith(o.publicFolder + '/') || !o.storageKey ? p : null);
+  // A long paper takes a while to draw (a 30,000-character article with citations and equations, about a second or
+  // two), so the preview catches up just after typing pauses, with a quiet cue; a short one is drawn at once.
+  let renderTimer = null, renderCost = 0;
+  function renderSoon() {
+    clearTimeout(renderTimer);
+    if (renderCost < 60 && source.value.length < 12000) { render(); return; }
+    preview.classList.add('di-updating'); preview.setAttribute('aria-busy', 'true');
+    renderTimer = setTimeout(render, Math.min(900, 150 + renderCost / 2));
+  }
   function render() {
+    clearTimeout(renderTimer);
+    const started = performance.now();
     const r = renderArticle(source.value, { render: o.render, imageURL, blocks: o.blocks, citations: o.citations,
       math: o.math?.katex || null, mathMacros: o.math?.macros, refNames: o.math?.refNames });
     preview.innerHTML = r.html;
@@ -337,6 +350,8 @@ export function mountEditor(root, options = {}) {
       (unresolved ? ` · ${unresolved} unresolved` : '') + (fix.length ? ` · ${fix.length} to fix` : '');
     counts.title = fix.map(d => d.message).join('\n');
     counts.classList.toggle('di-counts-warn', unresolved > 0 || fix.length > 0);
+    preview.classList.remove('di-updating'); preview.removeAttribute('aria-busy');
+    renderCost = performance.now() - started;
   }
 
   // ---------- Editing text ----------
@@ -372,6 +387,24 @@ export function mountEditor(root, options = {}) {
     }
     render();
   }
+  // Replace the article with an opened file, or put it in at the cursor? Resolves 'replace', 'insert', or null.
+  function askHow(name, equations) {
+    return new Promise(resolve => {
+      const replaceB = el('button', { type: 'button', class: 'di-primary', text: 'Replace the article' });
+      const insertB = el('button', { type: 'button', class: 'di-quiet', text: 'Insert at the cursor' });
+      const cancelB = el('button', { type: 'button', class: 'di-quiet', text: 'Cancel' });
+      const ask = el('dialog', { class: 'di-dialog di-ask', 'aria-labelledby': 'di-ask-title' }, [
+        el('h2', { id: 'di-ask-title', text: `Bring in ${name}` }),
+        el('p', { text: `It's ready${equations ? `, with ${equations} equation${equations === 1 ? '' : 's'}` : ''}. Replace this article with it, or put it in where the cursor is? Either way, Undo takes it out again.` }),
+        el('div', { class: 'di-actions' }, [cancelB, insertB, replaceB])]);
+      const done = v => { ask.close(); ask.remove(); resolve(v); };
+      replaceB.addEventListener('click', () => done('replace'));
+      insertB.addEventListener('click', () => done('insert'));
+      cancelB.addEventListener('click', () => done(null));
+      ask.addEventListener('cancel', e => { e.preventDefault(); done(null); });
+      root.append(ask); ask.showModal(); replaceB.focus();
+    });
+  }
   const COMMANDS = {
     bold: () => wrap('**', '**', 'bold text'),
     italic: () => wrap('*', '*', 'italic text'),
@@ -396,6 +429,8 @@ export function mountEditor(root, options = {}) {
       pick.addEventListener('change', async () => {
         const file = pick.files[0]; pick.remove();
         if (!file) return;
+        doneText.textContent = `Bringing in ${file.name}…`; doneBar.hidden = false; announce(doneText.textContent);
+        await new Promise(r => setTimeout(r, 30));   // let the message show before the work starts
         let markdown, notes = [], equations = 0;
         try {
           if (/\.docx$/i.test(file.name)) {
@@ -405,8 +440,13 @@ export function mountEditor(root, options = {}) {
           else throw new Error('The editor opens Word (.docx), Markdown, and text files.');
         } catch (e) { doneText.textContent = `${file.name} couldn't be opened: ${e.message}`; doneBar.hidden = false; announce(doneText.textContent); return; }
         const empty = !source.value.trim();
-        const at = empty ? 0 : source.selectionStart, end = empty ? source.value.length : source.selectionEnd;
+        // An article with text in it: ask whether the file replaces it or goes in at the cursor.
+        const how = empty ? 'replace' : await askHow(file.name, equations);
+        if (!how) { doneText.textContent = `${file.name} wasn't brought in.`; announce(doneText.textContent); return; }
+        const all = how === 'replace';
+        const at = all ? 0 : source.selectionStart, end = all ? source.value.length : source.selectionEnd;
         // Its own paragraphs: a blank line before and after, unless the article already has one there.
+        doneText.textContent = `Bringing in ${file.name}…`;
         const before = source.value.slice(0, at), after = source.value.slice(end);
         markdown = markdown.replace(/\n+$/, '');
         if (before && !/\n\n$/.test(before)) markdown = (/\n$/.test(before) ? '\n' : '\n\n') + markdown;
@@ -689,7 +729,7 @@ export function mountEditor(root, options = {}) {
   // ---------- Start ----------
   let timer;
   function changed() {
-    render(); updateEditButton(); checkTypedSoon();
+    renderSoon(); updateEditButton(); checkTypedSoon();
     if (!o.storageKey) return;
     clearTimeout(timer);
     timer = setTimeout(() => {

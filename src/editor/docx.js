@@ -2,7 +2,7 @@
 // italics and bold, lists, links' text, and equations as LaTeX ($…$, $$…$$, from Word's maths; src/editor/omml.js).
 // What it can't carry (footnotes, tables, images, comments) is counted and named, never dropped silently. Plain
 // JavaScript: the browser's DecompressionStream unzips, and DOMParser (or one passed in) reads the XML.
-import { ommlToLatex, tidyLatex } from './omml.js';
+import { ommlToLatex, tidyLatex, text as symbolsToLatex } from './omml.js';
 
 /** The files in a zip, by name, as bytes (stored or deflated entries; enough for Office files). */
 export async function unzip(bytes) {
@@ -65,6 +65,37 @@ export async function docxToMarkdown(bytes, { parseXML = s => new DOMParser().pa
     equations++;
     return display ? `$$ ${tex} $$` : `$${tex}$`;
   };
+  // An equation set on a line of its own the way Google Docs (and many Word users) do it: maths inside an ordinary
+  // paragraph, perhaps with part of the formula typed as text ("C ≥ 1-"), tabs to centre it, and its number typed
+  // at the end ("(Eq 3)"). Such a paragraph becomes one displayed equation, its number a label ({#eq:3}). A paragraph
+  // with words in it (three letters or more outside the maths) is prose, and its maths stays inline.
+  function displayed(p) {
+    const parts = [];
+    for (const c of kids(p)) {
+      if (local(c) === 'oMath') parts.push({ math: c });
+      else if (local(c) === 'r') parts.push({ text: kids(c).map(x => (local(x) === 't' ? x.textContent : local(x) === 'tab' ? ' ' : '')).join('') });
+      else if (local(c) !== 'pPr' && local(c) !== 'bookmarkStart' && local(c) !== 'bookmarkEnd') return null;
+    }
+    if (!parts.some(x => x.math)) return null;
+    let words = parts.filter(x => x.text != null).map(x => x.text).join('');
+    const tag = /\(\s*(?:Eq\.?|Equation)\s*(\d+)\s*\)\s*$/i.exec(words);
+    if (tag) words = words.slice(0, tag.index);
+    if (/[A-Za-z]{3,}/.test(words) || words.trim().length > 24) return null;
+    // The number's own text run(s) are dropped; everything else, text and maths, in order.
+    let tagLeft = tag ? tag[0].length : 0;
+    for (let i = parts.length - 1; i >= 0 && tagLeft > 0; i--) {
+      if (parts[i].text == null) break;
+      const cut = Math.min(tagLeft, parts[i].text.length);
+      parts[i].text = parts[i].text.slice(0, parts[i].text.length - cut); tagLeft -= cut;
+    }
+    const unknown = [];
+    const tex = tidyLatex(parts.map(x => (x.math ? ommlToLatex(x.math, unknown) : symbolsToLatex(x.text))).join(' '));
+    unknown.forEach(u => lost.unknownMaths.add(u));
+    equations++;
+    if (tag) labelled.push(tag[1]);
+    return `$$ ${tex} $$` + (tag ? ` {#eq:${tag[1]}}` : '');
+  }
+  const labelled = [], asText = [];
   // A run's text, with its emphasis. Adjacent runs with the same emphasis are joined first, so "*a**b*" can't happen.
   function inline(p) {
     const pieces = [];
@@ -109,8 +140,13 @@ export async function docxToMarkdown(bytes, { parseXML = s => new DOMParser().pa
     if (k !== 'p') continue;
     const para = kid(n, 'oMathPara');
     if (para) { blocks.push(maths(para, true)); continue; }
+    const shown = displayed(n);
+    if (shown) { blocks.push(shown); continue; }
     const pr = kid(n, 'pPr'), style = (attr(pr && kid(pr, 'pStyle'), 'val') || '').toLowerCase();
     const text = inline(n).replace(/\s+$/, '');
+    // An equation typed as plain text, with its number: say so, since it can't become maths on its own.
+    const typedEq = /\(\s*(?:Eq\.?|Equation)\s*(\d+)\s*\)\s*$/i.exec(text);
+    if (typedEq && !/\$/.test(text) && !/[A-Za-z]{3,}/.test(text.slice(0, typedEq.index))) asText.push(typedEq[1]);   // no words: a formula
     if (!text.trim()) continue;
     const h = /^(heading|berschrift|titre)\s*([1-6])$/.exec(style) || (style === 'title' ? [0, 0, '1'] : null);
     if (h) { blocks.push('#'.repeat(+h[2]) + ' ' + text.replace(/^\*+|\*+$/g, '')); continue; }
@@ -123,6 +159,8 @@ export async function docxToMarkdown(bytes, { parseXML = s => new DOMParser().pa
   if (lost.footnotes) notes.push(`${lost.footnotes} footnote${lost.footnotes === 1 ? '' : 's'}`);
   if (lost.tables) notes.push(`${lost.tables} table${lost.tables === 1 ? '' : 's'}`);
   if (lost.images) notes.push(`${lost.images} image${lost.images === 1 ? '' : 's'} (add ${lost.images === 1 ? 'it' : 'them'} with Figure)`);
+  if (labelled.length) notes.push(`equation numbers ${labelled.join(', ')} became labels (eq:${labelled[0]}…); where the text says "Eq. ${labelled[0]}", change it to {ref eq:${labelled[0]}} to keep it in step`);
+  if (asText.length) notes.push(`equation${asText.length === 1 ? '' : 's'} ${asText.join(', ')} ${asText.length === 1 ? 'is' : 'are'} typed as text, not as Word maths: retype ${asText.length === 1 ? 'it' : 'them'} with Equation`);
   if (lost.unknownMaths.size) notes.push(`maths the editor doesn't know (${[...lost.unknownMaths].join(', ')}) kept as text: check those equations`);
   return { markdown, equations, notes };
 }

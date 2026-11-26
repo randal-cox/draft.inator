@@ -40,7 +40,7 @@ const attr = (n, name) => {
 };
 const prop = (n, pr, name) => { const p = kid(n, pr); const e = p && kid(p, name); return e ? (attr(e, 'val') ?? '') : null; };
 
-function text(s) {
+export function text(s) {
   let out = '';
   for (const ch of s) {
     const plain = plainLetter(ch);
@@ -130,5 +130,5 @@ export function ommlToLatex(n, unknown = []) {
 
 /** Tidy LaTeX: no doubled spaces, none before a closing brace or after an opening one. */
 export function tidyLatex(s) {
-  return s.replace(/\s+/g, ' ').replace(/\{ /g, '{').replace(/ \}/g, '}').replace(/ ([\^_])/g, '$1').replace(/(\\[a-zA-Z]+) \(/g, '$1(').trim();
+  return s.replace(/([_^])\{\}/g, '').replace(/(?<!\\left)\( +/g, '(').replace(/ +\)/g, ')').replace(/\s+/g, ' ').replace(/\{ /g, '{').replace(/ \}/g, '}').replace(/ ([\^_])/g, '$1').replace(/(\\[a-zA-Z]+) \(/g, '$1(').trim();
 }

@@ -54,3 +54,13 @@ test('something that isn\'t a Word file is refused with a reason', async () => {
   await assert.rejects(docxToMarkdown(new Uint8Array([1, 2, 3]), { parseXML }), /isn't a Word file/);
   await assert.rejects(docxToMarkdown(zip({ 'a.txt': 'x' }), { parseXML }), /no word\/document\.xml/);
 });
+
+test('an equation on a line of its own, Google Docs style, becomes a displayed, labelled equation', async () => {
+  const p1 = `<w:p><w:r><w:tab/><w:t xml:space="preserve">C ≥ 1- </w:t></w:r><m:oMath><m:nary><m:naryPr><m:chr m:val="∑"/></m:naryPr><m:sub>${mr('k=0')}</m:sub><m:sup>${mr('O-1')}</m:sup></m:nary><m:sSub><m:e>${mr('x')}</m:e><m:sub/></m:sSub></m:oMath><w:r><w:tab/><w:t>(Eq 3)</w:t></w:r></w:p>`;
+  const p2 = `<w:p>${run('Words around it: ')}<m:oMath>${mr('𝑛')}</m:oMath>${run(' are prose (Eq 9)')}</w:p>`;
+  const p3 = `<w:p>${run('R ± zC * SE(R)')}<w:r><w:tab/><w:t>(Eq 6)</w:t></w:r></w:p>`;
+  const r = await docxToMarkdown(zip({ 'word/document.xml': `<w:document ${W}><w:body>${p1}${p2}${p3}</w:body></w:document>` }), { parseXML });
+  assert.equal(r.markdown, '$$ C \\ge 1- \\sum_{k=0}^{O-1} x $$ {#eq:3}\n\nWords around it: $n$ are prose (Eq 9)\n\nR ± zC \\* SE(R)\t(Eq 6)\n');
+  assert.match(r.notes.join(' | '), /equation numbers 3 became labels/);
+  assert.match(r.notes.join(' | '), /equation 6 is typed as text/);
+});

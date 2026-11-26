@@ -13,6 +13,11 @@
   is in. It writes plain Markdown maths.
 - **Open a Word file** (from Word or Google Docs, `.docx`): paragraphs, headings, emphasis, lists, and Word's equations
   as LaTeX; footnotes, tables, and images are named, not dropped silently. No dependencies: the browser unzips.
+- **Opening a paper, from Randal's try with a real one:** it asks whether to replace the article or insert at the
+  cursor; a message shows while it reads; Google Docs' equation lines (with "(Eq 3)") come in as displayed, labelled
+  equations. A long article's preview now catches up after typing pauses instead of on every keystroke (a 32,000-character
+  paper took about 3 seconds per change; now 0.3 seconds to open and 4 ms per keystroke). Citations in the preview
+  show their reference on hover.
 - **`draft-inator migrate` names each line to check** (`file:line:column`); 0.4.0 printed `undefined:undefined`.
 - **Replacing a work doesn't carry the old work's options** (Theandra's point on #40; a bug in 0.4.0). When a
   writer changes the work a citation points to, the old work's page and other options are set aside and shown, with

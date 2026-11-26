@@ -352,3 +352,7 @@
 .di-eq-label { display: flex; align-items: center; gap: .25rem; }
 .di-eq-label span { font-family: var(--di-mono, ui-monospace, monospace); color: var(--di-muted); }
 .di-eq-name input { font-family: var(--di-mono, ui-monospace, monospace); }
+
+/* The preview catching up with a long article. */
+.di-editor .di-article.di-updating { opacity: .72; transition: opacity .15s .1s; }
+.di-ask { max-width: 32rem; }
