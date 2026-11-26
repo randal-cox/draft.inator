@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import katex from '../vendor/katex/katex.mjs';
-import { ommlToLatex, tidyLatex } from '../src/editor/omml.js';
+import { ommlToLatex, tidyLatex } from '../src/math/omml.js';
 import { parseXML } from './xml.js';
 
 const M = 'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"';

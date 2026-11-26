@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Word files bring in figures and superscripts** (#35). An image on a line of its own becomes a figure, with its
+  caption, its number as a label (`fig:2`), and its picture staged like an upload; superscripts and subscripts come in
+  as `<sup>` and `<sub>`. "Eq. 1" and "Figure 2" in the text can become `{ref …}` in one step, when the writer says
+  so. The result line separates what didn't come in from what to check.
+- **Maths is never taken for a citation.** "(Mason, 2010)" inside `$…$` is left out of the hand-typed count and the
+  import review, until citation.inator takes opaque ranges itself (#35).
+- **The maths has its own folder, `src/math/`** (Randal, 26 Nov 2026, #35): finding and drawing maths, and Word's
+  maths to LaTeX, with no imports from the rest of draft.inator, so it can become its own package. Drawing is safe by
+  default: MathML only, no `\href` or other trusted commands, and a limit on macro expansion.
+- **The combined import fixture** (`test/import-fixture.test.js`, `docs/import-fixture.md`): draft.inator's side,
+  from the Word file to the projection, its regions and revision, the staged image, and the proposed references.
 - **Equations and cross-references** (Randal, 25 Nov 2026). LaTeX maths between `$…$` and `$$…$$`, drawn by KaTeX
   0.16.11 (vendored, MIT) as MathML: no fonts, styles, or scripts, so it suits a strict security policy, and screen
   readers read it. Label a displayed equation with `{#eq:name}` and a figure with `label:fig:name`; `{ref …}` reads

@@ -292,7 +292,10 @@ export function mountEditor(root, options = {}) {
   const doneText = el('span');
   const doneUndo = el('button', { type: 'button', class: 'di-quiet', text: 'Undo' });
   const doneClose = el('button', { type: 'button', class: 'di-quiet di-done-close', 'aria-label': 'Dismiss', text: '×' });
-  const doneBar = el('div', { class: 'di-done', role: 'region', 'aria-label': 'Import result', hidden: true }, [doneText, el('span', { class: 'di-typed-actions' }, [doneUndo, doneClose])]);
+  // After a Word file: "Eq. 1" and "Figure 2" in its text can become references, when the writer says so.
+  const doneRefs = el('button', { type: 'button', class: 'di-quiet', hidden: true });
+  const doneBar = el('div', { class: 'di-done', role: 'region', 'aria-label': 'Import result', hidden: true }, [doneText, el('span', { class: 'di-typed-actions' }, [doneRefs, doneUndo, doneClose])]);
+  let pendingRefs = null;   // { at, markdown, proposals }: the projection as inserted, and what it proposes
 
   const dTitle = el('h2', { text: 'Citation' }), dFields = el('div'), dOut = el('output', { class: 'di-code' });
   const dError = el('p', { class: 'di-error', role: 'alert' });
@@ -360,7 +363,8 @@ export function mountEditor(root, options = {}) {
     const unresolved = (source.value.match(new RegExp(`\\{${kw}\\s[^}]*\\bunresolved:`, 'g')) || []).length;
     // Maths that doesn't parse, references to missing labels, and labels used twice: counted, and listed on hover.
     const fix = r.crossref || [];
-    counts.textContent = `${r.words} words · ${r.citations} citations · ${r.figures} figures` + (r.equations ? ` · ${r.equations} equations` : '') +
+    const many = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+    counts.textContent = `${many(r.words, 'word')} · ${many(r.citations, 'citation')} · ${many(r.figures, 'figure')}` + (r.equations ? ` · ${many(r.equations, 'equation')}` : '') +
       (unresolved ? ` · ${unresolved} unresolved` : '') + (fix.length ? ` · ${fix.length} to fix` : '');
     counts.title = fix.map(d => d.message).join('\n');
     counts.classList.toggle('di-counts-warn', unresolved > 0 || fix.length > 0);
@@ -448,11 +452,13 @@ export function mountEditor(root, options = {}) {
         doneText.textContent = `Bringing in ${file.name}…`; doneBar.hidden = false; doneBar.classList.add('di-busy'); announce(doneText.textContent);
         const shownAt = performance.now();
         await new Promise(r => setTimeout(r, 30));   // let the message show before the work starts
-        let markdown, notes = [], equations = 0;
+        let markdown, notes = [], checks = [], equations = 0, media = [], proposals = [];
+        doneRefs.hidden = true; pendingRefs = null;
         try {
           if (/\.docx$/i.test(file.name)) {
             const { docxToMarkdown } = await import('./docx.js');
-            ({ markdown, notes, equations } = await docxToMarkdown(await file.arrayBuffer()));
+            const base = file.name.replace(/\.docx$/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'word';
+            ({ markdown, notes, checks, equations, media, proposals } = await docxToMarkdown(await file.arrayBuffer(), { mediaPath: n => `${o.publicFolder}/${base}-${n}` }));
           } else if (/\.(md|markdown|txt)$/i.test(file.name) || /^text\//.test(file.type)) markdown = await file.text();
           else throw new Error('The editor opens Word (.docx), Markdown, and text files.');
         } catch (e) { doneBar.classList.remove('di-busy'); doneText.textContent = `${file.name} couldn't be opened: ${e.message}`; doneBar.hidden = false; announce(doneText.textContent); return; }
@@ -470,14 +476,31 @@ export function mountEditor(root, options = {}) {
         markdown = markdown.replace(/\n+$/, '');
         if (before && !/\n\n$/.test(before)) markdown = (/\n$/.test(before) ? '\n' : '\n\n') + markdown;
         markdown += after ? (/^\n\n/.test(after) ? '' : /^\n/.test(after) ? '\n' : '\n\n') : '\n';
+        // Its images are staged like uploads: shown at once, kept in this browser, and saved only if a figure uses them
+        // (docs/data-contract.md, "What the host keeps at save").
+        for (const m of media) {
+          const blob = new Blob([m.bytes], { type: m.type });
+          F.assets[m.path] = URL.createObjectURL(blob);
+          if (!F.imageSources.some(x => x.path === m.path)) F.imageSources.push({ label: m.name + ' (from ' + file.name + ')', path: m.path });
+          try { F.onUpload?.(m.path, new File([blob], m.path.split('/').pop(), { type: m.type })); } catch { /* kept for this visit only */ }
+        }
+        const lead = markdown.length - markdown.replace(/^\n+/, '').length;
+        const body = markdown.slice(lead).replace(/\n+$/, '');
         replace(at, end, markdown, [0, 0]);
+        // Offsets in the proposals are in the file's own Markdown; it now starts at at + lead.
+        if (proposals?.length) pendingRefs = { at: at + lead, body, proposals: proposals.filter(p => p.end <= body.length) };
         // The work isn't done until the preview shows it; and long enough to be seen either way (a sign that flashes for
         // a few milliseconds reads as a glitch, not as work).
         await caughtUp();
         await new Promise(r => setTimeout(r, Math.max(0, 350 - (performance.now() - shownAt))));
         doneBar.classList.remove('di-busy');
-        doneText.textContent = `${file.name} brought in${equations ? `, with ${equations} equation${equations === 1 ? '' : 's'}` : ''}.` +
-          (notes.length ? ` Not carried over: ${notes.join('; ')}.` : '') + ' Undo takes it out again.';
+        if (pendingRefs?.proposals.length) {
+          const n = pendingRefs.proposals.length;
+          doneRefs.textContent = `Make ${n} mention${n === 1 ? '' : 's'} like "${pendingRefs.proposals[0].text}" a reference`;
+          doneRefs.hidden = false;
+        }
+        doneText.textContent = `${file.name} brought in${equations ? `, with ${equations} equation${equations === 1 ? '' : 's'}` : ''}${media.length ? ` and ${media.length} figure${media.length === 1 ? '' : 's'}` : ''}.` +
+          (notes.length ? ` Not carried over: ${notes.join('; ')}.` : '') + (checks.length ? ` To check: ${checks.join('; ')}.` : '') + ' Undo takes it out again.';
         doneBar.hidden = false; announce(doneText.textContent); checkTyped();
       });
       root.append(pick); pick.click();
@@ -794,6 +817,21 @@ export function mountEditor(root, options = {}) {
   // ---------- Citations typed by hand ----------
   const typed = { count: 0, examples: [], reviewed: false, override: false, acceptedLeft: 0 };
   const importMemory = new Map();   // the writer's choices in the import review, kept while the page is open
+  // The proposed references go in as one step, against the file's text exactly as it was brought in: if that text has
+  // changed since, nothing is changed and the writer is told.
+  doneRefs.addEventListener('click', () => {
+    const p = pendingRefs; doneRefs.hidden = true; pendingRefs = null;
+    if (!p) return;
+    if (source.value.slice(p.at, p.at + p.body.length) !== p.body) {
+      doneText.textContent = 'The text changed since it was brought in, so the mentions were left as they are. Use {ref …} where you want one.';
+      announce(doneText.textContent); return;
+    }
+    let out = p.body;
+    for (const x of [...p.proposals].sort((a, b) => b.start - a.start)) out = out.slice(0, x.start) + x.replacement + out.slice(x.end);
+    replace(p.at, p.at + p.body.length, out, [0, 0]);
+    doneText.textContent = `${p.proposals.length} mention${p.proposals.length === 1 ? ' is' : 's are'} now ${p.proposals.length === 1 ? 'a reference' : 'references'}, numbered from their labels. Undo takes ${p.proposals.length === 1 ? 'it' : 'them'} out again.`;
+    announce(doneText.textContent); source.focus();
+  });
   doneUndo.addEventListener('click', () => { source.focus(); document.execCommand && document.execCommand('undo'); doneBar.hidden = true; changed(); checkTyped(); announce('Import undone.'); });
   doneClose.addEventListener('click', () => { doneBar.hidden = true; source.focus(); });
   let typedTimer;

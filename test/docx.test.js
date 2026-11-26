@@ -1,28 +1,12 @@
 // A Word file to Markdown (src/editor/docx.js): text, headings, emphasis, lists, and Word's equations as LaTeX.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import zlib from 'node:zlib';
 import katex from '../vendor/katex/katex.mjs';
 import { docxToMarkdown } from '../src/editor/docx.js';
 import { findMath } from '../src/editor/crossref.js';
 import { parseXML } from './xml.js';
+import { zip } from './zip.js';
 
-// A minimal zip writer for the test: deflated entries, a central directory, and its end record.
-function zip(files) {
-  const parts = [], central = []; let offset = 0;
-  for (const [name, text] of Object.entries(files)) {
-    const data = Buffer.from(text), comp = zlib.deflateRawSync(data), nm = Buffer.from(name);
-    const head = Buffer.alloc(30); head.writeUInt32LE(0x04034b50, 0); head.writeUInt16LE(20, 4); head.writeUInt16LE(8, 8);
-    head.writeUInt32LE(comp.length, 18); head.writeUInt32LE(data.length, 22); head.writeUInt16LE(nm.length, 26);
-    const dir = Buffer.alloc(46); dir.writeUInt32LE(0x02014b50, 0); dir.writeUInt16LE(20, 4); dir.writeUInt16LE(20, 6); dir.writeUInt16LE(8, 10);
-    dir.writeUInt32LE(comp.length, 20); dir.writeUInt32LE(data.length, 24); dir.writeUInt16LE(nm.length, 28); dir.writeUInt32LE(offset, 42);
-    parts.push(head, nm, comp); central.push(dir, nm); offset += 30 + nm.length + comp.length;
-  }
-  const cd = Buffer.concat(central), end = Buffer.alloc(22);
-  end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(central.length / 2, 8); end.writeUInt16LE(central.length / 2, 10);
-  end.writeUInt32LE(cd.length, 12); end.writeUInt32LE(offset, 16);
-  return new Uint8Array(Buffer.concat([...parts, cd, end]));
-}
 const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"';
 const run = (t, pr = '') => `<w:r>${pr ? `<w:rPr>${pr}</w:rPr>` : ''}<w:t xml:space="preserve">${t}</w:t></w:r>`;
 const mr = t => `<m:r><m:t>${t}</m:t></m:r>`;
@@ -61,6 +45,6 @@ test('an equation on a line of its own, Google Docs style, becomes a displayed, 
   const p3 = `<w:p>${run('R ± zC * SE(R)')}<w:r><w:tab/><w:t>(Eq 6)</w:t></w:r></w:p>`;
   const r = await docxToMarkdown(zip({ 'word/document.xml': `<w:document ${W}><w:body>${p1}${p2}${p3}</w:body></w:document>` }), { parseXML });
   assert.equal(r.markdown, '$$ C \\ge 1- \\sum_{k=0}^{O-1} x $$ {#eq:3}\n\nWords around it: $n$ are prose (Eq 9)\n\nR ± zC \\* SE(R)\t(Eq 6)\n');
-  assert.match(r.notes.join(' | '), /equation numbers 3 became labels/);
-  assert.match(r.notes.join(' | '), /equation 6 is typed as text/);
+  assert.match(r.checks.join(' | '), /equation numbers 3 became labels/);
+  assert.match(r.checks.join(' | '), /equation 6 is typed as text/);
 });

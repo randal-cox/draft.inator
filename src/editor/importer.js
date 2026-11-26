@@ -3,6 +3,7 @@
    {cite …} markers (the site's keyword) in one undoable step. citation.inator does the finding and matching; this file is the review
    and the editing. Nothing is applied that the writer hasn't seen: unique matches are proposed (and can be changed),
    others need a choice, and anything left alone stays exactly as written. */
+import { findTeX } from '../math/math.js';
 
 // The site's one citation keyword (cite.inator 0.5.1, default cite): the Cite block's, else the data contract's.
 export const citationKeyword = () => (typeof window !== 'undefined' && (window.DRAFT_CITATION?.keyword || window.DRAFT_CITATION_KEYWORD)) || 'cite';
@@ -73,12 +74,20 @@ export function decisionFor(citationIndex, choices) {
  * @param {Function} process  cite.inator's processImportRequest.
  * @returns {{ count: number, examples: string[] }}
  */
+// Maths is opaque to citations (#35): "(Mason, 2010)" inside $…$ is a coordinate, not a source. Until citation.inator
+// takes opaque ranges itself, draft.inator sets aside any match that touches maths.
+export function inMaths(text) {
+  const maths = findTeX(text);
+  return c => maths.some(m => c.start < m.end && c.end > m.start);
+}
+
 export function findHandTyped(text, process, { keyword = citationKeyword() } = {}) {
   if (!process || !text || !/\(|\d{4}/.test(text)) return { count: 0, examples: [] };
   const found = style => {
     try {
       const a = process({ mode: 'document', source: text, style, citationKeyword: keyword, namespace: 'draft-check', limits: { references: 300 } });
-      return a.review?.matches || [];
+      const touches = inMaths(text);
+      return (a.review?.matches || []).filter(m => !touches(m.citation));
     } catch { return []; }
   };
   // When the style is ambiguous, count what either reading finds rather than nothing.
@@ -199,7 +208,7 @@ export function openImport(editor, options) {
   const opener = document.activeElement;   // focus goes back here, however the dialog closes
   const memory = editor.memory || new Map();
   const remember = m => `${m.citation.raw}\u0000${citationContext(analysed, m.citation.start, m.citation.end).before.slice(-40)}`;
-  let style = options.style || 'auto', analysed = null, context = null, matches = [], chosen = [], siteChoice = {};
+  let style = options.style || 'auto', analysed = null, context = null, matches = [], chosen = [], siteChoice = {}, hid = [];
 
   const title = el('h2', { text: 'Import citations', tabindex: '-1' });
   const intro = el('p', { class: 'hint', text: 'Finds citations such as (Bell, 1992) and the reference list in this article, and turns the ones you accept into citations of works. Anything you leave stays as written.' });
@@ -253,12 +262,15 @@ export function openImport(editor, options) {
     }
     context.result = a;
     matches = a.review.matches;
+    const touches = inMaths(analysed);
+    hid = matches.map(m => touches(m.citation));   // inside maths: never shown, never converted
     // A unique match is proposed (selected, visibly, and changeable); anything else waits for the writer.
     // A choice per work: a record id, null (leave as written), or undefined (not decided yet). What's probably right is
     // proposed; everything in Needs your attention starts undecided, and Convert waits until it's decided.
-    chosen = matches.map(m => m.items.map(it => (isProbablyRight(m) ? it.candidates[0].recordId : undefined)));
+    chosen = matches.map((m, i) => m.items.map(it => (hid[i] ? null : isProbablyRight(m) ? it.candidates[0].recordId : undefined)));
     // Choices made earlier for the same citation (same words, same place in its sentence) come back.
     matches.forEach((m, i) => {
+      if (hid[i]) return;
       const was = memory.get(remember(m));
       if (was && was.length === m.items.length && was.every((c, j) => c === undefined || c === null || c === PLACEHOLDER || m.items[j].candidates?.some(x => x.recordId === c))) chosen[i] = was.slice();
     });
@@ -282,10 +294,11 @@ export function openImport(editor, options) {
     writes.clear();
     const attention = el('ol', { class: 'di-import-list' }), probable = el('ol', { class: 'di-import-list' });
     secAttention.body.replaceChildren(attention); secProbable.body.replaceChildren(probable);
-    const nAttention = matches.filter(m => !isProbablyRight(m)).length;
+    const nAttention = matches.filter((m, i) => !hid[i] && !isProbablyRight(m)).length;
     secAttention.box.hidden = !nAttention; secAttention.box.open = true;
-    secProbable.box.hidden = nAttention === matches.length; secProbable.box.open = !nAttention;
+    secProbable.box.hidden = nAttention === matches.filter((m, i) => !hid[i]).length; secProbable.box.open = !nAttention;
     matches.forEach((m, i) => {
+      if (hid[i]) return;
       const { before, after } = citationContext(analysed, m.citation.start, m.citation.end);
       const row = el('li', { class: 'di-import-row' });
       const quote = el('p', { class: 'di-import-context' });
@@ -423,28 +436,30 @@ export function openImport(editor, options) {
   function tally() {
     markUnused(); showWrites();
     const r = ready(), n = r.filter(Boolean).length, refs = context.result.referenceRecords.length;
-    const attentionLeft = matches.filter((m, i) => !isProbablyRight(m) && !decided(i)).length;
+    const attentionLeft = matches.filter((m, i) => !hid[i] && !isProbablyRight(m) && !decided(i)).length;
     // References the converted citations use whose site match hasn't been decided.
     const usedNow = new Set(matches.flatMap((m, i) => (r[i] ? chosen[i] : [])));
     const siteLeft = Object.entries(siteChoice).filter(([id, v]) => v === undefined && usedNow.has(id)).length;
     const siteTotal = Object.keys(siteChoice).length;
-    const changed = matches.filter((m, i) => isProbablyRight(m) && chosen[i].some((c, j) => c !== m.items[j].candidates[0].recordId)).length;
-    const nProbable = matches.filter(isProbablyRight).length;
+    const changed = matches.filter((m, i) => !hid[i] && isProbablyRight(m) && chosen[i].some((c, j) => c !== m.items[j].candidates[0].recordId)).length;
+    const nProbable = matches.filter((m, i) => !hid[i] && isProbablyRight(m)).length;
+    const nHid = hid.filter(Boolean).length, nShown = matches.length - nHid;
     const left = k => (k ? `${k} to decide` : 'all decided ✓');
     secAttention.count.textContent = left(attentionLeft);
     secSite.count.textContent = `${siteTotal} work${siteTotal === 1 ? '' : 's'} · ${left(siteLeft)}`;
     secProbable.count.textContent = `${nProbable} citation${nProbable === 1 ? '' : 's'}${changed ? ` · ${changed} changed` : ' · all selected ✓'}`;
-    matches.forEach((m, i) => memory.set(remember(m), chosen[i].slice()));
+    matches.forEach((m, i) => { if (!hid[i]) memory.set(remember(m), chosen[i].slice()); });
     for (const [sec, k] of [[secAttention, attentionLeft], [secSite, siteLeft]]) sec.box.classList.toggle('di-import-todo', k > 0);
     const refsLeft = !secRefs.box.hidden && bibChoice === undefined ? 1 : 0;
     secRefs.count.textContent = refsLeft ? '1 to decide' : bibChoice === 'replace' ? 'one list ✓' : bibChoice === 'keep' ? 'two lists ✓' : '';
     secRefs.box.classList.toggle('di-import-todo', refsLeft > 0);
     const todo = attentionLeft + siteLeft + refsLeft;
-    summary.textContent = !matches.length
-      ? `No citations found${refs ? `, though ${refs} reference${refs === 1 ? ' was' : 's were'} read` : ''}. Is the style right?`
-      : `${matches.length} citation${matches.length === 1 ? '' : 's'} found, ${refs} reference${refs === 1 ? '' : 's'} read. ` +
+    const inMath = nHid ? ` (${nHid} more inside maths ${nHid === 1 ? 'is' : 'are'} left alone)` : '';
+    summary.textContent = !nShown
+      ? `No citations found${refs ? `, though ${refs} reference${refs === 1 ? ' was' : 's were'} read` : ''}${inMath}. Is the style right?`
+      : `${nShown} citation${nShown === 1 ? '' : 's'} found${inMath}, ${refs} reference${refs === 1 ? '' : 's'} read. ` +
         (todo ? `Decide ${todo} more before converting: ${[attentionLeft && `${attentionLeft} in Needs your attention`, siteLeft && `${siteLeft} in Works this site already has`, refsLeft && 'the reference list'].filter(Boolean).join(', ')}.`
-          : `${n} will be converted; ${matches.length - n} will stay as written.`);
+          : `${n} will be converted; ${nShown - n} will stay as written.`);
     const say = todo ? `${todo} left to decide.` : 'All decided.';
     if (spoken.textContent !== say) spoken.textContent = say;
     apply.disabled = !n || todo > 0;

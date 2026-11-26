@@ -8,7 +8,8 @@ const here = new URL('.', import.meta.url);
 marked.use({
   gfm: true,
   renderer: {
-    html({ text }) { return esc(text); },
+    // Raw HTML is shown as text, except bare <sup> and <sub> (superscripts from Word, such as affiliation marks).
+    html({ text }) { return /^<\/?(sup|sub)>$/.test(text) ? text : esc(text); },
     link({ href, title, tokens }) {
       const inner = this.parser.parseInline(tokens);
       return /^(https?:|mailto:|#|\/|\.{0,2}\/)/i.test(href || '') ? `<a href="${esc(href)}"${title ? ` title="${esc(title)}"` : ''}>${inner}</a>` : inner;

@@ -163,9 +163,16 @@ paragraphs, headings, italics and bold, lists, and links' text, and turns **Word
 inline, `$$…$$` displayed; Google Docs exports its equations the same way). An equation set on a line of its own
 inside an ordinary paragraph, as Google Docs does it (tabs to centre it, part of it typed as text, "(Eq 3)" at the end),
 becomes one displayed equation, and its number a label (`{#eq:3}`). An equation typed as plain text with a number is
-named, since it can't become maths on its own. What it can't carry (footnotes, tables,
-images, and any maths it doesn't recognise) is named in the result line, never dropped silently. Citations typed in
-the file then show in the banner, ready for Import citations. Unzipping uses the browser's own `DecompressionStream`;
+named, since it can't become maths on its own. Superscripts and subscripts come in as `<sup>` and `<sub>` (an
+author's affiliation marks, say). An image on a line of its own becomes a **figure**: the picture is staged like an
+upload (shown at once, kept in this browser, saved only if a figure still uses it), its caption comes with it, and a
+caption's "Figure 2." becomes the label `fig:2`. A figure Word gives no alt text to is named, for the writer to
+describe; nothing is guessed. Where the text then says "Eq. 1" or "Figure 2", the result line offers **Make 2
+mentions like "Eq. 1" a reference**, which writes `{ref eq:1}` in one undoable step; a mention inside a typed
+citation, such as "(Eq. 1; Bell, 1992)", is left for Import citations. The result line says what didn't come in
+(footnotes, tables, images inside text) and what to check (labels made from numbers, missing alt text, maths it
+doesn't recognise), never dropping anything silently. Citations typed in the file then show in the banner, ready for
+Import citations; anything inside maths, such as $(Mason, 2010)$, is never taken for a citation. Unzipping uses the browser's own `DecompressionStream`;
 nothing is sent anywhere. Turn the button off with `openFiles: false`.
 
 ## Formatted citations in the preview

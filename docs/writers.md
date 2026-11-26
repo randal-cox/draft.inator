@@ -76,8 +76,10 @@ refer to it. To change one later, put the cursor in it and choose **Edit equatio
 ## Bring in a paper from Word or Google Docs
 
 In Google Docs, choose File › Download › Microsoft Word (.docx); in Word, save as .docx. Then choose **Open a file**
-in the editor. Your text, headings, italics, and equations come in; footnotes, tables, and images don't yet, and the
-editor says which were left behind. If the paper has citations like (Bell, 1992), the banner offers to import them.
+in the editor. Your text, headings, italics, superscripts, equations, and figures (an image on a line of its own,
+with its caption) come in; footnotes and tables don't yet, and the editor says which were left behind. Give each
+figure its alt text with **Edit**. If the paper says "Eq. 1" or "Figure 2", the editor offers to turn those into
+references that renumber themselves. If the paper has citations like (Bell, 1992), the banner offers to import them.
 
 ## If something looks wrong
 
