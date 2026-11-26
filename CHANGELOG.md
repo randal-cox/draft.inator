@@ -13,6 +13,13 @@
   writer changes the work a citation points to, the old work's page and other options are set aside and shown, with
   **Keep them**; nothing moves by default, and going back restores them. Finishing a placeholder drops its
   `unresolved:`. Same-work edits keep every option, as before.
+- **A placeholder keeps its words after a reload** (found auditing #55). A citation of a work the site doesn't
+  describe yet (an import placeholder such as `{cite missing-cox | note:"Cox, 1995"}`) used to get its id as its
+  note the next time it was opened in a fresh session. Its own words now stay. A changed work never inherits them.
+- **Citations written on several lines open in the Cite block and keep their lines** (#55). Space and line breaks
+  may come around the keyword (`{\n  cite\n  bell-1992-ritual\n}`). The marker's layout is kept byte for byte, and
+  a field or work added in the form goes on a new line, indented to match. Directives on several lines are still left
+  alone.
 
 ## 0.4.0 · 2026-11-25 · The live editor, citation import, and one keyword
 
