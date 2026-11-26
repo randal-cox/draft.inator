@@ -13,6 +13,8 @@
   writer changes the work a citation points to, the old work's page and other options are set aside and shown, with
   **Keep them**; nothing moves by default, and going back restores them. Finishing a placeholder drops its
   `unresolved:`. Same-work edits keep every option, as before.
+- **The data contract says what a host keeps at save** (Randal, 26 Nov 2026). Only the staged records and media the
+  saved text refers to, so an import that's undone leaves nothing behind. Failed staging leaves nothing either.
 
 ## 0.4.0 · 2026-11-25 · The live editor, citation import, and one keyword
 

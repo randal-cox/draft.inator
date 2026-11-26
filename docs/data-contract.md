@@ -184,6 +184,24 @@ didn't have is left out; new keys go at the end. A value that would read as some
 Guarantee (tested, `test/yaml.test.js` and `test/details.test.js`): writing a page's own values back changes nothing,
 and one change touches only that key's lines.
 
+## What the host keeps at save (0.4.1)
+
+An import, the Zotero picker, or a Word file can stage new things for the page before the text refers to them: new
+citation records (through the editor's `onRecords`) and, from Word, images for the site's media folder. The text then
+changes in one step, which the writer can undo in one step. Undo moves only the text, so the host decides what to
+keep when the page is saved (Randal, 26 Nov 2026, #35):
+
+- **At save, keep only the staged records and media the saved text refers to.** A record is referred to by a
+  citation of its id (a marker or a placeholder); an image by a figure's path. Staged items nothing refers to are
+  not saved, and the save says so ("2 unused works not saved").
+- **Staging that fails leaves nothing behind.** If `onRecords` (or an image upload) throws or rejects, the host
+  discards whatever it staged in that call, and the editor changes nothing (since #54).
+- Records and media the site already had are never removed by this rule: it applies only to what was staged during
+  this edit.
+
+Guarantee (to be tested with the combined import fixture, `docs/import-fixture.md`): Cancel and a stale Apply stage
+nothing; Undo after Apply, then Save, saves none of the import's staged items; Redo, then Save, saves them.
+
 ## Changes to this contract
 
 - 0.2 (additive): `draft-inator works` produces `works.js`; the skipped directives now match citation.inator exactly.
@@ -198,5 +216,6 @@ and one change touches only that key's lines.
 
 
 - 0.4.1: replacing a work no longer carries the old work's options silently (above).
+- 0.4.1 (additive): what a host keeps at save: only the staged records and media the saved text refers to.
 
 Additive only within 0.x where possible. A breaking change bumps the minor version and is listed in the roadmap.
