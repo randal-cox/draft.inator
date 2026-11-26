@@ -86,7 +86,11 @@ export function renderArticle(text, options = {}) {
   const WORKS = Object.fromEntries((window.DRAFT_WORKS || []).map(w => [w.id, w]));
   const imageURL = options.imageURL || (p => p);
   const compiler = options.citations?.compileHTML && options.citations.cache ? options.citations : null;
-  const blocks = findBlocks(text, cite, figure), cited = [], parts = [];
+  // Citations inside a figure's caption belong to the figure: they're drawn with its caption, not again after it.
+  const all = findBlocks(text, cite, figure), cited = [], parts = [];
+  const figures = all.filter(b => b.kind === 'figure');
+  const blocks = all.filter(b => b.kind === 'figure' || !figures.some(f => b.start >= f.start && b.end <= f.end));
+  blocks.inCode = all.inCode;
   // Maths and cross-references ({ref eq:n}), outside code and outside other blocks; then numbers for every label.
   const inBlock = (a, z) => blocks.some(b => a < b.end && z > b.start);
   const maths = findMath(text, blocks.inCode).filter(m => !inBlock(m.start, m.end));
@@ -99,33 +103,46 @@ export function renderArticle(text, options = {}) {
   const crossref = [...refProblems];
   const hold = html => `DRAFTPH${parts.push(html) - 1}X`;
   let out = '', last = 0;
-  for (const b of found) {
-    out += text.slice(last, b.start);
+  // A caption's own citations, maths, and references, drawn the same way as the article's.
+  const inline = s => {
+    const marks = [];
+    if (cite) for (const m of s.matchAll(new RegExp(cite.pattern.source, 'g'))) marks.push({ kind: 'citation', start: m.index, end: m.index + m[0].length, match: m });
+    for (const m of findMath(s, () => false)) if (m.kind !== 'math' || !m.display) if (!marks.some(x => m.start < x.end && m.end > x.start)) marks.push(m);
+    marks.sort((x, y) => x.start - y.start);
+    let o = '', at = 0;
+    for (const m of marks) { o += esc(s.slice(at, m.start)) + draw(m); at = m.end; }
+    return o + esc(s.slice(at));
+  };
+  function draw(b) {
     if (b.kind === 'math') {
       const r = mathHTML(b, options.math || null, { number: b.label ? numbers.get(b.label) : undefined, macros: options.mathMacros });
       if (r.error) crossref.push({ code: 'math-error', at: b.start, message: `Maths that doesn't parse: ${r.error}` });
-      out += hold(r.html);
-    } else if (b.kind === 'ref') {
+      return r.html;
+    }
+    if (b.kind === 'ref') {
       const said = refText(b.label, numbers, { ...REF_NAMES, ...(options.refNames || {}) });
       if (!said) crossref.push({ code: 'ref-missing', label: b.label, at: b.start, message: `{ref ${b.label}} points to a label that doesn't exist.` });
-      out += hold(said ? `<a class="di-ref" href="#${esc(b.label)}">${esc(said)}</a>`
-        : `<span class="di-ref-missing" title="No ${esc(b.label)} in this article">${esc(`{ref ${b.label}}`)}</span>`);
-    } else if (b.kind === 'figure') {
+      return said ? `<a class="di-ref" href="#${esc(b.label)}">${esc(said)}</a>`
+        : `<span class="di-ref-missing" title="No ${esc(b.label)} in this article">${esc(`{ref ${b.label}}`)}</span>`;
+    }
+    const data = cite.fromBlock(b.match);
+    data.items.forEach(it => { if (it.work && !cited.includes(it.work)) cited.push(it.work); });
+    // With citation.inator's compiler, the marker itself is kept (safe from Markdown) for the compiler to format.
+    return compiler ? esc(b.match[0]) : `<a class="cite" href="#di-ref-${esc(data.items[0]?.work)}">${esc(cite.toPreview(data))}</a>`;
+  }
+  for (const b of found) {
+    out += text.slice(last, b.start);
+    if (b.kind === 'figure') {
       const d = b.data, n = d.label && numbers.get(d.label);
       const cls = ['fig', d.align && 'align-' + d.align, d.width && 'width-' + d.width, d.wrap && 'wrap'].filter(Boolean).join(' ');
       const credit = [d.credit, d.licence].filter(Boolean).join(', ');
       const name = n ? `<span class="di-fig-number">${esc(refText(d.label, numbers, { ...REF_NAMES, ...(options.refNames || {}) }))}.</span> ` : '';
-      const cap = d.caption || credit || name ? `<figcaption>${name}${esc(d.caption)}${credit ? ` <small>${esc(credit)}</small>` : ''}</figcaption>` : '';
+      const cap = d.caption || credit || name ? `<figcaption>${name}${d.caption ? inline(d.caption) : ''}${credit ? ` <small>${esc(credit)}</small>` : ''}</figcaption>` : '';
       const url = d.src ? imageURL(d.src) : null;
       const img = !d.src ? '' : url ? `<img src="${esc(url)}" alt="${esc(d.alt)}">`
         : `<div class="di-missing" role="img" aria-label="${esc(d.alt)}">${esc(d.src)} isn't in this browser. Uploads stay in the browser they were made in.</div>`;
       out += hold(`<figure class="${cls}"${n ? ` id="${esc(d.label)}"` : ''}>${img}${cap}</figure>`);
-    } else {
-      const data = cite.fromBlock(b.match);
-      data.items.forEach(it => { if (it.work && !cited.includes(it.work)) cited.push(it.work); });
-      // With citation.inator's compiler, the marker itself is kept (safe from Markdown) for the compiler to format.
-      out += hold(compiler ? esc(b.match[0]) : `<a class="cite" href="#di-ref-${esc(data.items[0]?.work)}">${esc(cite.toPreview(data))}</a>`);
-    }
+    } else out += hold(draw(b));
     last = b.end;
   }
   out += text.slice(last);

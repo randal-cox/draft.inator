@@ -78,3 +78,20 @@ test('draft-inator check reports problems with their places, and passes a clean 
   assert.deepEqual(checkText(bad, { katex }).map(d => d.code), ['label-duplicate', 'ref-missing', 'math-error']);
   assert.deepEqual(checkText('$$x$$ {#eq:a}\n\nSee {ref eq:a}.', { katex }), []);
 });
+
+test('draft-inator check finds a figure label written after a caption that holds a citation and maths', async () => {
+  const { checkText } = await import('../tools/check.js');
+  const text = '{figure a.png | alt:"x" | caption:"Size against $\\frac{a}{b}$ {cite bell-1992-ritual | note:"Bell 1992"}" | label:fig:curve}\n\nAs {ref fig:curve} shows.\n';
+  assert.deepEqual(checkText(text, { katex }).map(d => d.code), [], 'the label is found, so the reference is fine');
+});
+
+test('a caption draws its own citations, maths, and references once, inside the figure', () => {
+  const a = '{figure /a.png | alt:"A" | label:fig:depth | caption:"Size against $\\frac{a}{b}$ {cite bell-1992-ritual | note:"Bell 1992"}, as {ref fig:depth}."}\n\nAfter.';
+  const r = renderArticle(a, { render: md, math: katex });
+  const cap = /<figcaption>([\s\S]*?)<\/figcaption>/.exec(r.html)[1];
+  assert.match(cap, /<math/, 'the maths is drawn');
+  assert.match(cap, /class="di-ref" href="#fig:depth">Figure 1</, 'the reference is resolved');
+  assert.match(cap, /class="cite"/, 'the citation is drawn in the caption');
+  assert.equal((r.html.match(/class="cite"/g) || []).length, 1, 'and not drawn again after the figure');
+  assert.match(r.html, /Works cited/, 'it counts as cited');
+});

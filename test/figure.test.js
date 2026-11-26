@@ -78,3 +78,23 @@ test('a label is read, written back as it was, and a bad one is kept as another 
   assert.equal(again(odd), odd);
   assert.equal(figure.fromBlock(odd.match(pattern)).label, undefined);
 });
+
+test('a caption may hold citations and maths, kept exactly as written (Randal, 26 Nov 2026)', () => {
+  const line = '{figure media/image1.png | alt:"A curve" | label:fig:1 | caption:"Sample size against $p \\ge 0.10$ and $\\frac{a}{b}$ {cite guest-2006 | note:"Guest et al. 2006" | locator:3}." | credit:"A \\"quoted\\" credit"}';
+  const re = new RegExp(figure.pattern.source, 'm');
+  const m = line.match(re);
+  assert.ok(m, 'the line is a figure even with braces inside');
+  const d = figure.fromBlock(m);
+  assert.equal(d.caption, 'Sample size against $p \\ge 0.10$ and $\\frac{a}{b}$ {cite guest-2006 | note:"Guest et al. 2006" | locator:3}.',
+    'the citation and the maths come through as written: no escapes undone, no pipe split');
+  assert.equal(d.credit, 'A "quoted" credit', 'outside markers and maths, escapes work as before');
+  assert.equal(d.label, 'fig:1');
+  assert.equal(figure.toBlock(d), line, 'written back byte for byte');
+  assert.equal(figure.toBlock(figure.fromBlock(figure.toBlock(d).match(re))), line, 'a second pass changes nothing');
+  const fresh = build({ src: 'a.png', alt: 'x', caption: 'Costs $5 and $10, see {cite bell-1992-ritual | note:"Bell 1992"} and $x^{2}$.' });
+  assert.equal(fresh, '{figure a.png | alt:"x" | caption:"Costs $5 and $10, see {cite bell-1992-ritual | note:"Bell 1992"} and $x^{2}$."}',
+    'from the form: markers and maths go in as they are; "$5 and $10" is money, not maths');
+  assert.equal(parse(fresh.slice(8, -1)).caption, 'Costs $5 and $10, see {cite bell-1992-ritual | note:"Bell 1992"} and $x^{2}$.');
+  assert.equal(build({ src: 'a.png', alt: 'x', caption: 'a \\ b "c"' }), '{figure a.png | alt:"x" | caption:"a \\\\ b \\"c\\""}', 'plain text is escaped as before');
+  assert.ok(!re.test('{figure a.png | caption:"{{{deep}}}"}'), 'braces nest two deep at most; deeper stays text, unchanged');
+});
