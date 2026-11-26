@@ -89,7 +89,10 @@ test('citations typed by hand are found; markers, code, and bare years are not',
   const r = findHandTyped(text, processImportRequest);
   assert.equal(r.count, 2);
   assert.deepEqual(r.examples, ['(Bell, 1992, p. 94)', 'Turner (1969)']);
-  assert.deepEqual(findHandTyped('Nothing here {cite bell-1992-ritual}.', processImportRequest), { count: 0, examples: [] });
+  assert.equal(findHandTyped('Nothing here {cite bell-1992-ritual}.', processImportRequest).count, 0);
+  const mixed = findHandTyped('The bound (Eq. 1; Bell, 1992), and $(Mason, 2010)$ in maths.', processImportRequest);
+  assert.deepEqual([mixed.count, mixed.unreadable, mixed.unreadableExamples], [0, 1, ['(Eq. 1; Bell, 1992)']],
+    'a reference and a citation in one pair of brackets is named for fixing by hand; maths is never a citation');
   assert.equal(findHandTyped(source, processImportRequest).count, 7, 'the import sample: seven, before importing');
   assert.equal(findHandTyped(p.source, processImportRequest).count, 1, 'after importing: only the one with no reference');
 });

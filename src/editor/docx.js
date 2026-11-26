@@ -284,7 +284,7 @@ export async function docxToMarkdown(bytes, { parseXML = s => new DOMParser().pa
   if (lost.images) notes.push(`${lost.images} image${lost.images === 1 ? '' : 's'} inside text (add ${lost.images === 1 ? 'it' : 'them'} with Figure)`);
   if (figLabelled.length) checks.push(`figure numbers ${figLabelled.join(', ')} became labels (fig:${figLabelled[0]}…)`);
   if (noAlt.length) checks.push(`figure${noAlt.length === 1 ? '' : 's'} ${noAlt.join(', ')} need${noAlt.length === 1 ? 's' : ''} alt text: say what ${noAlt.length === 1 ? 'it shows' : 'each shows'}, with Edit`);
-  if (leftInCitations.length) checks.push(`${leftInCitations.length} mention${leftInCitations.length === 1 ? '' : 's'} such as "${leftInCitations[0]}" inside a typed citation ${leftInCitations.length === 1 ? 'is' : 'are'} left for Import citations`);
+  if (leftInCitations.length) checks.push(`${leftInCitations.length} mention${leftInCitations.length === 1 ? '' : 's'} such as "${leftInCitations[0]}" ${leftInCitations.length === 1 ? 'shares' : 'share'} brackets with a typed citation: rewrite ${leftInCitations.length === 1 ? 'it' : 'them'} by hand (neither a reference nor Import citations can take ${leftInCitations.length === 1 ? 'it' : 'them'} apart)`);
   if (labelled.length) checks.push(`equation numbers ${labelled.join(', ')} became labels (eq:${labelled[0]}…)`);
   if (asText.length) checks.push(`equation${asText.length === 1 ? '' : 's'} ${asText.join(', ')} ${asText.length === 1 ? 'is' : 'are'} typed as text, not as Word maths: retype ${asText.length === 1 ? 'it' : 'them'} with Equation`);
   if (lost.unknownMaths.size) checks.push(`maths the editor doesn't know (${[...lost.unknownMaths].join(', ')}) kept as text: check those equations`);

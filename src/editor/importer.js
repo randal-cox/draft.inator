@@ -81,12 +81,21 @@ export function inMaths(text) {
   return c => maths.some(m => c.start < m.end && c.end > m.start);
 }
 
+// Brackets cite.inator found but couldn't read as a citation, such as "(Eq. 1; Bell, 1992)": a reference and a
+// citation together. It leaves them as typed and says so (import-unparsed-author-date); so does draft.inator, for a
+// person to fix by hand, rather than letting them pass in silence. Inside maths they're not citations at all.
+export function unreadableIn(analysis, touches = () => false) {
+  return (analysis?.diagnostics || []).filter(d => d.code === 'import-unparsed-author-date' && Number.isInteger(d.start) && !touches({ start: d.start, end: d.end }));
+}
+
 export function findHandTyped(text, process, { keyword = citationKeyword() } = {}) {
   if (!process || !text || !/\(|\d{4}/.test(text)) return { count: 0, examples: [] };
+  const unreadable = new Map();   // what cite.inator saw but couldn't read as a citation: by its words
   const found = style => {
     try {
       const a = process({ mode: 'document', source: text, style, citationKeyword: keyword, namespace: 'draft-check', limits: { references: 300 } });
       const touches = inMaths(text);
+      for (const d of unreadableIn(a, touches)) unreadable.set(d.start, d.raw);
       return (a.review?.matches || []).filter(m => !touches(m.citation));
     } catch { return []; }
   };
@@ -94,7 +103,8 @@ export function findHandTyped(text, process, { keyword = citationKeyword() } = {
   let matches = found('auto');
   if (!matches.length) matches = [found('apa'), found('chicago-author-date')].sort((x, y) => y.length - x.length)[0];
   const raws = matches.map(m => m.citation.raw.replace(/\s+/g, ' '));
-  return { count: raws.length, examples: [...new Set(raws)].slice(0, 3) };
+  const hard = [...unreadable.values()].map(r => r.replace(/\s+/g, ' '));
+  return { count: raws.length, examples: [...new Set(raws)].slice(0, 3), unreadable: hard.length, unreadableExamples: [...new Set(hard)].slice(0, 2) };
 }
 
 /**
@@ -208,7 +218,7 @@ export function openImport(editor, options) {
   const opener = document.activeElement;   // focus goes back here, however the dialog closes
   const memory = editor.memory || new Map();
   const remember = m => `${m.citation.raw}\u0000${citationContext(analysed, m.citation.start, m.citation.end).before.slice(-40)}`;
-  let style = options.style || 'auto', analysed = null, context = null, matches = [], chosen = [], siteChoice = {}, hid = [];
+  let style = options.style || 'auto', analysed = null, context = null, matches = [], chosen = [], siteChoice = {}, hid = [], unreadable = [];
 
   const title = el('h2', { text: 'Import citations', tabindex: '-1' });
   const intro = el('p', { class: 'hint', text: 'Finds citations such as (Bell, 1992) and the reference list in this article, and turns the ones you accept into citations of works. Anything you leave stays as written.' });
@@ -263,6 +273,7 @@ export function openImport(editor, options) {
     context.result = a;
     matches = a.review.matches;
     const touches = inMaths(analysed);
+    unreadable = unreadableIn(a, touches);
     hid = matches.map(m => touches(m.citation));   // inside maths: never shown, never converted
     // A unique match is proposed (selected, visibly, and changeable); anything else waits for the writer.
     // A choice per work: a record id, null (leave as written), or undefined (not decided yet). What's probably right is
@@ -295,7 +306,15 @@ export function openImport(editor, options) {
     const attention = el('ol', { class: 'di-import-list' }), probable = el('ol', { class: 'di-import-list' });
     secAttention.body.replaceChildren(attention); secProbable.body.replaceChildren(probable);
     const nAttention = matches.filter((m, i) => !hid[i] && !isProbablyRight(m)).length;
-    secAttention.box.hidden = !nAttention; secAttention.box.open = true;
+    secAttention.box.hidden = !nAttention && !unreadable.length; secAttention.box.open = true;
+    // What couldn't be read as a citation: shown, never converted, and left for the writer to rewrite by hand.
+    for (const d of unreadable) {
+      const { before, after } = citationContext(analysed, d.start, d.end);
+      const quote = el('p', { class: 'di-import-context' });
+      quote.innerHTML = `${esc(before)}<mark>${esc(d.raw)}</mark>${esc(after)}`;
+      attention.append(el('li', { class: 'di-import-row di-import-unreadable' }, [quote,
+        el('p', { class: 'hint', text: 'This can\'t be read as a citation, so it stays as typed. Rewrite it by hand: a reference such as "Eq. 1" becomes {ref eq:1}, and the work is cited with Citation.' })]));
+    }
     secProbable.box.hidden = nAttention === matches.filter((m, i) => !hid[i]).length; secProbable.box.open = !nAttention;
     matches.forEach((m, i) => {
       if (hid[i]) return;
@@ -445,7 +464,7 @@ export function openImport(editor, options) {
     const nProbable = matches.filter((m, i) => !hid[i] && isProbablyRight(m)).length;
     const nHid = hid.filter(Boolean).length, nShown = matches.length - nHid;
     const left = k => (k ? `${k} to decide` : 'all decided ✓');
-    secAttention.count.textContent = left(attentionLeft);
+    secAttention.count.textContent = left(attentionLeft) + (unreadable.length ? ` · ${unreadable.length} to fix by hand` : '');
     secSite.count.textContent = `${siteTotal} work${siteTotal === 1 ? '' : 's'} · ${left(siteLeft)}`;
     secProbable.count.textContent = `${nProbable} citation${nProbable === 1 ? '' : 's'}${changed ? ` · ${changed} changed` : ' · all selected ✓'}`;
     matches.forEach((m, i) => { if (!hid[i]) memory.set(remember(m), chosen[i].slice()); });

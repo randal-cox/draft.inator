@@ -51,7 +51,7 @@ test('proposed references: Eq. 1 and Figure 1 in prose; not inside maths, the fi
   const { markdown, proposals, checks } = await run();
   assert.deepEqual(proposals.map(p => [p.text, p.replacement, p.owner]), [['Eq. 1', '{ref eq:1}', 'ref'], ['Figure 1', '{ref fig:1}', 'ref']]);
   for (const p of proposals) assert.equal(markdown.slice(p.start, p.end), p.text);
-  assert.ok(checks.some(n => /1 mention such as "Eq\. 1" inside a typed citation is left for Import citations/.test(n)));
+  assert.ok(checks.some(n => /1 mention such as "Eq\. 1" shares brackets with a typed citation: rewrite it by hand/.test(n)));
 });
 
 test('the Figure block reads the imported figure, and writes it back unchanged', async () => {

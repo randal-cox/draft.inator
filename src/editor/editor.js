@@ -843,14 +843,15 @@ export function mountEditor(root, options = {}) {
     Object.assign(typed, found);
     if (typed.acceptedLeft && typed.count <= typed.acceptedLeft) typed.override = true;
     if (typedPolicy === 'require') typed.override = false;   // leaving some as typed in an import doesn't count either
-    const n = typed.count;
-    typedBar.hidden = !n;
-    if (!n) { showSaveBlocked(); return; }
+    const n = typed.count, hard = typed.unreadable || 0;
+    const hardText = hard ? ` ${hard === 1 ? 'One more' : hard + ' more'}, such as ${typed.unreadableExamples[0]}, can't be read as ${hard === 1 ? 'a citation' : 'citations'}: rewrite ${hard === 1 ? 'it' : 'them'} by hand.` : '';
+    typedBar.hidden = !n && !hard;
+    if (!n) { typedText.textContent = hardText.trim(); typedAnyway.hidden = true; showSaveBlocked(); return; }
     const one = n === 1, ex = typed.examples;
     const list = ex.length > 2 ? ex.slice(0, -1).join(', ') + ', and ' + ex[ex.length - 1] : ex.join(' and ');
     typedText.textContent = (one ? `1 citation is typed by hand: ${list}. It isn't linked to a work, so readers won't get a real citation or endnote.`
       : `${n} citations are typed by hand, such as ${list}. They aren't linked to works, so readers won't get real citations or endnotes.`) +
-      (!typedHolds ? ` Import ${one ? 'it' : 'them'} to fix this.` : typed.override ? ` You chose to save without importing ${one ? 'it' : 'them'}.` : ` Import ${one ? 'it' : 'them'} before saving.`);
+      (!typedHolds ? ` Import ${one ? 'it' : 'them'} to fix this.` : typed.override ? ` You chose to save without importing ${one ? 'it' : 'them'}.` : ` Import ${one ? 'it' : 'them'} before saving.`) + hardText;
     typedAnyway.hidden = typedPolicy !== 'block' || typed.override;   // never offered under 'require'
     showSaveBlocked();
   }
