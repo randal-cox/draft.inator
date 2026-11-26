@@ -51,7 +51,8 @@ mountEditor(document.getElementById('editor'), {
   citations: { compileHTML, cache: structuredClone(siteCache), citationStyle: 'chicago-author-date' },
   // Cite from Zotero (cite.inator's manager module). The demo answers for Zotero with a small made-up library
   // (zotero-sample.mjs; key samplesamplesamplesample); a site passes nothing here and the real api.zotero.org is used.
-  zotero: { manager, fetch: sampleFetch },
+  // ?zotero=real uses the real api.zotero.org (your own key, kept in the tab only).
+  zotero: { manager, ...(new URLSearchParams(location.search).get('zotero') === 'real' ? {} : { fetch: sampleFetch }) },
   math: { katex },   // LaTeX maths as MathML; numbered equations and figures, and {ref …}   // formatted, with endnotes
   importer: {
     process: processImportRequest,
