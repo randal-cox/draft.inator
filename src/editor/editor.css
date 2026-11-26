@@ -356,3 +356,15 @@
 /* The preview catching up with a long article. */
 .di-editor .di-article.di-updating { opacity: .72; transition: opacity .15s .1s; }
 .di-ask { max-width: 32rem; }
+
+/* Working signs: a small spinner beside "Bringing in …" and "Updating the preview…". Still for reduced motion. */
+.di-editor .di-spinner { display: inline-block; width: .85em; height: .85em; margin-right: .4em; vertical-align: -.1em;
+  border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: di-spin .8s linear infinite; opacity: .8; }
+.di-editor .di-done.di-busy > span:first-child::before { content: ''; display: inline-block; width: .85em; height: .85em; margin-right: .5em;
+  vertical-align: -.1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: di-spin .8s linear infinite; }
+.di-editor .di-done.di-busy .di-typed-actions { visibility: hidden; }
+.di-editor .di-busy-note { color: var(--di-muted); }
+@keyframes di-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .di-editor .di-spinner, .di-editor .di-done.di-busy > span:first-child::before { animation: none; border-right-color: currentColor; opacity: .5; }
+}

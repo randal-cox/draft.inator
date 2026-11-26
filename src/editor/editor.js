@@ -267,7 +267,9 @@ export function mountEditor(root, options = {}) {
   readPane.append(note);
   const panes = el('div', { class: 'di-panes' }, [el('div', { class: 'di-pane di-write' }, [source]), readPane]);
   const counts = el('span'), saved = el('span'), live = el('span', { class: 'di-sr', role: 'status', 'aria-live': 'polite' });
-  const status = el('div', { class: 'di-status' }, [counts, saved, live]);
+  // A small working sign: the preview catching up with a long article, or a file being brought in.
+  const updating = el('span', { class: 'di-busy-note', hidden: true }, [el('span', { class: 'di-spinner', 'aria-hidden': 'true' }), document.createTextNode('Updating the preview…')]);
+  const status = el('div', { class: 'di-status' }, [counts, updating, saved, live]);
   const exitPlain = el('button', { type: 'button', class: 'di-exit-plain', text: 'Leave plain (Esc)', hidden: true });
   const recoverText = el('span'), recoverButton = el('button', { type: 'button', class: 'di-primary', text: 'Restore them' });
   const discardButton = el('button', { type: 'button', class: 'di-quiet', text: 'Discard' });
@@ -329,7 +331,7 @@ export function mountEditor(root, options = {}) {
   function renderSoon() {
     clearTimeout(renderTimer);
     if (renderCost < 60 && source.value.length < 12000) { render(); return; }
-    preview.classList.add('di-updating'); preview.setAttribute('aria-busy', 'true');
+    preview.classList.add('di-updating'); preview.setAttribute('aria-busy', 'true'); updating.hidden = false;
     renderTimer = setTimeout(render, Math.min(900, 150 + renderCost / 2));
   }
   function render() {
@@ -350,7 +352,7 @@ export function mountEditor(root, options = {}) {
       (unresolved ? ` · ${unresolved} unresolved` : '') + (fix.length ? ` · ${fix.length} to fix` : '');
     counts.title = fix.map(d => d.message).join('\n');
     counts.classList.toggle('di-counts-warn', unresolved > 0 || fix.length > 0);
-    preview.classList.remove('di-updating'); preview.removeAttribute('aria-busy');
+    preview.classList.remove('di-updating'); preview.removeAttribute('aria-busy'); updating.hidden = true;
     renderCost = performance.now() - started;
   }
 
@@ -429,7 +431,8 @@ export function mountEditor(root, options = {}) {
       pick.addEventListener('change', async () => {
         const file = pick.files[0]; pick.remove();
         if (!file) return;
-        doneText.textContent = `Bringing in ${file.name}…`; doneBar.hidden = false; announce(doneText.textContent);
+        doneText.textContent = `Bringing in ${file.name}…`; doneBar.hidden = false; doneBar.classList.add('di-busy'); announce(doneText.textContent);
+        const shownAt = performance.now();
         await new Promise(r => setTimeout(r, 30));   // let the message show before the work starts
         let markdown, notes = [], equations = 0;
         try {
@@ -438,11 +441,13 @@ export function mountEditor(root, options = {}) {
             ({ markdown, notes, equations } = await docxToMarkdown(await file.arrayBuffer()));
           } else if (/\.(md|markdown|txt)$/i.test(file.name) || /^text\//.test(file.type)) markdown = await file.text();
           else throw new Error('The editor opens Word (.docx), Markdown, and text files.');
-        } catch (e) { doneText.textContent = `${file.name} couldn't be opened: ${e.message}`; doneBar.hidden = false; announce(doneText.textContent); return; }
+        } catch (e) { doneBar.classList.remove('di-busy'); doneText.textContent = `${file.name} couldn't be opened: ${e.message}`; doneBar.hidden = false; announce(doneText.textContent); return; }
+        doneBar.classList.remove('di-busy');   // waiting on the writer's choice, not on work
         const empty = !source.value.trim();
         // An article with text in it: ask whether the file replaces it or goes in at the cursor.
         const how = empty ? 'replace' : await askHow(file.name, equations);
         if (!how) { doneText.textContent = `${file.name} wasn't brought in.`; announce(doneText.textContent); return; }
+        doneBar.classList.add('di-busy');
         const all = how === 'replace';
         const at = all ? 0 : source.selectionStart, end = all ? source.value.length : source.selectionEnd;
         // Its own paragraphs: a blank line before and after, unless the article already has one there.
@@ -452,6 +457,9 @@ export function mountEditor(root, options = {}) {
         if (before && !/\n\n$/.test(before)) markdown = (/\n$/.test(before) ? '\n' : '\n\n') + markdown;
         markdown += after ? (/^\n\n/.test(after) ? '' : /^\n/.test(after) ? '\n' : '\n\n') : '\n';
         replace(at, end, markdown, [0, 0]);
+        // Long enough to be seen: a sign that flashes for a few milliseconds reads as a glitch, not as work.
+        await new Promise(r => setTimeout(r, Math.max(0, 350 - (performance.now() - shownAt))));
+        doneBar.classList.remove('di-busy');
         doneText.textContent = `${file.name} brought in${equations ? `, with ${equations} equation${equations === 1 ? '' : 's'}` : ''}.` +
           (notes.length ? ` Not carried over: ${notes.join('; ')}.` : '') + ' Undo takes it out again.';
         doneBar.hidden = false; announce(doneText.textContent); checkTyped();

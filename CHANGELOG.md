@@ -17,7 +17,8 @@
   cursor; a message shows while it reads; Google Docs' equation lines (with "(Eq 3)") come in as displayed, labelled
   equations. A long article's preview now catches up after typing pauses instead of on every keystroke (a 32,000-character
   paper took about 3 seconds per change; now 0.3 seconds to open and 4 ms per keystroke). Citations in the preview
-  show their reference on hover.
+  show their reference on hover. A small spinner shows while a file is brought in ("Bringing in BEST.docx…", held
+  long enough to be seen) and while a long preview catches up ("Updating the preview…"); still for reduced motion.
 - **`draft-inator migrate` names each line to check** (`file:line:column`); 0.4.0 printed `undefined:undefined`.
 - **Replacing a work doesn't carry the old work's options** (Theandra's point on #40; a bug in 0.4.0). When a
   writer changes the work a citation points to, the old work's page and other options are set aside and shown, with
