@@ -354,6 +354,7 @@ export function mountEditor(root, options = {}) {
     counts.classList.toggle('di-counts-warn', unresolved > 0 || fix.length > 0);
     preview.classList.remove('di-updating'); preview.removeAttribute('aria-busy'); updating.hidden = true;
     renderCost = performance.now() - started;
+    if (document.activeElement === source) followCaret();
   }
 
   // ---------- Editing text ----------
@@ -620,12 +621,54 @@ export function mountEditor(root, options = {}) {
     announce('Back to the sample article.');
   });
 
-  // ---------- Scroll the preview with the writing ----------
-  source.addEventListener('scroll', () => {
+  // ---------- Keep the preview with the writing ----------
+  // The preview shows the paragraph being written: where the cursor is (clicked, typed, or moved), centred, or, when
+  // the text is scrolled, the paragraph at the top of the text. Paragraphs are matched by their words, and equations
+  // and figures by their order, so a long article with tall equations, figures, and endnotes stays in step.
+  const words = t => (t.replace(/\{[^}]*\}|\$\$[\s\S]*?\$\$|\$[^$\n]*\$|<[^>]+>|\[([^\]]*)\]\([^)]*\)/g, ' $1 ')
+    .toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || []);
+  function previewTarget(at) {
+    const text = source.value;
+    const start = Math.max(0, text.lastIndexOf('\n\n', at - 1) + 2), stop = text.indexOf('\n\n', at);
+    const block = text.slice(start, stop < 0 ? text.length : stop);
+    const nth = (re, sel) => { const n = (text.slice(0, start).match(re) || []).length; return preview.querySelectorAll(sel)[n] || null; };
+    if (/^\s*\$\$/.test(block)) return nth(/(^|\n)\s*\$\$[\s\S]*?\$\$/g, '.di-equation');
+    if (/^\s*\{figure\b/.test(block)) return nth(/(^|\n)\s*\{figure\b/g, 'figure');
+    const want = words(block).slice(0, 8);
+    if (!want.length) return null;
+    // The element whose words start the same way; among several, the one nearest where it would be by position.
+    const els = [...preview.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, blockquote, figcaption, td, dt, dd')];
+    const fits = els.filter(e => { const w = words(e.textContent); return want.slice(0, 4).every((x, i) => w[i] === x); });
+    if (!fits.length) return null;
+    const guess = (at / Math.max(1, text.length)) * preview.scrollHeight;
+    return fits.sort((x, y) => Math.abs(x.offsetTop - guess) - Math.abs(y.offsetTop - guess))[0];
+  }
+  let followTimer, followQuietUntil = 0, caretMovedAt = 0;
+  function follow(at, where) {
     const l = root.dataset.layout;
     if (l === 'write' || l === 'preview') return;
-    const max = source.scrollHeight - source.clientHeight;
-    if (max > 0) readPane.scrollTop = (source.scrollTop / max) * (readPane.scrollHeight - readPane.clientHeight);
+    const t = previewTarget(at);
+    if (!t) return;
+    const pane = readPane.getBoundingClientRect(), r = t.getBoundingClientRect();
+    if (where === 'center' && r.top >= pane.top + 24 && r.bottom <= pane.bottom - 24) return;   // already in view: leave it
+    const offset = where === 'center' ? (pane.height - Math.min(r.height, pane.height)) / 2 : 16;
+    followQuietUntil = Date.now() + 400;
+    readPane.scrollTop += r.top - pane.top - offset;
+    t.classList.remove('di-here'); void t.offsetWidth; t.classList.add('di-here');
+  }
+  const followCaret = () => { caretMovedAt = Date.now(); clearTimeout(followTimer); followTimer = setTimeout(() => follow(source.selectionStart, 'center'), 120); };
+  for (const ev of ['click', 'keyup', 'mousedown']) source.addEventListener(ev, followCaret);
+  source.addEventListener('scroll', () => {
+    // Scrolling the cursor into view (after a click, typing, or a jump) is the cursor's doing: it's followed already.
+    if (Date.now() < followQuietUntil || Date.now() - caretMovedAt < 500 || document.activeElement === source && source.selectionStart !== source.selectionEnd) return;
+    clearTimeout(followTimer);
+    followTimer = setTimeout(() => {
+      // The first character at the top of the text: measured by the share scrolled, then to the start of its line.
+      const share = source.scrollTop / Math.max(1, source.scrollHeight - source.clientHeight);
+      const at = source.scrollTop <= 0 ? 0 : Math.round(share * source.value.length);
+      if (at === 0) { readPane.scrollTop = 0; return; }
+      follow(at, 'top');
+    }, 60);
   });
 
   // ---------- Uploads kept in this browser ----------

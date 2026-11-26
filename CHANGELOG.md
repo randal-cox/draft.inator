@@ -19,6 +19,9 @@
   paper took about 3 seconds per change; now 0.3 seconds to open and 4 ms per keystroke). Citations in the preview
   show their reference on hover. A small spinner shows while a file is brought in ("Bringing in BEST.docx…", held
   long enough to be seen) and while a long preview catches up ("Updating the preview…"); still for reduced motion.
+- **The preview follows the cursor** (Randal): click or type, and the same passage comes into view in the preview,
+  matched by its words (equations and figures by their order); scrolling the text brings the passage at its top. A
+  long paper no longer drifts out of step.
 - **Displayed equations are indented, with their numbers flush right** (Randal): `--di-eq-indent` and `--di-eq-align`
   change it.
 - **`draft-inator migrate` names each line to check** (`file:line:column`); 0.4.0 printed `undefined:undefined`.

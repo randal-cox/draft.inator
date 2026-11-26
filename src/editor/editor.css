@@ -371,3 +371,8 @@
 @media (prefers-reduced-motion: reduce) {
   .di-editor .di-spinner, .di-editor .di-done.di-busy > span:first-child::before { animation: none; border-right-color: currentColor; opacity: .5; }
 }
+
+/* The paragraph the cursor is in, shown briefly in the preview when the preview moves to it. */
+.di-editor .di-article .di-here { animation: di-here 1.2s ease-out; border-radius: 3px; }
+@keyframes di-here { from { background: var(--di-mark); } to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .di-editor .di-article .di-here { animation: none; } }

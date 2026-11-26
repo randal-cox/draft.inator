@@ -170,6 +170,11 @@ nothing is sent anywhere. Turn the button off with `openFiles: false`.
 
 ## Formatted citations in the preview
 
+The preview keeps to what's being written: click or type anywhere and the same passage is brought into view in the
+preview (centred, and briefly marked), matched by its words, or for equations and figures by their order; scroll the
+text and the preview shows the passage at its top. It stays in step in a long article, where tall equations,
+figures, and endnotes would put a simple proportional scroll out of step.
+
 Each formatted citation shows its reference on hover (its `title`), since the site's own citation panel isn't loaded
 in the editor. A long article's preview catches up just after typing pauses, dimmed while it does, so typing never waits
 for it; a short one is drawn at once.
